@@ -1,7 +1,7 @@
 from zipa_sys import ZIPA_System
 
-IP = "192.168.1.8"        # <--- device's ip address goes here
-OTHER_IP = "192.168.1.10"  # <--- other device's ip address goes here
+IP = "192.168.2.1"        # <--- device's ip address goes here
+OTHER_IP = "192.168.2.2"  # <--- other device's ip address goes here
 SERVER_IP = "192.168.1.3"
 SAMPLE_RATE = 44100
 SECONDS = 8
