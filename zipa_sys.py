@@ -27,7 +27,7 @@ class ZIPA_System():
         bit_file_name = root_file_name + "_bits_id" + str(self.identifier) + "_it" + str(self.count) + ".txt"
         np.savetxt(signal_file_name, signal)
         with open(bit_file_name, "w") as text_file:
-            test_file.write(bits)
+            text_file.write(bits)
  
     def extract_context(self):
         print()
