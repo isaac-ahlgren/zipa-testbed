@@ -24,9 +24,10 @@ class ZIPA_System():
     def send_to_nfs_server(self, signal_type, signal, bits, meta_data):
         root_file_name = self.nfs_server_dir + "/" + signal_type
         signal_file_name = root_file_name + "_signal_id" + str(self.identifier) + "_it" + str(self.count) + ".csv"
-        bit_file_name = root_file_name + "_bits_id" + str(self.identifier) + "_it" + str(self.count) + ".csv"
+        bit_file_name = root_file_name + "_bits_id" + str(self.identifier) + "_it" + str(self.count) + ".txt"
         np.savetxt(signal_file_name, signal)
-        np.savetxt(bit_file_name, bits)
+        with open(bit_file_name, "w") as text_file:
+            test_file.write(bits)
  
     def extract_context(self):
         print()
