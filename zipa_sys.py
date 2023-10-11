@@ -1,4 +1,4 @@
-from network import Ad_Hoc_Network, Uplink_Network
+from network import Ad_Hoc_Network
 from corrector import Reed_Solomon
 from galois import *
 from shurmann import sigs_algo
@@ -34,7 +34,7 @@ class ZIPA_System():
         signal = self.signal_measurement.get_audio()
         bits = sigs_algo(signal)
         print()
-        return bit, signal
+        return bits, signal
 
     def bit_agreement_exp_dev(self): 
         while (1):
