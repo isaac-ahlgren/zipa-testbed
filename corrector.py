@@ -40,7 +40,10 @@ class Reed_Solomon:
 
         # Multply
         C = self.PA.mult(key, g)
-
+        print(C)
+        print(len(C.coeffs))
+        print(random_coeffs)
+        print(len(random_coeffs))
         for i in range(len(C.coeffs)):
             C.coeffs[i] ^= random_coeffs[i]
         return key, C

@@ -1,3 +1,4 @@
+import numpy as np
 
 def sigs_algo(x1,window_len=10000, bands=1000):
     FFTs = []

@@ -3,7 +3,7 @@ import numpy as np
 import wave
 
 class Microphone:
-    def __init__(self, sample_rate, buffer_size, source_name):
+    def __init__(self, sample_rate, buffer_size):
         self.format = pyaudio.paFloat32
         self.sample_rate = sample_rate
         self.pyaud = pyaudio.PyAudio()

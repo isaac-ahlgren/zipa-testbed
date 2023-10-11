@@ -2,6 +2,7 @@ from network import Network
 from corrector import Reed_Solomon
 from galois import *
 from shurmann import sigs_algo
+from microphone import Microphone
 import time
 import sys
 import numpy as np
@@ -38,13 +39,13 @@ class ZIPA_System():
             bits = self.extract_context()
 
             # Send bits to compare agreement rate
-            self.net.send_bits(key)
+            self.net.send_bits(bits)
 
             # Wait for Codeword
             C = self.net.get_codeword(8192)
 
             # Decode Codeword
-            dec_C = self.re.decode_message(C, key)
+            dec_C = self.re.decode_message(C, bits)
 
             # Send Authentication Token
             self.net.send_auth_token(dec_C)
@@ -61,10 +62,10 @@ class ZIPA_System():
             bits = self.extract_context()
 
             # Recieve bits to compare agreement rate
-            other_bits = self.net.get_bits(len(key))
+            other_bits = self.net.get_bits(len(bits))
 
             # Create Codeword
-            auth_tok, C = self.re.encode_message(key)
+            auth_tok, C = self.re.encode_message(bits)
   
             # Sending Codeword
             self.net.send_codeword(C)

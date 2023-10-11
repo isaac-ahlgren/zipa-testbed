@@ -1,4 +1,5 @@
 import socket
+import pickle
 
 class Network:
     def __init__(self, ip, other_ip, is_host):
@@ -14,7 +15,7 @@ class Network:
             self.personal_sock.bind((ip, 5005))
             self.personal_sock.listen()
             (client_sock, addr) = self.personal_sock.accept()
-            self.client_sock = client_soc
+            self.client_sock = client_sock
             self.client_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             print("Connection Made!")
         else:
