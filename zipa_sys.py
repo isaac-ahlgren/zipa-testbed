@@ -39,7 +39,7 @@ class ZIPA_System():
 
     def bit_agreement_exp_dev(self): 
         while (1):
-            print("Iteration " str(self.count))
+            print("Iteration " + str(self.count))
 
             # Wait for start from host
             self.net.get_start()
