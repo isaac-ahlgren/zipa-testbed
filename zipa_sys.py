@@ -62,6 +62,8 @@ class ZIPA_System():
 
             self.send_to_nfs_server("audio", signal, bits, None)
 
+            self.count += 1
+
     def bit_agreement_exp_host(self):
         while (1):
             # Send start to device
@@ -86,4 +88,6 @@ class ZIPA_System():
             other_auth_tok = self.net.get_auth_token(8192)
 
             self.send_to_nfs_server("audio", signal, bits, None)
+
+            self.count += 1
 
