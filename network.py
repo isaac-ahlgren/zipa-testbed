@@ -1,27 +1,6 @@
 import socket
 import pickle
 
-class Uplink_Network:
-    def __init__(self, server_ip):
-        self.server_ip = server_ip
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.sock.connect((server_ip, 5005))
-
-   def send_packet(self, device_id, signal_type, iteration, signal, bits):
-       p_device_id = pickle.dumps(device_id)
-       p_signal_type = pickle.dumps(signal_type)
-       p_signal_len = pickle.dumps(len(signal))
-       p_bit_len = pickle_dumps(len(bits))
-       p_iteration = pickle.dumps(iteration)
-       p_signal = pickle.dumps(signal)
-       p_bits = pickle.dumps(bits)
-
-       packet = p_device_id + p_signal_type + p_signal_len + p_bit_len + p_iteration + p_signal + p_bits
-       self.sock.sendto(packet)
-
 class Ad_Hoc_Network:
     def __init__(self, ip, other_ip, is_host):
         self.ip = ip
