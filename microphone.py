@@ -9,29 +9,12 @@ class Microphone:
         self.pyaud = pyaudio.PyAudio()
         self.buffer_size = buffer_size
         self.chunk_size = buffer_size
-        self.source_name = source_name
-
-        device_index = -1
-        info = self.pyaud.get_host_api_info_by_index(0)
-        numdevices = info.get('deviceCount')
-        for i in range(0, numdevices):
-            if (self.pyaud.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')) > 0:
-                print("Input Device id ", i, " - ", self.pyaud.get_device_info_by_host_api_device_index(0, i).get('name'))
-                if source_name in self.pyaud.get_device_info_by_host_api_device_index(0, i).get('name'):
-                    device_index = i
-                    break
-
-        if device_index == -1:
-            print("ERROR: Couldn't find audio device " + source_name)
-            exit(-1)
-
         self.stream = self.pyaud.open(format=self.format,
                                   channels=1,
                                   rate=sample_rate,
                                   input=True,
                                   frames_per_buffer=self.chunk_size,
-                                  stream_callback=self.get_callback(),
-                                  input_device_index=device_index)
+                                  stream_callback=self.get_callback())
         self.chunks_per_buffer = int(buffer_size/self.chunk_size)
         self.count = 0
         self.buffer_ready = False
@@ -57,10 +40,6 @@ class Microphone:
             if self.buffer_ready:
                 break
         self.buffer = self.ready_buffer[int(len(self.ready_buffer)/4):]
-#        np.save("./pickled/adversary2_audio_" + str(self.count) + ".npy", self.buffer)
-
-        np.savetxt(self.source_name + ".csv", self.buffer, delimiter=",")
-
         self.count += 1
         self.buffer_ready = False
         return self.buffer

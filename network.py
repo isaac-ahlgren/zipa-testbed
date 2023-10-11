@@ -11,10 +11,10 @@ class Network:
         self.personal_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         if is_host:
-            self.personal_sock.bind(ip, 5005)
+            self.personal_sock.bind((ip, 5005))
             self.personal_sock.listen()
             (client_sock, addr) = self.personal_sock.accept()
-            self.client_sock = client_sock
+            self.client_sock = client_soc
             self.client_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             print("Connection Made!")
         else:

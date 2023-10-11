@@ -1,5 +1,4 @@
 
-
 def sigs_algo(x1,window_len=10000, bands=1000):
     FFTs = []
     from scipy.fft import fft, fftfreq, ifft, rfft, irfft
