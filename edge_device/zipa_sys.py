@@ -1,4 +1,4 @@
-from network import Network
+from network import Ad_Hoc_Network, Uplink_Network
 from corrector import Reed_Solomon
 from galois import *
 from shurmann import sigs_algo
@@ -8,12 +8,14 @@ import sys
 import numpy as np
 
 class ZIPA_System():
-    def __init__(self, is_host, ip, other_ip, sample_rate, seconds, exp_name, n, k):
+    def __init__(self, identifier, is_host, ip, other_ip, server_ip, sample_rate, seconds, exp_name, n, k):
+        self.identifier = identifier
         self.ip = ip
         self.other_ip = other_ip
         self.sample_rate = sample_rate
         self.seconds = seconds
-        self.net = Network(ip, other_ip, is_host)
+        self.net = Ad_Hoc_Network(ip, other_ip, is_host)
+        self.server_net = Uplink_Network(server_ip)
         self.signal_measurement = Microphone(sample_rate, int(seconds*sample_rate)) 
         self.re = Reed_Solomon(n, k)
         self.exp_name = exp_name
@@ -25,7 +27,7 @@ class ZIPA_System():
         signal = self.signal_measurement.get_audio()
         bits = sigs_algo(signal)
         print()
-        return bits
+        return bit, signal
 
     def bit_agreement_exp_dev(self): 
         while (1):
@@ -36,7 +38,7 @@ class ZIPA_System():
             self.net.send_ack()
 
             # Extract bits from mic
-            bits = self.extract_context()
+            bits, signal = self.extract_context()
 
             # Send bits to compare agreement rate
             self.net.send_bits(bits)
@@ -50,6 +52,8 @@ class ZIPA_System():
             # Send Authentication Token
             self.net.send_auth_token(dec_C)
 
+            self.server_net(self.identifier, "audio", self.count, signal, bits)
+
     def bit_agreement_exp_host(self):
         while (1):
             # Send start to device
@@ -59,7 +63,7 @@ class ZIPA_System():
             self.net.get_ack()
 
             # Extract key from mic
-            bits = self.extract_context()
+            bits, signal = self.extract_context()
 
             # Recieve bits to compare agreement rate
             other_bits = self.net.get_bits(len(bits))
@@ -72,4 +76,6 @@ class ZIPA_System():
 
             # Recieve Authentication Token
             other_auth_tok = self.net.get_auth_token(8192)
+
+            self.server_net(self.identifier, "audio", self.count, signal, bits)
 

@@ -5,8 +5,8 @@ OTHER_IP = "192.168.1.10"  # <--- other device's ip address goes here
 SAMPLE_RATE = 44100
 VECTOR_NUM = 256
 SECONDS = 8
-N = 16
-K = 4
+N = 
+K = 16
 IS_HOST = True
 EXP_NAME = "test"
 
