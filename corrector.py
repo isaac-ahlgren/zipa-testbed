@@ -1,11 +1,12 @@
 from galois import *
+from cryptoraphy.hazmat.primitives import hashes
 import random
 
 PRIME_POLY = 0b100011101
 GEN_POLY =   0b10000011
 BLOCK_SIZE = 8
 
-class Reed_Solomon:
+class Fuzzy_Commitment:
     def __init__(self, n, k):
         self.n = n
         self.k = k
@@ -14,6 +15,7 @@ class Reed_Solomon:
         self.GF = GaloisField(self.block_size, PRIME_POLY, GEN_POLY)
         self.RS = ReedSolomonObj(self.GF, n, k)
         self.PA = polynomial_arithmetic(self.GF)
+        self.hash = hashes.Hash(hashes.SHA512())
 
     def get_random_coeffs(self, random_bits):
         num_coeffs = int(len(random_bits) / self.block_size)
@@ -24,9 +26,9 @@ class Reed_Solomon:
             random_key_coeff.append(int(sub_bits,2))
         return random_key_coeff
     
-    def encode_message(self, random_bits):
+    def commit_witness(self, witness):
 
-        random_coeffs = self.get_random_coeffs(random_bits)
+        random_coeffs = self.get_random_coeffs(witness)
     
         g = self.RS.get_generator_poly()
 
@@ -40,16 +42,23 @@ class Reed_Solomon:
 
         # Multply
         C = self.PA.mult(key, g)
+
+        # Get hash for codeword
+        h_func = hashes.Hash(hashes.SHA512())
+        h = h_func.update(C.get_bytes).finalize()
+
         print(C)
         print(len(C.coeffs))
         print(random_coeffs)
         print(len(random_coeffs))
+
+        # Commit witness by getting XOR distance between codeword and witness
         for i in range(len(C.coeffs)):
             C.coeffs[i] ^= random_coeffs[i]
-        return key, C
+        return key, h, C
 
-    def decode_message(self, C, random_bits):
-        random_coeffs = self.get_random_coeffs(random_bits)
+    def decommit_witness(self, C, witness, h):
+        random_coeffs = self.get_random_coeffs(witness)
     
         g = self.RS.get_generator_poly()
 
@@ -71,4 +80,13 @@ class Reed_Solomon:
         output = self.RS.correct_found_errors(C,zeros,found_errors)
         output.resize()
 
-        return output
+        # Hashing corrected codeword and checking if pairing is a success
+        h_func = hashes.Hash(hashes.SHA512())
+        check_h = h_func.update(output.get_bytes()).finalize()
+        success = None
+        if check_h == h:
+            success = True
+        else:
+            success = False
+
+        return output, success

@@ -1,4 +1,4 @@
 #!/bin/bash
 
 systemctl daemon-reload
-sudo mount 192.168.1.3:/srv/data /mnt/data
+sudo mount -t nfs -o vers=4 192.168.1.10:/backups /mnt/data

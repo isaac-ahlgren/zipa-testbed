@@ -21,7 +21,9 @@ class polynomial():
             if (len(self.coeffs) < self.size):
                 self.coeffs.append(num)
         
-    
+    def get_bytes(self):
+        return bytes(self.coeffs)
+
     def set_size(self, size):
         self.size = size
 
@@ -35,7 +37,6 @@ class polynomial():
                 zeros.append(i) 
         
         return zeros
-
 
     def resize(self):
         new_coeffs = []

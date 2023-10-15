@@ -37,42 +37,12 @@ class Ad_Hoc_Network:
             if message is not None:
                 break
 
-    def get_bits(self, bit_len):
+    def send_commitment(self, C):
         print()
-        print("Waiting For Bits")
-        print()
-        while (1):
-            message, address = self.client_sock.recvfrom(bit_len)
-            if message is not None:
-                break
-
-        print()
-        print("Bits Recieved")
-        print()
-        bits = message.decode()
-        print(bits)
-        return bits
-
-    def send_codeword(self, C):
-        print()
-        print("Sending Codeword")
+        print("Sending Commitment")
         print()
         pickled_C = pickle.dumps(C)
         self.client_sock.sendto(pickled_C, (self.other_ip, 5005))
-
-    def get_auth_token(self, bytes_needed):
-        print()
-        print("Waiting For Authentication Token")
-        print()
-        while (1):
-            message, address = self.client_sock.recvfrom(bytes_needed)
-            if message is not None:
-                break
-        print()
-        print("Token Recieved")
-        print()
-        token = pickle.loads(message)
-        return token
 
     def get_start(self):
         print()
@@ -89,29 +59,16 @@ class Ad_Hoc_Network:
         print()
         self.personal_sock.sendto("ack".encode(), (self.other_ip, 5005))
 
-    def send_bits(self, bits):
+    def get_commitment(self, bytes_needed):
         print()
-        print("Sending Bits")
-        print()
-        self.personal_sock.sendto(bits.encode(), (self.other_ip, 5005))
-
-    def get_codeword(self, bytes_needed):
-        print()
-        print("Waiting For Codeword")
+        print("Waiting For Commitment")
         print()
         while (1):
             message, address = self.personal_sock.recvfrom(bytes_needed)
             if message is not None:
                 break
         print()
-        print("Codeword Recieved")
+        print("Commitment Recieved")
         print()
         C = pickle.loads(message)
         return C
-
-    def send_auth_token(self, token):
-        print()
-        print("Sending Authentication Token")
-        print()
-        pickled_token = pickle.dumps(token)
-        self.personal_sock.sendto(pickled_token, (self.other_ip, 5005))

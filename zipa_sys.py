@@ -1,5 +1,6 @@
 from network import Ad_Hoc_Network
 from corrector import Reed_Solomon
+from cryptography.hazmat.primitives.hashes import SHA512
 from galois import *
 from shurmann import sigs_algo
 from microphone import Microphone
@@ -48,21 +49,16 @@ class ZIPA_System():
             self.net.send_ack()
 
             # Extract bits from mic
-            bits, signal = self.extract_context()
+            witness, signal = self.extract_context()
 
-            # Send bits to compare agreement rate
-            self.net.send_bits(bits)
+            # Wait for Commitment
+            commitment = self.net.get_commitment(8192)
 
-            # Wait for Codeword
-            C = self.net.get_codeword(8192)
+            # Decommit
+            C, success = self.re.decommit_witness(commitment, witness)
 
-            # Decode Codeword
-            dec_C = self.re.decode_message(C, bits)
-
-            # Send Authentication Token
-            self.net.send_auth_token(dec_C)
-
-            self.send_to_nfs_server("audio", signal, bits, None)
+            # Log all information to NFS server
+            self.send_to_nfs_server("audio", signal, witness, None)
 
             self.count += 1
 
@@ -77,21 +73,16 @@ class ZIPA_System():
             self.net.get_ack()
 
             # Extract key from mic
-            bits, signal = self.extract_context()
+            witness, signal = self.extract_context()
 
-            # Recieve bits to compare agreement rate
-            other_bits = self.net.get_bits(len(bits))
-
-            # Create Codeword
-            auth_tok, C = self.re.encode_message(bits)
+            # Commit Secret
+            secret_key, commitment = self.re.commit_witness(witness)
   
             # Sending Codeword
-            self.net.send_codeword(C)
+            self.net.send_codeword(commitment)
 
-            # Recieve Authentication Token
-            other_auth_tok = self.net.get_auth_token(8192)
-
-            self.send_to_nfs_server("audio", signal, bits, None)
+            # Log all information to NFS server
+            self.send_to_nfs_server("audio", signal, witness, None)
 
             self.count += 1
 
