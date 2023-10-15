@@ -84,7 +84,8 @@ class Fuzzy_Commitment:
 
         # Hashing corrected codeword and checking if pairing is a success
         h_func = hashes.Hash(hashes.SHA512())
-        check_h = h_func.update(output.get_bytes()).finalize()
+        h_func.update(C.get_bytes())
+        check_h = h_func.finalize()
         success = None
         if check_h == h:
             success = True
