@@ -1,6 +1,5 @@
 from network import Ad_Hoc_Network
-from corrector import Reed_Solomon
-from cryptography.hazmat.primitives.hashes import SHA512
+from corrector import Fuzzy_Commitment
 from galois import *
 from shurmann import sigs_algo
 from microphone import Microphone
@@ -18,7 +17,7 @@ class ZIPA_System():
         self.seconds = seconds
         self.net = Ad_Hoc_Network(ip, other_ip, is_host)
         self.signal_measurement = Microphone(sample_rate, int(seconds*sample_rate)) 
-        self.re = Reed_Solomon(n, k)
+        self.re = Fuzzy_Commitment(n, k)
         self.exp_name = exp_name
         self.count = 0
 

@@ -1,13 +1,13 @@
 from zipa_sys import ZIPA_System
 
-ID = 1
-IP = "192.168.1.10"        # <--- device's ip address goes here
-OTHER_IP = "192.168.1.8"  # <--- other device's ip address goes here
+ID = 0
+IP = "192.168.1.8"        # <--- device's ip address goes here
+OTHER_IP = "192.168.1.10"  # <--- other device's ip address goes here
 SAMPLE_RATE = 44100
 SECONDS = 10
 N = 16
 K = 4
-IS_HOST = False
+IS_HOST = True
 EXP_NAME = "test"
 
 if __name__ == "__main__":

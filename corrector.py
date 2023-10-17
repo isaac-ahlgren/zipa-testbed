@@ -1,5 +1,5 @@
 from galois import *
-from cryptoraphy.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes
 import random
 
 PRIME_POLY = 0b100011101
