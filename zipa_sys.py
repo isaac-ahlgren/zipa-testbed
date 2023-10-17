@@ -51,10 +51,10 @@ class ZIPA_System():
             witness, signal = self.extract_context()
 
             # Wait for Commitment
-            commitment = self.net.get_commitment(8192)
+            commitment, h = self.net.get_commitment(8192)
 
             # Decommit
-            C, success = self.re.decommit_witness(commitment, witness)
+            C, success = self.re.decommit_witness(commitment, witness, h)
 
             # Log all information to NFS server
             self.send_to_nfs_server("audio", signal, witness, None)
@@ -75,10 +75,10 @@ class ZIPA_System():
             witness, signal = self.extract_context()
 
             # Commit Secret
-            secret_key, commitment = self.re.commit_witness(witness)
+            secret_key, h, commitment = self.re.commit_witness(witness)
   
             # Sending Codeword
-            self.net.send_codeword(commitment)
+            self.net.send_commitment(commitment, h)
 
             # Log all information to NFS server
             self.send_to_nfs_server("audio", signal, witness, None)

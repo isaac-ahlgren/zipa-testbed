@@ -37,12 +37,14 @@ class Ad_Hoc_Network:
             if message is not None:
                 break
 
-    def send_commitment(self, C):
+    def send_commitment(self, C, h):
         print()
         print("Sending Commitment")
         print()
         pickled_C = pickle.dumps(C)
-        self.client_sock.sendto(pickled_C, (self.other_ip, 5005))
+        pickled_h = pickle.dumps(h)
+        pickles = pickled_C + pickled_h
+        self.client_sock.sendto(pickles, (self.other_ip, 5005))
 
     def get_start(self):
         print()
@@ -70,5 +72,9 @@ class Ad_Hoc_Network:
         print()
         print("Commitment Recieved")
         print()
-        C = pickle.loads(message)
-        return C
+        msg_len = len(message)
+        pickled_C = message[:msg_len-64] # Its sending a 512 bit hash so the last 64 bytes are for that
+        pickled_h = message[msg_len-64:]
+        C = pickle.loads(pickled_C)
+        h = pickle.loads(pickled_h)
+        return C,h

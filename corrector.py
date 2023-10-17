@@ -45,7 +45,9 @@ class Fuzzy_Commitment:
 
         # Get hash for codeword
         h_func = hashes.Hash(hashes.SHA512())
-        h = h_func.update(C.get_bytes).finalize()
+        print(C.get_bytes())
+        h_func.update(C.get_bytes())
+        h = h_func.finalize()
 
         print(C)
         print(len(C.coeffs))
