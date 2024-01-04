@@ -21,13 +21,20 @@ class ZIPA_System():
         self.exp_name = exp_name
         self.count = 0
 
-    def send_to_nfs_server(self, signal_type, signal, bits, meta_data):
+    def send_to_nfs_server(self, signal_type, signal, bits, h, commitment):
         root_file_name = self.nfs_server_dir + "/" + signal_type
+
         signal_file_name = root_file_name + "_signal_id" + str(self.identifier) + "_it" + str(self.count) + ".csv"
-        bit_file_name = root_file_name + "_bits_id" + str(self.identifier) + "_it" + str(self.count) + ".txt"
+        witness_file_name = root_file_name + "_witness_id" + str(self.identifier) + "_it" + str(self.count) + ".txt"
+        hash_file_name = root_file_name + "_hash_id" + str(self.identifier) + "_it" + str(self.count) + ".txt"
+        commitment_file_name = root_file_name + "_commitment_id" + str(self.identifier) + "_it" + str(self.count) + ".csv"
+
         np.savetxt(signal_file_name, signal)
-        with open(bit_file_name, "w") as text_file:
-            text_file.write(bits)
+        np.savetxt(commitment_file_name, np.array(commitment.coeffs))
+        with open(witness_file_name, "w") as text_file:
+            text_file.write(witness)
+        with open(hash_file_name, "w") as text_file:
+            text_file.write(str(h))
  
     def extract_context(self):
         print()
@@ -53,11 +60,16 @@ class ZIPA_System():
             # Wait for Commitment
             commitment, h = self.net.get_commitment(8192)
 
+            print("witness: " + str(hex(int(witness, 2))))
+            print("h: " + str(h))
             # Decommit
             C, success = self.re.decommit_witness(commitment, witness, h)
+            print("C: " + str(C))
+            print("success: " + str(success))
+            print()
 
             # Log all information to NFS server
-            self.send_to_nfs_server("audio", signal, witness, None)
+            self.send_to_nfs_server("audio", signal, witness, h, commitment)
 
             self.count += 1
 
@@ -76,12 +88,15 @@ class ZIPA_System():
 
             # Commit Secret
             secret_key, h, commitment = self.re.commit_witness(witness)
-  
+
+            print("witness: " + str(hex(int(witness, 2))))
+            print("h: " + str(h))
+            print()
             # Sending Codeword
             self.net.send_commitment(commitment, h)
 
             # Log all information to NFS server
-            self.send_to_nfs_server("audio", signal, witness, None)
+            self.send_to_nfs_server("audio", signal, witness, h, commitment)
 
             self.count += 1
 
