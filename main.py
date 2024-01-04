@@ -1,6 +1,6 @@
 from zipa_sys import ZIPA_System
 
-ID = 0
+ID = 1
 IP = "192.168.1.8"        # <--- device's ip address goes here
 OTHER_IP = "192.168.1.10"  # <--- other device's ip address goes here
 SAMPLE_RATE = 44100

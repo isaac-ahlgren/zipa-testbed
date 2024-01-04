@@ -21,7 +21,7 @@ class ZIPA_System():
         self.exp_name = exp_name
         self.count = 0
 
-    def send_to_nfs_server(self, signal_type, signal, bits, h, commitment):
+    def send_to_nfs_server(self, signal_type, signal, witness, h, commitment):
         root_file_name = self.nfs_server_dir + "/" + signal_type
 
         signal_file_name = root_file_name + "_signal_id" + str(self.identifier) + "_it" + str(self.count) + ".csv"

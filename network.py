@@ -43,12 +43,6 @@ class Ad_Hoc_Network:
         print()
         pickled_C = pickle.dumps(C)
         pickles = pickled_C + h
-        print(len(pickles))
-        print(pickled_C)
-        print(len(pickled_C))
-        print(h)
-        print(len(h))
-        print()
         self.client_sock.sendto(pickles, (self.other_ip, 5005))
 
     def get_start(self):
@@ -78,10 +72,7 @@ class Ad_Hoc_Network:
         print("Commitment Recieved")
         print()
         msg_len = len(message)
-        print(msg_len)
         pickled_C = message[:msg_len-64] # Its sending a 512 bit hash so the last 64 bytes are for that
         h = message[msg_len-64:]
-        print(pickled_C)
-        print()
         C = pickle.loads(pickled_C)
         return C,h

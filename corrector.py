@@ -45,14 +45,14 @@ class Fuzzy_Commitment:
 
         # Get hash for codeword
         h_func = hashes.Hash(hashes.SHA512())
-        print(C.get_bytes())
+        #print(C.get_bytes())
         h_func.update(C.get_bytes())
         h = h_func.finalize()
 
-        print(C)
-        print(len(C.coeffs))
-        print(random_coeffs)
-        print(len(random_coeffs))
+        #print(C)
+        #print(len(C.coeffs))
+        #print(random_coeffs)
+        #print(len(random_coeffs))
 
         # Commit witness by getting XOR distance between codeword and witness
         for i in range(len(C.coeffs)):
