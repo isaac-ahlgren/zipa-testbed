@@ -3,15 +3,18 @@ from corrector import Fuzzy_Commitment
 from galois import *
 from shurmann import sigs_algo
 from microphone import Microphone
+from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
+from multiprocessing import Process, Lock, shared_memory
+import ipaddress
+import socket
 import time
 import sys
 import numpy as np
 
 class ZIPA_System():
     def __init__(self, identifier, is_host, ip, other_ip, nfs_server_dir, sample_rate, seconds, exp_name, n, k):
+        # Setup for main thread
         self.identifier = identifier
-        self.ip = ip
-        self.other_ip = other_ip
         self.nfs_server_dir = nfs_server_dir
         self.sample_rate = sample_rate
         self.seconds = seconds
@@ -20,6 +23,13 @@ class ZIPA_System():
         self.re = Fuzzy_Commitment(n, k)
         self.exp_name = exp_name
         self.count = 0
+
+        # Setup for service browser thread
+        zeroconf = Zeroconf()
+        listener = ZIPA_Service_Listener()
+        browser = ServiceBrowser(zeroconf, "_zipa._tcp.local.", listener)
+        serv_browser_thread = Process(target=browser.run)
+        serv_browser_thread.start()
 
     def send_to_nfs_server(self, signal_type, signal, witness, h, commitment):
         root_file_name = self.nfs_server_dir + "/" + signal_type
@@ -44,7 +54,7 @@ class ZIPA_System():
         print()
         return bits, signal
 
-    def bit_agreement_exp_dev(self): 
+    def device_protocol(self): 
         while (1):
             print("Iteration " + str(self.count))
 
@@ -73,7 +83,7 @@ class ZIPA_System():
 
             self.count += 1
 
-    def bit_agreement_exp_host(self):
+    def host_protocol(self):
         while (1):
             print("Iteration " + str(self.count))
 
@@ -99,4 +109,32 @@ class ZIPA_System():
             self.send_to_nfs_server("audio", signal, witness, h, commitment)
 
             self.count += 1
+
+class ZIPA_Service_Listener(ServiceListener):
+    def __init__(self):
+        self.addr_list_len = 256
+        self.zipa_addrs = shared_memory.ShareableList([0 for i in range(self.addr_list_len)])
+        self.mutex = Lock()
+
+    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        self.mutex.acquire()
+        ip_addr = int(ipaddress.ip_address(socket.gethostbyname(name[:name.index('.')] + ".local")))
+        for i in range(self.addr_list_len):
+            if ip_addr == self.zipa_addrs[i]:
+                self.zipa_addrs[i] = 0
+        self.mutex.release()
+
+    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        return
+
+    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
+        self.mutex.acquire()
+        print(name)
+        ip_addr = int(ipaddress.ip_address(socket.gethostbyname(name[:name.index('.')] + ".local")))
+        for i in range(self.addr_list_len):
+            if self.zipa_addrs[i] == 0:
+                self.zipa_addrs[i] = ip_addr
+        self.mutex.release()
+
+
 
