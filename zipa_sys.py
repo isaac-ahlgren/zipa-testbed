@@ -12,7 +12,7 @@ import pickle
 import numpy as np
 
 # Device communcation identifiers
-HOST = "host   "  
+HOST = "host    "  
 START = "start   "
 ACK = "ack     "
 COMMITMENT = "comm    "
@@ -54,20 +54,24 @@ class ZIPA_System():
         print()
         return bits, signal
 
-    def zipa_protocol(self):
+    def zipa_protocol(self, uncond_host):
         while 1:
-            msg = self.net.get_msg()
-            if msg:
-                ip_addr = msg[0]
-                data = msg[1]
-                if data.decode() == HOST:
-                    print("Starting protocol as host")
-                    print()
-                    self.host_protocol()
-                elif data.decode() == START:
-                    print("Starting protocol as device")
-                    print()
-                    self.device_protocol(ip_addr)
+            if uncond_host:
+                print("Unconditionally being host")
+                self.host_protocol()
+            else:
+                msg = self.net.get_msg()
+                if msg:
+                    ip_addr = msg[0]
+                    data = msg[1]
+                    if data.decode() == HOST:
+                        print("Starting protocol as host")
+                        print()
+                        self.host_protocol()
+                    elif data.decode() == START:
+                        print("Starting protocol as device")
+                        print()
+                        self.device_protocol(ip_addr)
 
     def device_protocol(self, host_ip):
         print("Iteration " + str(self.count))
@@ -216,10 +220,11 @@ class ZIPA_System():
 
     def initialize_protocol(self):
         potential_ip_addrs = self.net.get_zipa_ip_addrs()
+        print("Potential ip addrs: " + str(potential_ip_addrs))
 
         # Send a start message to all available protocols
-        for i in range(len(ip_addrs)):
-            self.net.send_msg(START.encode(), ip_addrs[i])
+        for i in range(len(potential_ip_addrs)):
+            self.net.send_msg(START.encode(), potential_ip_addrs[i])
 
         # Poll for devices for an ack response for at least timeout seconds
         acked_ip_addrs = self.wait_for_all_ack(potential_ip_addrs)
