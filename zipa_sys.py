@@ -1,35 +1,35 @@
-from network import Ad_Hoc_Network
+from network import Network
 from corrector import Fuzzy_Commitment
 from galois import *
 from shurmann import sigs_algo
 from microphone import Microphone
 from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
-from multiprocessing import Process, Lock, shared_memory
 import ipaddress
 import socket
 import time
 import sys
+import pickle
 import numpy as np
 
+# Device communcation identifiers
+HOST = "host   "  
+START = "start   "
+ACK = "ack     "
+COMMITMENT = "comm    "
+
 class ZIPA_System():
-    def __init__(self, identifier, is_host, ip, other_ip, nfs_server_dir, sample_rate, seconds, exp_name, n, k):
-        # Setup for main thread
+    def __init__(self, identifier, ip, service_name, nfs_server_dir, timeout, sample_rate, seconds, n, k):
         self.identifier = identifier
         self.nfs_server_dir = nfs_server_dir
         self.sample_rate = sample_rate
         self.seconds = seconds
-        self.net = Ad_Hoc_Network(ip, other_ip, is_host)
+        self.timeout = timeout
+
+        self.net = Network(ip, service_name)
         self.signal_measurement = Microphone(sample_rate, int(seconds*sample_rate)) 
         self.re = Fuzzy_Commitment(n, k)
-        self.exp_name = exp_name
-        self.count = 0
 
-        # Setup for service browser thread
-        zeroconf = Zeroconf()
-        listener = ZIPA_Service_Listener()
-        browser = ServiceBrowser(zeroconf, "_zipa._tcp.local.", listener)
-        serv_browser_thread = Process(target=browser.run)
-        serv_browser_thread.start()
+        self.count = 0
 
     def send_to_nfs_server(self, signal_type, signal, witness, h, commitment):
         root_file_name = self.nfs_server_dir + "/" + signal_type
@@ -54,87 +54,203 @@ class ZIPA_System():
         print()
         return bits, signal
 
-    def device_protocol(self): 
-        while (1):
-            print("Iteration " + str(self.count))
+    def zipa_protocol(self):
+        while 1:
+            msg = self.net.get_msg()
+            if msg:
+                ip_addr = msg[0]
+                data = msg[1]
+                if data.decode() == HOST:
+                    print("Starting protocol as host")
+                    print()
+                    self.host_protocol()
+                elif data.decode() == START:
+                    print("Starting protocol as device")
+                    print()
+                    self.device_protocol(ip_addr)
 
-            # Wait for start from host
-            self.net.get_start()
+    def device_protocol(self, host_ip):
+        print("Iteration " + str(self.count))
             
-            # Sending ack that they can start
-            self.net.send_ack()
+        # Sending ack that they are ready to begin
+        print()
+        print("Sending ACK")
+        self.net.send_ack()
 
-            # Extract bits from mic
-            witness, signal = self.extract_context()
-
-            # Wait for Commitment
-            commitment, h = self.net.get_commitment(8192)
-
-            print("witness: " + str(hex(int(witness, 2))))
-            print("h: " + str(h))
-            # Decommit
-            C, success = self.re.decommit_witness(commitment, witness, h)
-            print("C: " + str(C))
-            print("success: " + str(success))
+        # Wait for ack from host to being context extract, quit early if no response within time
+        print()
+        print("Waiting for ACK from host")
+        if not self.wait_for_ack(host_ip):
+            print("No ACK recieved within time limit - early exit")
             print()
+            return
+        print()
 
-            # Log all information to NFS server
-            self.send_to_nfs_server("audio", signal, witness, h, commitment)
+        # Extract bits from mic
+        print("Extracting context")
+        print()
+        witness, signal = self.extract_context()
+        
+        # Wait for Commitment
+        print("Waiting for commitment from host")
+        commitment, h = self.wait_for_commitment()
 
-            self.count += 1
+        # Early exist if no commitment recieved in time
+        if not commitment:
+            print("No commitment recieved within time limit - early exit")
+            print()
+            return
+        print()
+
+        print("witness: " + str(hex(int(witness, 2))))
+        print("h: " + str(h))
+        print()
+
+        # Decommit
+        print("Decommiting")
+        C, success = self.re.decommit_witness(commitment, witness, h)
+
+        print("C: " + str(C))
+        print("success: " + str(success))
+        print()
+
+        # Log all information to NFS server
+        print("Logging all information to NFS server")
+        self.send_to_nfs_server("audio", signal, witness, h, commitment)
+
+        self.count += 1
 
     def host_protocol(self):
-        while (1):
-            print("Iteration " + str(self.count))
+        print("Iteration " + str(self.count))
+        print()
 
-            # Send start to device
-            self.net.send_start()
-            
-            # Get Ack to make sure it isn't lagging from the previous iteration
-            self.net.get_ack()
+        # Send and confirm all devices in the protocol
+        print("Initializing protocol for all advertising devices")
+        confirmed_ip_addrs = self.initialize_protocol()
 
-            # Extract key from mic
-            witness, signal = self.extract_context()
-
-            # Commit Secret
-            secret_key, h, commitment = self.re.commit_witness(witness)
-
-            print("witness: " + str(hex(int(witness, 2))))
-            print("h: " + str(h))
+        # Exit early if no devices to pair with
+        if len(confirmed_ip_addrs) == 0:
+            print("No advertised devices joined the protocol - early exit")
             print()
-            # Sending Codeword
-            self.net.send_commitment(commitment, h)
+            return
+        print()
 
-            # Log all information to NFS server
-            self.send_to_nfs_server("audio", signal, witness, h, commitment)
+        # Extract key from mic
+        print("Extracting Context")
+        witness, signal = self.extract_context()
+        print()
 
-            self.count += 1
+        # Commit Secret
+        print("Commiting Witness")
+        secret_key, h, commitment = self.re.commit_witness(witness)
 
-class ZIPA_Service_Listener(ServiceListener):
-    def __init__(self):
-        self.addr_list_len = 256
-        self.zipa_addrs = shared_memory.ShareableList([0 for i in range(self.addr_list_len)])
-        self.mutex = Lock()
+        print("witness: " + str(hex(int(witness, 2))))
+        print("h: " + str(h))
+        print()
 
-    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        self.mutex.acquire()
-        ip_addr = int(ipaddress.ip_address(socket.gethostbyname(name[:name.index('.')] + ".local")))
-        for i in range(self.addr_list_len):
-            if ip_addr == self.zipa_addrs[i]:
-                self.zipa_addrs[i] = 0
-        self.mutex.release()
+        # Sending commitment
+        print("Sending commitment to all devices")
+        self.send_commitment(commitment, h, confirmed_ip_addrs)
+        print()
 
-    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        return
+        print("Waiting for devices to ACK")
+        acked_ip_addrs = self.wait_for_all_ack(confirmed_ip_addrs)
 
-    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        self.mutex.acquire()
-        print(name)
-        ip_addr = int(ipaddress.ip_address(socket.gethostbyname(name[:name.index('.')] + ".local")))
-        for i in range(self.addr_list_len):
-            if self.zipa_addrs[i] == 0:
-                self.zipa_addrs[i] = ip_addr
-        self.mutex.release()
+        # Exit early if no devices in protocol
+        if len(acked_ip_addrs) == 0:
+            print("No devices ACKed - early exit")
+            return
 
+        # Log all information to NFS server
+        print("Logging all information to NFS server")
+        self.send_to_nfs_server("audio", signal, witness, h, commitment)
 
+        self.count += 1
 
+    def ack(self, host_ip_addr):
+        self.net.send_msg(ACK.encode(), host_ip_addr)
+
+    def wait_for_ack(self, host_ip_addr):
+        acked = False
+
+        start_time = time.time()
+        current_time = start_time
+        while (current_time - start_time) >= self.timeout:
+            current_time = time.time()
+            msg = self.net.get_msg()
+            if msg == None:
+                continue
+            else:
+                ip_addr = msg[0]
+                data = msg[1]
+                if data.decode() == ACK and host_ip_addr == ip_addr:
+                    acked = True
+                    break
+
+        return acked
+
+    def ack_all(self, confirmed_ip_addrs):
+        for i in range(len(acked_ip_addrs)):
+            self.net.send_msg(ACK.encode(), confirmed_ip_addrs)
+
+    def wait_for_all_ack(self, potential_ip_addrs):
+        acked_ip_addrs = []
+
+        start_time = time.time()
+        current_time = start_time
+        while (current_time - start_time) >= self.timeout:
+            if len(potential_ip_addrs) == len(acked_ip_addrs):
+                break
+
+            current_time = time.time()
+            msg = self.net.get_msg()
+            if msg == None:
+                continue
+            else:
+                ip_addr = msg[0]
+                data = msg[1]
+                if data.decode() == ACK and ip_addr in potential_ip_addr:
+                    acked_ip_addrs.append(ip_addr)
+
+        return acked_ip_addrs
+
+    def initialize_protocol(self):
+        potential_ip_addrs = self.net.get_zipa_ip_addrs()
+
+        # Send a start message to all available protocols
+        for i in range(len(ip_addrs)):
+            self.net.send_msg(START.encode(), ip_addrs[i])
+
+        # Poll for devices for an ack response for at least timeout seconds
+        acked_ip_addrs = self.wait_for_all_ack(potential_ip_addrs)
+
+        # Ack all devices in the protocol to begin context extraction
+        self.ack_all(acked_ip_addrs)
+
+        return acked_ip_addrs
+
+    def send_commitment(self, commitment, h, confirmed_ip_addrs):
+        pickled_comm = pickle.dumps(commitment)
+        msg = COMM.encode() + h + pickled_comm
+        for i in range(len(confirmed_ip_addrs)):
+            self.net.send_msg(msg, confirmed_ip_addrs[i])
+
+    def wait_for_commitment(self, host_ip_addr):
+        commitment = None
+        h = None
+        
+        start_time = time.time()
+        current_time = start_time
+        while (current_time - start_time) >= self.timeout:
+            current_time = time.time()
+            msg = self.net.get_msg()
+            if msg == None:
+                continue
+            else:
+                ip_addr = msg[0]
+                data = msg[1]
+                if msg[:8].decode() == COMM and ip_addr == host_ip_addr:
+                    h = msg[8:72] # 64 byte hash
+                    commitment = msg[72:]
+
+        return commitment, h
