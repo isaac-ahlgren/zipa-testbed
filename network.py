@@ -8,8 +8,9 @@ import types
 import select
 
 class Network:
-    def __init__(self, ip, service_to_browse):
+    def __init__(self, ip, protocol_port, service_to_browse):
         self.ip = ip
+        self.protocol_port = protocol_port
 
         # Set up queue between listening thread and main thread
         self.queue = mp.Queue()
@@ -18,7 +19,7 @@ class Network:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((ip, 5005))
+        self.sock.bind((ip, protocol_port))
         self.sock.setblocking(0)
         self.sock.listen()
 
@@ -68,8 +69,11 @@ class Network:
     def get_zipa_ip_addrs(self):
         return self.browser.get_ip_addrs_for_zipa()
 
+    def conn_to(self, ip):
+        self.sock.connect((ip, self.protocol_port))
+
     def send_msg(self, msg, ip):
-        self.sock.sendto(msg, ip)
+        self.sock.sendto(msg, (ip, self.protocol_port))
 
     def get_msg(self):
         if self.queue.empty():
@@ -129,9 +133,11 @@ class ZIPA_Service_Listener(ServiceListener):
         host_name = name[:name.index('.')] + ".local"
         dns_resolved_ip = socket.gethostbyname(host_name)
         int_ip = int(ipaddress.ip_address(dns_resolved_ip))
+
         for i in range(self.addr_list_len):
             if int_ip == self.advertised_zipa_addrs[i]:
                 self.advertised_zipa_addrs[i] = 0
+                break
         self.mutex.release()
 
     def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
@@ -147,4 +153,5 @@ class ZIPA_Service_Listener(ServiceListener):
             for i in range(self.addr_list_len):
                 if self.advertised_zipa_addrs[i] == 0:
                     self.advertised_zipa_addrs[i] = int_ip
+                    break
         self.mutex.release()

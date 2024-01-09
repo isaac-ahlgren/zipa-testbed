@@ -18,14 +18,14 @@ ACK = "ack     "
 COMMITMENT = "comm    "
 
 class ZIPA_System():
-    def __init__(self, identifier, ip, service_name, nfs_server_dir, timeout, sample_rate, seconds, n, k):
+    def __init__(self, identifier, ip, port, service_name, nfs_server_dir, timeout, sample_rate, seconds, n, k):
         self.identifier = identifier
         self.nfs_server_dir = nfs_server_dir
         self.sample_rate = sample_rate
         self.seconds = seconds
         self.timeout = timeout
 
-        self.net = Network(ip, service_name)
+        self.net = Network(ip, port, service_name)
         self.signal_measurement = Microphone(sample_rate, int(seconds*sample_rate)) 
         self.re = Fuzzy_Commitment(n, k)
 
@@ -194,7 +194,7 @@ class ZIPA_System():
         return acked
 
     def ack_all(self, confirmed_ip_addrs):
-        for i in range(len(acked_ip_addrs)):
+        for i in range(len(confirmed_ip_addrs)):
             self.net.send_msg(ACK.encode(), confirmed_ip_addrs)
 
     def wait_for_all_ack(self, potential_ip_addrs):
@@ -224,6 +224,7 @@ class ZIPA_System():
 
         # Send a start message to all available protocols
         for i in range(len(potential_ip_addrs)):
+            self.net.conn_to(potential_ip_addrs[i])
             self.net.send_msg(START.encode(), potential_ip_addrs[i])
 
         # Poll for devices for an ack response for at least timeout seconds
