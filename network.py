@@ -23,10 +23,10 @@ class Network:
         self.sock.listen()
 
         # Setup service browser thread
-        browser = ZIPA_Service_Browser(ip, service_to_browse)
+        self.browser = ZIPA_Service_Browser(ip, service_to_browse)
         print("Starting browser thread")
         print()
-        browser.start_thread()
+        self.browser.start_thread()
 
         # Start listening thread
         print("Starting listening thread")
@@ -75,7 +75,9 @@ class Network:
         if self.queue.empty():
             return None
         else:
-            return self.queue.get()
+            out = self.queue.get()
+            print("MSG: " + str(out))
+            return out
 
     def get_commitment(self, bytes_needed):
         print()
@@ -138,14 +140,12 @@ class ZIPA_Service_Listener(ServiceListener):
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         self.mutex.acquire()
         host_name = name[:name.index('.')] + ".local"
+        print(host_name)
         dns_resolved_ip = socket.gethostbyname(host_name)
         int_ip = int(ipaddress.ip_address(dns_resolved_ip))
 
-        # Don't add your devices ip address
-        if int_ip == self.device_int_ip:
-            return
-
-        for i in range(self.addr_list_len):
-            if self.advertised_zipa_addrs[i] == 0:
-                self.advertised_zipa_addrs[i] = int_ip
+        if int_ip != self.device_int_ip:
+            for i in range(self.addr_list_len):
+                if self.advertised_zipa_addrs[i] == 0:
+                    self.advertised_zipa_addrs[i] = int_ip
         self.mutex.release()
