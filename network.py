@@ -109,7 +109,7 @@ class ZIPA_Service_Browser():
     def get_ip_addrs_for_zipa(self):
         ip_addrs = []
         self.listener.mutex.acquire()
-        advertised_zipa_addrs = self.listener.zipa_addrs
+        advertised_zipa_addrs = self.listener.advertised_zipa_addrs
         for i in range(len(advertised_zipa_addrs)):
             advertised_ip = advertised_zipa_addrs[i]
             if advertised_ip != 0:
@@ -140,7 +140,6 @@ class ZIPA_Service_Listener(ServiceListener):
     def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
         self.mutex.acquire()
         host_name = name[:name.index('.')] + ".local"
-        print(host_name)
         dns_resolved_ip = socket.gethostbyname(host_name)
         int_ip = int(ipaddress.ip_address(dns_resolved_ip))
 
