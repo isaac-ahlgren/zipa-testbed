@@ -5,12 +5,14 @@ from galois import *
 from network import *
 
 class Shurmann_Siggs_Protocol():
-    def __init__(self, microphone, n, k, timeout):
+    def __init__(self, microphone, n, k, timeout, nfs_server_dir, identifier):
         self.signal_measurement = microphone 
         self.re = Fuzzy_Commitment(n, k)
         self.protocol_name = "shur_n_sigg"
         self.count = 0
         self.timeout = timeout
+        self.nfs_server_dir = nfs_server_dir
+        self.identifier = identifier
 
     def sigs_algo(self, x1,window_len=10000, bands=1000):
         FFTs = []
