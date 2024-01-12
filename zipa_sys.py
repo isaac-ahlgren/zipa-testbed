@@ -1,6 +1,7 @@
 from network import *
 from browser import ZIPA_Service_Browser
 from shurmann import Shurmann_Siggs_Protocol
+from microphone import Microphone
 import ipaddress
 import socket
 import pickle
@@ -30,7 +31,7 @@ class ZIPA_System():
         self.open_socks = [self.sock]
 
         # Setup service browser thread
-        self.browser = ZIPA_Service_Browser(ip, service_to_browse)
+        self.browser = ZIPA_Service_Browser(ip, service_name)
 
         # Setup sensors
         self.microphone = Microphone(sample_rate, int(seconds*sample_rate))
@@ -41,7 +42,7 @@ class ZIPA_System():
 
         self.count = 0
 
-    def start():
+    def start(self):
         print("Starting browser thread")
         print()
         self.browser.start_thread()

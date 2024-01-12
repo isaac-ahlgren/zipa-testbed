@@ -5,7 +5,7 @@ from galois import *
 
 class Shurmann_Siggs_Protocol():
     def __init__(self, microphone, n, k, timeout):
-        self.signal_measurement = Microphone(sample_rate, int(seconds*sample_rate)) 
+        self.signal_measurement = microphone 
         self.re = Fuzzy_Commitment(n, k)
         self.protocol_name = "shur_n_sigg"
 
