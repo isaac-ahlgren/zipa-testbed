@@ -7,151 +7,69 @@ from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
 import types
 import select
 
-class Network:
-    def __init__(self, ip, protocol_port, service_to_browse):
-        self.ip = ip
-        self.protocol_port = protocol_port
+# Device communcation identifiers
+HOST = "host    "  
+START = "start   "
+ACK = "ack     "
+COMMITMENT = "comm    "
 
-        # Set up queue between listening thread and main thread
-        self.queue = mp.Queue()
+def ack(sock):
+    sock.sendmsg(ACK.encode())
 
-        # Set up listening socket
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind((ip, protocol_port))
-        self.sock.setblocking(0)
-        self.sock.listen()
+def wait_for_ack(sock, timeout):
+    acked = False
 
-        # Setup service browser thread
-        self.browser = ZIPA_Service_Browser(ip, service_to_browse)
-        print("Starting browser thread")
-        print()
-        self.browser.start_thread()
+    start_time = time.time()
+    current_time = start_time
+    while (current_time - start_time) >= self.timeout:
+        current_time = time.time()
+        msg = sock.recv(8)
+        if msg == None:
+            continue
+        elif msg.decode() == ACK:
+            acked = True
+            break
 
-        # Start listening thread
-        print("Starting listening thread")
-        print()
-        self.listening_thread = self.start_listening_thread()
+    return acked
 
-    def start_listening_thread(self):
-        p = mp.Process(target=self.listening_thread)
-        p.start()
-        return p
+def ack_all(participating_sockets):
+    for i in range(len(participating_sockets)):
+        participating_sockets[i].sendmsg(ACK.encode())
 
-    def listening_thread(self):
-        inputs = [self.sock]
-        outputs = []
-        while (1):
-            readable, writable, exceptional = select.select(inputs, outputs, inputs)
-            for s in readable:
-                if s is self.sock:
-                    connection, client_address = self.sock.accept()
-                    connection.setblocking(0)
-                    inputs.append(connection)
-                else:
-                    data = s.recv(1024)
-                    if data:
-                        sender_ip = int(ipaddress.ip_address(s.getpeername()[0]))
-                        self.queue.put((sender_ip, data))
-                    else:
-                        if s in outputs:
-                            outputs.remove(s)
-                        inputs.remove(s)
-                        s.close()
+def wait_for_all_ack(participating_sockets, timeout):
+    acked_sockets = []
 
-            for s in exceptional:
-                inputs.remove(s)
-                if s in outputs:
-                    outputs.remove(s)
-                s.close()
+    while (current_time - start_time) >= timeout:
+        if len(participating_sockets) == 0:
+            break
 
-    def get_zipa_ip_addrs(self):
-        return self.browser.get_ip_addrs_for_zipa()
+        outputs = [] 
+        readable, writable, exceptional = select.select(participating_sockets, outputs, participating_sockets)
+        for s in readable:
+            data = s.recv(8)
+            if data and data.decode() == ACK:
+                acked_sockets.append(s)
+                participating_sockets.remove(s)
 
-    def conn_to(self, ip):
-        self.sock.connect((ip, self.protocol_port))
+    return acked_sockets
 
-    def send_msg(self, msg, ip):
-        self.sock.sendto(msg, (ip, self.protocol_port))
+def send_commitment(commitment, h, participating_sockets):
+    pickled_comm = pickle.dumps(commitment)
+    msg = COMM.encode() + h + pickled_comm
+    for i in range(len(participating_sockets)):
+        participating_sockets[i].sendmsg(msg)
 
-    def get_msg(self):
-        if self.queue.empty():
-            return None
-        else:
-            out = self.queue.get()
-            print("MSG: " + str(out))
-            return out
+def wait_for_commitment(sock, timeout):
+    commitment = None
+    h = None
+        
+    start_time = time.time()
+    current_time = start_time
+    while (current_time - start_time) >= timeout:
+        current_time = time.time()
+        msg = sock.recv(1024)
+        if msg[:8].decode() == COMM:
+            h = msg[8:72] # 64 byte hash
+            commitment = msg[72:]
 
-    def get_commitment(self, bytes_needed):
-        print()
-        print("Waiting For Commitment")
-        print()
-        while (1):
-            message, address = self.personal_sock.recvfrom(bytes_needed)
-            if message is not None:
-                break
-        print()
-        print("Commitment Recieved")
-        print()
-        msg_len = len(message)
-        pickled_C = message[:msg_len-64] # Its sending a 512 bit hash so the last 64 bytes are for that
-        h = message[msg_len-64:]
-        C = pickle.loads(pickled_C)
-        return C,h
-
-class ZIPA_Service_Browser():
-    def __init__(self, ip_addr, service_to_browse):
-        zeroconf = Zeroconf()
-        self.listener = ZIPA_Service_Listener(ip_addr)
-        self.browser = ServiceBrowser(zeroconf, service_to_browse, self.listener)
-        self.serv_browser_thread = mp.Process(target=self.browser.run)
-
-    def start_thread(self):
-        self.serv_browser_thread.start()
-
-    def get_ip_addrs_for_zipa(self):
-        ip_addrs = []
-        self.listener.mutex.acquire()
-        advertised_zipa_addrs = self.listener.advertised_zipa_addrs
-        for i in range(len(advertised_zipa_addrs)):
-            advertised_ip = advertised_zipa_addrs[i]
-            if advertised_ip != 0:
-                ip_addrs.append(str(ipaddress.ip_address(advertised_ip)))
-        self.listener.mutex.release()
-        return ip_addrs
-
-class ZIPA_Service_Listener(ServiceListener):
-    def __init__(self, ip_addr):
-        self.addr_list_len = 256
-        self.advertised_zipa_addrs = mp.shared_memory.ShareableList([0 for i in range(self.addr_list_len)])
-        self.mutex = mp.Lock()
-        self.device_int_ip = int(ipaddress.ip_address(ip_addr))
-
-    def remove_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        self.mutex.acquire()
-        host_name = name[:name.index('.')] + ".local"
-        dns_resolved_ip = socket.gethostbyname(host_name)
-        int_ip = int(ipaddress.ip_address(dns_resolved_ip))
-
-        for i in range(self.addr_list_len):
-            if int_ip == self.advertised_zipa_addrs[i]:
-                self.advertised_zipa_addrs[i] = 0
-                break
-        self.mutex.release()
-
-    def update_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        return
-
-    def add_service(self, zc: Zeroconf, type_: str, name: str) -> None:
-        self.mutex.acquire()
-        host_name = name[:name.index('.')] + ".local"
-        dns_resolved_ip = socket.gethostbyname(host_name)
-        int_ip = int(ipaddress.ip_address(dns_resolved_ip))
-
-        if int_ip != self.device_int_ip:
-            for i in range(self.addr_list_len):
-                if self.advertised_zipa_addrs[i] == 0:
-                    self.advertised_zipa_addrs[i] = int_ip
-                    break
-        self.mutex.release()
+    return commitment, h
