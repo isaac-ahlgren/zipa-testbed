@@ -14,7 +14,7 @@ ACK = "ack     "
 COMMITMENT = "comm    "
 
 def ack(sock):
-    sock.sendmsg(ACK.encode())
+    sock.send(ACK.encode())
 
 def wait_for_ack(sock, timeout):
     acked = False
