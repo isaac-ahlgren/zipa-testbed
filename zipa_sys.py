@@ -83,14 +83,14 @@ class ZIPA_System():
                         return False
                     print()
 
-                    new_thread = Process(target=self.protocols.host_protocol(participating_sockets))
+                    new_thread = Process(target=self.protocols[i].host_protocol(participating_sockets))
                     new_thread.start()
                     self.protocol_threads.append(new_thread)
         elif msg[:8] == START:
             for i in range(len(self.protocols)):
                 if self.protocols[i].protocol_name == msg[8:]:
                     protocol_name = msg[8:]
-                    new_thread = Process(target=self.protocols.device_protocol(sock))
+                    new_thread = Process(target=self.protocols[i].device_protocol(sock))
                     new_thread.start()
                     self.open_socks.remove(s)
                     self.protocol_threads.append(new_thread)
