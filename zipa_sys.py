@@ -92,7 +92,7 @@ class ZIPA_System():
                     protocol_name = msg[8:]
                     new_thread = Process(target=self.protocols[i].device_protocol(sock))
                     new_thread.start()
-                    self.open_socks.remove(s)
+                    self.open_socks.remove(sock)
                     self.protocol_threads.append(new_thread)
  
     def initialize_protocol(self, protocol_name):

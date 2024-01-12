@@ -22,7 +22,7 @@ def wait_for_ack(sock, timeout):
 
     start_time = time.time()
     current_time = start_time
-    while (current_time - start_time) >= timeout:
+    while (current_time - start_time) < timeout:
         current_time = time.time()
         msg = sock.recv(8)
         if msg == None:
@@ -42,7 +42,7 @@ def wait_for_all_ack(participating_sockets, timeout):
 
     start_time = time.time()
     current_time = start_time
-    while (current_time - start_time) >= timeout:
+    while (current_time - start_time) < timeout:
         current_time = time.time()
         if len(participating_sockets) == 0:
             break
@@ -69,7 +69,7 @@ def wait_for_commitment(sock, timeout):
         
     start_time = time.time()
     current_time = start_time
-    while (current_time - start_time) >= timeout:
+    while (current_time - start_time) < timeout:
         current_time = time.time()
         msg = sock.recv(1024)
         if msg[:8].decode() == COMM:
