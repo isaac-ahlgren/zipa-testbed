@@ -38,7 +38,7 @@ class ZIPA_System():
         self.microphone = Microphone(sample_rate, int(seconds*sample_rate))
 
         # Setup protocols
-        self.protocols = [Shurmann_Siggs_Protocol(self.microphone, n, k, timeout)] 
+        self.protocols = [Shurmann_Siggs_Protocol(self.microphone, n, k, timeout, nfs_server_dir, identifier)] 
         self.protocol_threads = []
 
     def start(self):
