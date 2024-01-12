@@ -55,6 +55,8 @@ class ZIPA_System():
                 if s is self.sock:
                     connection, client_address = self.sock.accept()
                     connection.setblocking(0)
+                    print("Connection Made: " + str(client_address))
+                    print()
                     self.open_socks.append(connection)
                 else:
                     data = s.recv(1024)

@@ -22,7 +22,7 @@ def wait_for_ack(sock, timeout):
 
     start_time = time.time()
     current_time = start_time
-    while (current_time - start_time) >= self.timeout:
+    while (current_time - start_time) >= timeout:
         current_time = time.time()
         msg = sock.recv(8)
         if msg == None:
