@@ -2,6 +2,7 @@ import numpy as np
 from microphone import Microphone
 from corrector import Fuzzy_Commitment
 from galois import *
+from network import *
 
 class Shurmann_Siggs_Protocol():
     def __init__(self, microphone, n, k, timeout):
