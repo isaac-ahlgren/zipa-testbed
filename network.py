@@ -34,7 +34,7 @@ def wait_for_ack(sock, timeout):
 
 def ack_all(participating_sockets):
     for i in range(len(participating_sockets)):
-        participating_sockets[i].sendmsg(ACK.encode())
+        participating_sockets[i].send(ACK.encode())
 
 def wait_for_all_ack(participating_sockets, timeout):
     acked_sockets = []
@@ -57,7 +57,7 @@ def send_commitment(commitment, h, participating_sockets):
     pickled_comm = pickle.dumps(commitment)
     msg = COMM.encode() + h + pickled_comm
     for i in range(len(participating_sockets)):
-        participating_sockets[i].sendmsg(msg)
+        participating_sockets[i].send(msg)
 
 def wait_for_commitment(sock, timeout):
     commitment = None

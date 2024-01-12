@@ -56,32 +56,28 @@ class ZIPA_System():
                 if s is self.sock:
                     connection, client_address = self.sock.accept()
                     connection.setblocking(0)
-                    inputs.append(connection)
+                    self.open_socks.append(connection)
                 else:
                     data = s.recv(1024)
                     if data:
                         self.service_request(data, s)
                     else:
-                        if s in outputs:
-                            outputs.remove(s)
-                        inputs.remove(s)
+                        self.open_socks.remove(s)
                         s.close()
 
             for s in exceptional:
-                inputs.remove(s)
-                if s in outputs:
-                    outputs.remove(s)
+                self.open_socks.remove(s)
                 s.close()
 
     def service_request(self, data, sock):
         msg = data.decode()
         if msg[:8] == HOST:
             for i in range(len(self.protocols)):
-                if self.protocol[i].protocol_name == msg[8:]:
+                if self.protocols[i].protocol_name == msg[8:]:
                     protocol_name = msg[8:]
                     participating_sockets = self.initialize_protocol(protocol_name)
                     
-                    if len(confirmed_ip_addrs) == 0:
+                    if len(participating_sockets) == 0:
                         print("No advertised devices joined the protocol - early exit")
                         return False
                     print()
@@ -91,7 +87,7 @@ class ZIPA_System():
                     self.protocol_threads.append(new_thread)
         elif msg[:8] == START:
             for i in range(len(self.protocols)):
-                if self.protocol[i].protocol_name == msg[8:]:
+                if self.protocols[i].protocol_name == msg[8:]:
                     protocol_name = msg[8:]
                     new_thread = Process(target=self.protocol.device_protocol(sock))
                     new_thread.start()
@@ -111,7 +107,11 @@ class ZIPA_System():
             new_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             err = new_sock.connect_ex((potential_ip_addrs[i], self.port))
             if not err:
-                new_sock.sendmsg((START + protocol_name).encode())
+                msg = (START + protocol_name).encode()
+                print(msg)
+                print(type(msg))
+                print(type(new_sock))
+                new_sock.send(msg)
                 participating_ip_addrs.append(new_sock)
             else:
                 new_sock.close()
