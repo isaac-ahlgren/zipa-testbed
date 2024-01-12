@@ -107,9 +107,6 @@ class ZIPA_System():
             err = new_sock.connect_ex((potential_ip_addrs[i], self.port))
             if not err:
                 msg = (START + protocol_name).encode()
-                print(msg)
-                print(type(msg))
-                print(type(new_sock))
                 new_sock.send(msg)
                 participating_ip_addrs.append(new_sock)
             else:
