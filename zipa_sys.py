@@ -41,8 +41,6 @@ class ZIPA_System():
         self.protocols = [Shurmann_Siggs_Protocol(self.microphone, n, k, timeout)] 
         self.protocol_threads = []
 
-        self.count = 0
-
     def start(self):
         print("Starting browser thread")
         print()

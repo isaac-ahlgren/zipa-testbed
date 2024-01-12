@@ -8,6 +8,7 @@ class Shurmann_Siggs_Protocol():
         self.signal_measurement = microphone 
         self.re = Fuzzy_Commitment(n, k)
         self.protocol_name = "shur_n_sigg"
+        self.count = 0
 
     def sigs_algo(self, x1,window_len=10000, bands=1000):
         FFTs = []
