@@ -59,7 +59,8 @@ def wait_for_all_ack(participating_sockets, timeout):
 
 def send_commitment(commitment, h, participating_sockets):
     pickled_comm = pickle.dumps(commitment)
-    msg = COMM.encode() + h + pickled_comm
+    length_in_bytes = len(pickled_comm).to_byte(4, byteorder='big')
+    msg = COMM.encode() + h + length_in_bytes + pickled_comm
     for i in range(len(participating_sockets)):
         participating_sockets[i].send(msg)
 
@@ -71,9 +72,11 @@ def wait_for_commitment(sock, timeout):
     current_time = start_time
     while (current_time - start_time) < timeout:
         current_time = time.time()
-        msg = sock.recv(1024)
+        msg = sock.recv(76)
         if msg[:8].decode() == COMM:
             h = msg[8:72] # 64 byte hash
-            commitment = msg[72:]
+            length_in_bytes = int.from_bytes(msg[72:76], 'big')
+            comm_msg = sock.recv(length_in_bytes)
+            commitment = pickle.loads(comm_msg)
 
     return commitment, h
