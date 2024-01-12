@@ -12,7 +12,7 @@ import time
 HOST = "host    "  
 START = "start   "
 ACK = "ack     "
-COMMITMENT = "comm    "
+COMM = "comm    "
 
 def ack(sock):
     sock.send(ACK.encode())

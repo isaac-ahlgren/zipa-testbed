@@ -58,6 +58,7 @@ class Shurmann_Siggs_Protocol():
         return bits, signal
 
     def device_protocol(self, host_socket):
+        host_socket.setblocking(1)
         print("Iteration " + str(self.count))
             
         # Sending ack that they are ready to begin
@@ -119,8 +120,11 @@ class Shurmann_Siggs_Protocol():
             print("No advertised devices joined the protocol - early exit")
             print()
             return
+        print("Successfully ACKed participating devices")
         print()
+        
 
+        print("ACKing all participating devices")
         ack_all(participating_sockets)
 
         # Extract key from mic
