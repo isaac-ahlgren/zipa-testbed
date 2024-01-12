@@ -6,6 +6,7 @@ import ipaddress
 from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
 import types
 import select
+import time
 
 # Device communcation identifiers
 HOST = "host    "  
@@ -39,7 +40,10 @@ def ack_all(participating_sockets):
 def wait_for_all_ack(participating_sockets, timeout):
     acked_sockets = []
 
+    start_time = time.time()
+    current_time = start_time
     while (current_time - start_time) >= timeout:
+        current_time = time.time()
         if len(participating_sockets) == 0:
             break
 
