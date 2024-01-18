@@ -1,7 +1,9 @@
 from zipa_sys import ZIPA_System
 import netifaces as ni
 
-ID = open("/home/pi/hostname.txt", "r").read()
+f = open("/home/pi/hostname.txt", "r")
+ID = f.read().strip()
+f.close()
 IP = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']        # <--- device's ip address goes here
 PORT = 5005
 SAMPLE_RATE = 44100
