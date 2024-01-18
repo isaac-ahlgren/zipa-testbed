@@ -1,4 +1,5 @@
 import numpy as np
+import mysql.connector
 from microphone import Microphone
 from corrector import Fuzzy_Commitment
 from galois import *
@@ -166,3 +167,23 @@ class Shurmann_Siggs_Protocol():
             text_file.write(witness)
         with open(hash_file_name, "w") as text_file:
             text_file.write(str(h))
+
+        conn = None
+        try:
+            conn = mysql.connector.connect(user='luke', password='lucor011&', host='10.17.29.18', database='file_log')
+            cursor = conn.cursor()
+
+            for file_name in [signal_file_name, witness_file_name, hash_file_name, commitment_file_name]:
+                cursor.execute("INSERT INTO file_paths (file_path) VALUES (%s)", (file_name,))
+
+            conn.commit()
+        except mysql.connector.Error as err:
+            print("Error connecting to MySQL:", err)
+        finally:
+            if conn and conn.is_connected():
+                cursor.close()
+                conn.close()
+
+
+
+
