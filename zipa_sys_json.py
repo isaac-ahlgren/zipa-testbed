@@ -16,13 +16,10 @@ STRT = "start   "
 
 
 class ZIPA_System:
-    def __init__(self, identity, ip, port, service, nfs, timeout, sampling, time, n, k):
+    def __init__(self, identity, ip, port, service, nfs):
         # Object is created and filled with identifying info as well as setup information
         self.id = identity
         self.nfs = nfs
-        self.sampling = sampling
-        self.time = time
-        self.timeout = timeout
 
         # Set up a listening socket
         self.ip = ip
@@ -41,14 +38,11 @@ class ZIPA_System:
         self.browser = ZIPA_Service_Browser(ip, service)
 
         # Set up sensors
-        self.mic = Microphone(sampling, int(time * sampling))
+        self.sensors = {}
 
         # Set up protocol and associated processes
         self.protocol_threads = []
-        # TODO: Initialize this somewhere where JSON can be read, keep as empty list
-        self.protocols = [
-            Shurmann_Siggs_Protocol(self.microphone, n, k, timeout, nfs, identity)
-        ]
+        self.protocols = []
 
     def start(self):
         print("Starting browser thread.\n")
@@ -88,6 +82,23 @@ class ZIPA_System:
         command = data.decode()
         length = int(incoming.revc(4).decode())
         parameters = json.loads(incoming.recv(length).decode())
+        self.timeout = parameters.timeout
+        self.duration = parameters.duration
+        self.sampling = parameters.sampling
+
+        # TODO: Switch cases or function to create new protocols, not overwriting either.
+        if parameters.protocol.name == "shurmann-siggs":
+            self.sensors['mic'] = Microphone(self.sampling, int(self.duration * self.sampling))
+            self.protocols.append(
+                Shurmann_Siggs_Protocol(
+                    self.sensors['mic'], 
+                    parameters.protocol.n, 
+                    parameters.protocol.k, 
+                    parameters.protocol.timeout, 
+                    self.nfs, 
+                    self.identity
+                    )
+                )
 
         # Current device is selected as host
         if command == HOST:
