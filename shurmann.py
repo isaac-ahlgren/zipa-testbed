@@ -3,13 +3,14 @@ import mysql.connector
 from microphone import Microphone
 from corrector import Fuzzy_Commitment
 from galois import *
-from network import *
+# from network import *
+from network_json import * 
 
 class Shurmann_Siggs_Protocol():
     def __init__(self, microphone, n, k, timeout, nfs_server_dir, identifier):
         self.signal_measurement = microphone 
         self.re = Fuzzy_Commitment(n, k)
-        self.protocol_name = "shur_n_sigg"
+        self.protocol_name = "shurmann-siggs"
         self.count = 0
         self.timeout = timeout
         self.nfs_server_dir = nfs_server_dir
@@ -53,39 +54,33 @@ class Shurmann_Siggs_Protocol():
         return bs
 
     def extract_context(self):
-        print()
-        print("Extracting Context")
+        print("\nExtracting Context")
         signal = self.signal_measurement.get_audio()
         bits = self.sigs_algo(signal)
         print()
         return bits, signal
 
-    def device_protocol(self, host_socket):
-        host_socket.setblocking(1)
-        print("Iteration " + str(self.count))
+    def device_protocol(self, host):
+        host.setblocking(1)
+        print(f"Iteration {str(self.count)}.\n")
             
         # Sending ack that they are ready to begin
-        print()
-        print("Sending ACK")
-        ack(host_socket)
+        print("Sending ACK.\n")
+        ack(host)
 
         # Wait for ack from host to being context extract, quit early if no response within time
-        print()
-        print("Waiting for ACK from host")
-        if not wait_for_ack(host_socket, self.timeout):
-            print("No ACK recieved within time limit - early exit")
-            print()
+        print("Waiting for ACK from host.")
+        if not ack_standby(host, self.timeout):
+            print("No ACK recieved within time limit - early exit.\n\n")
             return
-        print()
 
         # Extract bits from mic
-        print("Extracting context")
-        print()
+        print("Extracting context\n")
         witness, signal = self.extract_context()
         
         # Wait for Commitment
         print("Waiting for commitment from host")
-        commitment, h = wait_for_commitment(host_socket, self.timeout)
+        commitment, h = commit_standby(host, self.timeout)
 
         # Early exist if no commitment recieved in time
         if not commitment:
@@ -116,7 +111,7 @@ class Shurmann_Siggs_Protocol():
         print("Iteration " + str(self.count))
         print()
   
-        participating_sockets = wait_for_all_ack(device_sockets, self.timeout)
+        participating_sockets = ack_all_standby(device_sockets, self.timeout)
 
         # Exit early if no devices to pair with
         if len(participating_sockets) == 0:
@@ -145,7 +140,7 @@ class Shurmann_Siggs_Protocol():
 
         print("Sending commitment")
         print()
-        send_commitment(commitment, h, participating_sockets)
+        commit(commitment, h, participating_sockets)
 
         # Log all information to NFS server
         print("Logging all information to NFS server")

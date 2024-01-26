@@ -1,11 +1,13 @@
 import json
 import socket
 import pickle
+import select
 from multiprocessing import Process
 
 from browser import ZIPA_Service_Browser
 from microphone import Microphone
-from network import *
+# from network import *
+# from network_json import *
 from shurmann import Shurmann_Siggs_Protocol
 
 # Used to initiate and begin protocol
@@ -43,6 +45,7 @@ class ZIPA_System:
 
         # Set up protocol and associated processes
         self.protocol_threads = []
+        # TODO: Initialize this somewhere where JSON can be read, keep as empty list
         self.protocols = [
             Shurmann_Siggs_Protocol(self.microphone, n, k, timeout, nfs, identity)
         ]
