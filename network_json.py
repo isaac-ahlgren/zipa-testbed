@@ -2,8 +2,6 @@ import pickle
 import select
 import time
 
-from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
-
 # Commands
 HOST = "host    "
 STRT = "start   "
@@ -23,11 +21,11 @@ def ack_standby(connection, timeout):
     while (timestamp - reference) < timeout:
         # Check for acknowledgement
         timestamp = time.time()
-        command = connection.recv(8)
+        command = connection.recv(8).decode()
 
         if command == None:
             continue
-        elif command.decode() == ACKN:
+        elif command == ACKN:
             acknowledged = True
             break
 
@@ -57,9 +55,39 @@ def ack_all_standby(participants, timeout):
         )
 
         for incoming in readable:
-            data = incoming.recv(8)
-            if data.decode() == ACKN:
+            data = incoming.recv(8).decode()
+            if data == ACKN:
                 acknowledged.append(incoming)
                 participants.remove(incoming)
     
     return acknowledged
+
+def commit(commitment, hexadecimal, participants):
+    # Convert message into bytestream with helpful information and send
+    bytestream = pickle.dumps(commitment)
+    length = len(bytestream).to_bytes(4, byteorder='big')
+    message = (COMM.encode() + hexadecimal + length + bytestream)
+
+    for participant in participants:
+        participant.send(message)
+
+def commit_standby(connection, timeout):
+    commitment = None
+    hexadecimal = None
+    reference = time.time()
+    timestamp = reference
+
+    while (timestamp - reference) < timeout:
+        timestamp = time.time()
+        # 8 byte command, 64 byte hex, 4 byte length
+        message = connection.recv(76)
+
+        if message[:8].decode() == COMM:
+            # Unpack and return commitment and its hex
+            hexadecimal = message[8:72]
+            length = int.from_bytes(message[72:76], 'big')
+            message = connection.recv(length)
+            commitment = pickle.loads(message)
+
+    return commitment, hexadecimal
+    

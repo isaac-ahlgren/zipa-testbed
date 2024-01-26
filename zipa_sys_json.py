@@ -1,5 +1,6 @@
 import json
 import socket
+import pickle
 from multiprocessing import Process
 
 from browser import ZIPA_Service_Browser
@@ -113,10 +114,10 @@ class ZIPA_System:
                     self.protocol_threads.append(thread)
 
     def initialize_protocol(self, parameters):
-        print(
-            f"Initializing {parameters.protocol.name} protocol on all participating devices."
-        )
-
+        print(f"Initializing {parameters.protocol.name} protocol on all participating devices.")
+        bytestream = pickle.dumps(parameters)
+        length = len(bytestream).to_bytes(4, byteorder='big')
+        message = (STRT.encode() + length + bytestream)
         candidates = self.browser.get_ip_addrs_for_zipa()
         participants = []
         print(f"Potential participants: {str(candidates)}")
@@ -132,8 +133,6 @@ class ZIPA_System:
 
             # Send message to begin protocol if connection was successful
             if not failed:
-                length = len(parameters)
-                message = (STRT + length.to_bytes(4) + parameters).encode()
                 connection.send(message)
                 participants.append(connection)
             else:
