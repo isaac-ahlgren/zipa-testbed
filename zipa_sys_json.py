@@ -1,13 +1,11 @@
 import json
 import socket
-import pickle
 from multiprocessing import Process
 
-from shurmann import Shurmann_Siggs_Protocol
 from browser import ZIPA_Service_Browser
 from microphone import Microphone
 from network import *
-
+from shurmann import Shurmann_Siggs_Protocol
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -45,9 +43,7 @@ class ZIPA_System:
         # Set up protocol and associated processes
         self.protocol_threads = []
         self.protocols = [
-            Shurmann_Siggs_Protocol(
-                self.microphone, n, k, timeout, nfs, identity
-            )
+            Shurmann_Siggs_Protocol(self.microphone, n, k, timeout, nfs, identity)
         ]
 
     def start(self):
@@ -78,24 +74,70 @@ class ZIPA_System:
                     else:
                         self.discoverable.remove(incoming)
                         incoming.close()
-                
+
             for failed in exception:
                 self.discoverable.remove(failed)
                 failed.close()
-            
+
     def service_request(self, data, incoming):
         # Retrieve command, JSON object size, JSON object
         command = data.decode()
         length = int(incoming.revc(4).decode())
-        parameters = json.loads(incoming.recv(length))
+        parameters = json.loads(incoming.recv(length).decode())
 
-        # Current client is selected as host
+        # Current device is selected as host
         if command == HOST:
             for protocol in self.protocols:
                 # Find the protocol that the message demands
                 if protocol.name == parameters.protocol.name:
+                    # TODO: Update initialize_protocol to take in JSON
                     participants = self.initialize_protocol(parameters)
 
                 if len(participants) == 0:
                     print("No discoverable devices to perform protocol. Aborting.\n")
                     return False
+
+                # Run the process in the background
+                thread = Process(target=protocol.host_protocol(participants))
+                thread.start()
+                self.protocol_threads.append(thread)
+        # Begin protocol
+        elif command == STRT:
+            for protocol in self.protocols:
+                if protocol.name == parameters.protocol.name:
+                    thread = Process(target=protocol.device_protocol(incoming))
+                    thread.start()
+
+                    # Remove from discoverable as it's running the protocol
+                    self.discoverable.remove(incoming)
+                    self.protocol_threads.append(thread)
+
+    def initialize_protocol(self, parameters):
+        print(
+            f"Initializing {parameters.protocol.name} protocol on all participating devices."
+        )
+
+        candidates = self.browser.get_ip_addrs_for_zipa()
+        participants = []
+        print(f"Potential participants: {str(candidates)}")
+
+        for candidate in candidates:
+            # Create a reusable TCP socket through IPv4 broadcasting on the network
+            connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            connection.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+            # For devices that couldn't connect to perform the protocol
+            failed = connection.connect_ex(candidate, self.port)
+
+            # Send message to begin protocol if connection was successful
+            if not failed:
+                length = len(parameters)
+                message = (STRT + length.to_bytes(4) + parameters).encode()
+                connection.send(message)
+                participants.append(connection)
+            else:
+                connection.close()
+                print(f"Error connecction to {candidate}. Error: {str(failed)}.\n")
+
+        return participants
