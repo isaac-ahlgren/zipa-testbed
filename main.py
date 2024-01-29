@@ -1,6 +1,6 @@
 import netifaces as ni
 
-from zipa_sys import ZIPA_System
+from zipa_sys_json import ZIPA_System
 
 f = open("/home/pi/hostname.txt", "r")
 ID = f.read().strip()
