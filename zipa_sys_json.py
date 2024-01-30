@@ -93,9 +93,9 @@ class ZIPA_System:
             self.protocols.append(
                 Shurmann_Siggs_Protocol(
                     self.sensors['mic'], 
-                    parameters.protocol.n, 
-                    parameters.protocol.k, 
-                    parameters.protocol.timeout, 
+                    parameters['protocol']['n'], 
+                    parameters['protocol']['k'], 
+                    self.timeout, 
                     self.nfs, 
                     self.identity
                     )
