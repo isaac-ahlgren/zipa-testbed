@@ -7,7 +7,7 @@ from multiprocessing import Process
 from browser import ZIPA_Service_Browser
 from microphone import Microphone
 # from network import *
-# from network_json import *
+from network_json import *
 from shurmann import Shurmann_Siggs_Protocol
 
 # Used to initiate and begin protocol
@@ -29,7 +29,7 @@ class ZIPA_System:
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # Bind socket to the specified socket and IPv4 address that runs continuously
-        self.socket.bind(ip, port)
+        self.socket.bind((ip, port))
         self.socket.setblocking(0)
         self.socket.listen()
 
