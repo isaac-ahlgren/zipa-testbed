@@ -1,103 +1,93 @@
-import ipaddress
-import multiprocessing as mp
 import pickle
 import select
-import socket
 import time
-import types
-from multiprocessing import shared_memory
 
-from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
-
-# Device communcation identifiers
-# TODO convert these messages to JSON, having number of iterations, iterations completed
+# Commands
 HOST = "host    "
-START = "start   "
-ACK = "ack     "
+STRT = "start   "
+ACKN = "ack     "
 COMM = "comm    "
 
 
-def ack(sock):
-    sock.send(ACK.encode())
+def ack(connection):
+    connection.send(ACKN.encode())
 
+def ack_standby(connection, timeout):
+    acknowledged = False
+    reference = time.time()
+    timestamp = reference
 
-def wait_for_ack(sock, timeout):
-    acked = False
+    # While process hasn't timed out
+    while (timestamp - reference) < timeout:
+        # Check for acknowledgement
+        timestamp = time.time()
+        command = connection.recv(8).decode()
 
-    # Keep track of how long it's taking for ACK
-    start_time = time.time()
-    current_time = start_time
-    # While we haven't timed out for ACK
-    while (current_time - start_time) < timeout:
-        current_time = time.time()
-        # Poll for ACK
-        msg = sock.recv(8)
-        if msg == None:
+        if command == None:
             continue
-        elif msg.decode() == ACK:
-            acked = True
+        elif command == ACKN:
+            acknowledged = True
             break
 
-    return acked
+    return acknowledged
 
-
-def ack_all(participating_sockets):
+def ack_all(participants):
     # Host acknowledges all clients participating
-    for i in range(len(participating_sockets)):
-        participating_sockets[i].send(ACK.encode())
+    for participant in participants:
+        participant.send(ACKN.encode())
 
+def ack_all_standby(participants, timeout):
+    acknowledged = []
+    reference = time.time()
+    timestamp = reference
 
-def wait_for_all_ack(participating_sockets, timeout):
-    acked_sockets = []
-
-    start_time = time.time()
-    current_time = start_time
-    while (current_time - start_time) < timeout:
-        current_time = time.time()
-        if len(participating_sockets) == 0:
+    while (timestamp - reference) < timeout:
+        # Check for acknowledgement
+        timestamp = time.time()
+        
+        if len(participants) == 0:
             break
 
-        outputs = []
-        # Divide up participating devices as readable or errors
-        readable, writable, exceptional = select.select(
-            participating_sockets, outputs, participating_sockets
+        # Tabs on incoming and outgoing connections, and exceptions
+        output = []
+        readable, writable, exception = select.select(
+            participants, output, participants
         )
-        for s in readable:
-            data = s.recv(8)
-            # For readable devices that sent the ACK message
-            if data and data.decode() == ACK:
-                # Add to the list of acknowledged devices
-                acked_sockets.append(s)
-                # Remove from participating list as it's acknowledged
-                participating_sockets.remove(s)
 
-    return acked_sockets
+        for incoming in readable:
+            data = incoming.recv(8).decode()
+            if data == ACKN:
+                acknowledged.append(incoming)
+                participants.remove(incoming)
+    
+    return acknowledged
 
+def commit(commitment, hexadecimal, participants):
+    # Convert message into bytestream with helpful information and send
+    bytestream = pickle.dumps(commitment)
+    length = len(bytestream).to_bytes(4, byteorder='big')
+    message = (COMM.encode() + hexadecimal + length + bytestream)
 
-def send_commitment(commitment, h, participating_sockets):
-    # Turn object into byte stream
-    pickled_comm = pickle.dumps(commitment)
-    length_in_bytes = len(pickled_comm).to_bytes(4, byteorder="big")
-    # Send commitment flag, hex, and byte stream to all participants
-    msg = COMM.encode() + h + length_in_bytes + pickled_comm
-    for i in range(len(participating_sockets)):
-        participating_sockets[i].send(msg)
+    for participant in participants:
+        participant.send(message)
 
-
-def wait_for_commitment(sock, timeout):
+def commit_standby(connection, timeout):
     commitment = None
-    h = None
+    hexadecimal = None
+    reference = time.time()
+    timestamp = reference
 
-    start_time = time.time()
-    current_time = start_time
-    while (current_time - start_time) < timeout:
-        current_time = time.time()
-        msg = sock.recv(76)
-        if msg[:8].decode() == COMM:
-            h = msg[8:72]  # 64 byte hash
-            length_in_bytes = int.from_bytes(msg[72:76], "big")
-            comm_msg = sock.recv(length_in_bytes)
-            # Unpack the message from byte stream
-            commitment = pickle.loads(comm_msg)
+    while (timestamp - reference) < timeout:
+        timestamp = time.time()
+        # 8 byte command, 64 byte hex, 4 byte length
+        message = connection.recv(76)
 
-    return commitment, h
+        if message[:8].decode() == COMM:
+            # Unpack and return commitment and its hex
+            hexadecimal = message[8:72]
+            length = int.from_bytes(message[72:76], 'big')
+            message = connection.recv(length)
+            commitment = pickle.loads(message)
+
+    return commitment, hexadecimal
+    

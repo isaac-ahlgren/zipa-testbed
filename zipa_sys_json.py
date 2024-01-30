@@ -1,4 +1,3 @@
-import json
 import socket
 import pickle
 import select
@@ -6,8 +5,7 @@ from multiprocessing import Process
 
 from browser import ZIPA_Service_Browser
 from microphone import Microphone
-# from network import *
-from network_json import *
+from network import *
 from shurmann import Shurmann_Siggs_Protocol
 
 # Used to initiate and begin protocol
@@ -106,7 +104,7 @@ class ZIPA_System:
         # Current device is selected as host
         if command == HOST:
             print("Device selected as the host.")
-            
+
             for protocol in self.protocols:
                 # Find the protocol that the message demands
                 if protocol.name == parameters['protocol']['name']:
