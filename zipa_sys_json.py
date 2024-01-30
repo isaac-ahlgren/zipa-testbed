@@ -109,14 +109,14 @@ class ZIPA_System:
                     # TODO: Update initialize_protocol to take in JSON
                     participants = self.initialize_protocol(parameters)
 
-                if len(participants) == 0:
-                    print("No discoverable devices to perform protocol. Aborting.\n")
-                    return False
+                    if len(participants) == 0:
+                        print("No discoverable devices to perform protocol. Aborting.\n")
+                        return False
 
-                # Run the process in the background
-                thread = Process(target=protocol.host_protocol(participants))
-                thread.start()
-                self.protocol_threads.append(thread)
+                    # Run the process in the background
+                    thread = Process(target=protocol.host_protocol(participants))
+                    thread.start()
+                    self.protocol_threads.append(thread)
         # Begin protocol
         elif command == STRT:
             for protocol in self.protocols:
