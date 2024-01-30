@@ -149,7 +149,7 @@ class ZIPA_System:
             connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
             # For devices that couldn't connect to perform the protocol
-            failed = connection.connect_ex(candidate, self.port)
+            failed = connection.connect_ex((candidate, self.port))
 
             # Send message to begin protocol if connection was successful
             if not failed:
