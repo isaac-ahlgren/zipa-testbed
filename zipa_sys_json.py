@@ -79,6 +79,7 @@ class ZIPA_System:
                 failed.close()
 
     def service_request(self, data, incoming):
+        print("Beginning service request")
         # Retrieve command, JSON object size, JSON object
         command = data.decode()
         length = int.from_bytes(incoming.recv(4), byteorder='big')
@@ -89,6 +90,7 @@ class ZIPA_System:
 
         # TODO: Switch cases or function to create new protocols, not overwriting either.
         if parameters['protocol']['name'] == "shurmann-siggs":
+            print("Creating an instance of the Shurmann-Sigss protocol.")
             self.sensors['mic'] = Microphone(self.sampling, int(self.duration * self.sampling))
             self.protocols.append(
                 Shurmann_Siggs_Protocol(
@@ -101,8 +103,10 @@ class ZIPA_System:
                     )
                 )
 
+        print("Determining device role.")
         # Current device is selected as host
         if command == HOST:
+            print("Device selected as the host.")
             for protocol in self.protocols:
                 # Find the protocol that the message demands
                 if protocol.name == parameters['protocol']['name']:
@@ -119,6 +123,7 @@ class ZIPA_System:
                     self.protocol_threads.append(thread)
         # Begin protocol
         elif command == STRT:
+            print("Beginning protocol on this device.")
             for protocol in self.protocols:
                 if protocol.name == parameters['protocol']['name']:
                     thread = Process(target=protocol.device_protocol(incoming))
