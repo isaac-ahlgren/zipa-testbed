@@ -64,12 +64,15 @@ class ZIPA_System:
                     print(f"Connection established with {str(address)}.\n")
                 # Read command from established client
                 else:
+                    print("Processing incoming data.")
                     data = incoming.recv(8)
 
                     # Process data or close connection
                     if data:
+                        print(f"Performing service request with {data}")
                         self.service_request(data, incoming)
                     else:
+                        print(f"Closing connection.")
                         self.discoverable.remove(incoming)
                         incoming.close()
 
@@ -78,6 +81,7 @@ class ZIPA_System:
                 failed.close()
 
     def service_request(self, data, incoming):
+        print("Processing service request.")
         # Retrieve command, JSON object size, JSON object
         command = data.decode()
         length = int(incoming.revc(4).decode())
@@ -85,6 +89,7 @@ class ZIPA_System:
         self.timeout = parameters.timeout
         self.duration = parameters.duration
         self.sampling = parameters.sampling
+        print(f"Command given: {command}, Parameters: {parameters}")
 
         # TODO: Switch cases or function to create new protocols, not overwriting either.
         if parameters.protocol.name == "shurmann-siggs":

@@ -2,8 +2,8 @@ import socket
 import pickle
 
 STRT = "start   "
-IP_ADDR = "192.168.1.116"
-TARGET_IP_ADDR = ("192.168.1.172", 5005)
+IP_ADDR = "192.168.1.230"
+TARGET_IP_ADDR = ("192.168.1.187", 5005)
 JSON = {
     "protocol": {"name": "shurmann-siggs", "n": 16, "k": 4},
     "timeout": 10,
@@ -18,6 +18,7 @@ if __name__ == "__main__":
     bytestream = pickle.dumps(JSON)
     length = len(bytestream).to_bytes(4, byteorder='big')
     message = (STRT.encode() + length + bytestream)
+    print(f"JSON: {JSON}\nLength of JSON's bytestream: {length}\nMessage: {message}")
 
     # Create socket and connect to client that acts as host
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
