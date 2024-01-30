@@ -87,7 +87,7 @@ class ZIPA_System:
         print("Processing service request.")
         # Retrieve command, JSON object size, JSON object
         command = data.decode()
-        length = int(incoming.revc(4).decode())
+        length = int(incoming.recv(4).decode())
         parameters = json.loads(incoming.recv(length).decode())
         self.timeout = parameters.timeout
         self.duration = parameters.duration
