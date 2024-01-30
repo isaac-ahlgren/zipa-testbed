@@ -65,37 +65,30 @@ class ZIPA_System:
                     print(f"Connection established with {str(address)}.\n")
                 # Read command from established client
                 else:
-                    print("Processing incoming data.")
                     data = incoming.recv(8)
 
                     # Process data or close connection
                     if data:
-                        print(f"Performing service request with {data}")
                         self.service_request(data, incoming)
                     else:
-                        print(f"Closing connection.")
                         self.discoverable.remove(incoming)
                         incoming.close()
 
             for failed in exception:
-                print("An exception was found and the connection is being closed.")
                 self.discoverable.remove(failed)
                 failed.close()
-            print("Stuck in an infinite loop")
 
     def service_request(self, data, incoming):
-        print("Processing service request.")
         # Retrieve command, JSON object size, JSON object
         command = data.decode()
-        length = int(incoming.recv(4).decode())
-        parameters = json.loads(incoming.recv(length).decode())
-        self.timeout = parameters.timeout
-        self.duration = parameters.duration
-        self.sampling = parameters.sampling
-        print(f"Command given: {command}, Parameters: {parameters}")
+        length = int.from_bytes(incoming.recv(4), byteorder='big')
+        parameters = pickle.loads(incoming.recv(length))
+        self.timeout = parameters['timeout']
+        self.duration = parameters['duration']
+        self.sampling = parameters['sampling']
 
         # TODO: Switch cases or function to create new protocols, not overwriting either.
-        if parameters.protocol.name == "shurmann-siggs":
+        if parameters['protocol']['name'] == "shurmann-siggs":
             self.sensors['mic'] = Microphone(self.sampling, int(self.duration * self.sampling))
             self.protocols.append(
                 Shurmann_Siggs_Protocol(
@@ -112,7 +105,7 @@ class ZIPA_System:
         if command == HOST:
             for protocol in self.protocols:
                 # Find the protocol that the message demands
-                if protocol.name == parameters.protocol.name:
+                if protocol.name == parameters['protocol']['name']:
                     # TODO: Update initialize_protocol to take in JSON
                     participants = self.initialize_protocol(parameters)
 
@@ -127,7 +120,7 @@ class ZIPA_System:
         # Begin protocol
         elif command == STRT:
             for protocol in self.protocols:
-                if protocol.name == parameters.protocol.name:
+                if protocol.name == parameters['protocol']['name']:
                     thread = Process(target=protocol.device_protocol(incoming))
                     thread.start()
 
@@ -136,7 +129,7 @@ class ZIPA_System:
                     self.protocol_threads.append(thread)
 
     def initialize_protocol(self, parameters):
-        print(f"Initializing {parameters.protocol.name} protocol on all participating devices.")
+        print(f"Initializing {parameters['protocol']['name']} protocol on all participating devices.")
         bytestream = pickle.dumps(parameters)
         length = len(bytestream).to_bytes(4, byteorder='big')
         message = (STRT.encode() + length + bytestream)
