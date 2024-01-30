@@ -61,6 +61,7 @@ class ZIPA_System:
                 if incoming is self.socket:
                     connection, address = self.socket.accept()
                     connection.setblocking(0)
+                    self.discoverable.append(connection)
                     print(f"Connection established with {str(address)}.\n")
                 # Read command from established client
                 else:
@@ -77,8 +78,10 @@ class ZIPA_System:
                         incoming.close()
 
             for failed in exception:
+                print("An exception was found and the connection is being closed.")
                 self.discoverable.remove(failed)
                 failed.close()
+            print("Stuck in an infinite loop")
 
     def service_request(self, data, incoming):
         print("Processing service request.")
