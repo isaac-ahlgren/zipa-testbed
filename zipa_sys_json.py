@@ -97,7 +97,7 @@ class ZIPA_System:
                     parameters['protocol']['k'], 
                     self.timeout, 
                     self.nfs, 
-                    self.identity
+                    self.id
                     )
                 )
 

@@ -125,7 +125,7 @@ class ZIPA_System:
             # In the list of protocols
             for i in range(len(self.protocols)):
                 # Find the protocol that the message wants to do
-                if self.protocols[i].protocol_name == msg[8:]:
+                if self.protocols[i].name == msg[8:]:
                     protocol_name = msg[8:]
                     participating_sockets = self.initialize_protocol(protocol_name)
 
@@ -143,7 +143,7 @@ class ZIPA_System:
                     self.protocol_threads.append(new_thread)
         elif msg[:8] == START:
             for i in range(len(self.protocols)):
-                if self.protocols[i].protocol_name == msg[8:]:
+                if self.protocols[i].name == msg[8:]:
                     protocol_name = msg[8:]
                     # Target a device to perform the protocol
                     new_thread = Process(target=self.protocols[i].device_protocol(sock))
