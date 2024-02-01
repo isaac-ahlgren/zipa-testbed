@@ -73,7 +73,7 @@ def commit(commitment, hexadecimal, participants):
 
 def commit_standby(connection, timeout):
     commitment = None
-    hexadecimal = None
+    hash_val = None
     reference = time.time()
     timestamp = reference
 
@@ -84,10 +84,10 @@ def commit_standby(connection, timeout):
 
         if message[:8].decode() == COMM:
             # Unpack and return commitment and its hex
-            hexadecimal = message[8:72]
+            hash_val = message[8:72]
             length = int.from_bytes(message[72:76], 'big')
             message = connection.recv(length)
             commitment = pickle.loads(message)
 
-    return commitment, hexadecimal
+    return commitment, hash_val
     
