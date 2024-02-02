@@ -7,6 +7,7 @@ HOST = "host    "
 STRT = "start   "
 ACKN = "ack     "
 COMM = "comm    "
+DHKY = "dhkey   "
 
 
 def ack(connection):
@@ -73,7 +74,7 @@ def commit(commitment, hexadecimal, participants):
 
 def commit_standby(connection, timeout):
     commitment = None
-    hash_val = None
+    hexadecimal = None
     reference = time.time()
     timestamp = reference
 
@@ -84,10 +85,73 @@ def commit_standby(connection, timeout):
 
         if message[:8].decode() == COMM:
             # Unpack and return commitment and its hex
-            hash_val = message[8:72]
+            hexadecimal = message[8:72]
             length = int.from_bytes(message[72:76], 'big')
             message = connection.recv(length)
             commitment = pickle.loads(message)
 
-    return commitment, hash_val
-    
+    return commitment, hexadecimal
+
+# UNTESTED CODE
+def dh_exchange(connection, key):
+    key_size = len(key).to_bytes(4, byteorder='big')
+    message = DHKY + key_size + key
+    connection.send(message)
+
+def dh_exchange_all(participants, key):
+    key_size = len(key).to_bytes(4, byteorder='big')
+    message = DHKY + key_size + key
+    for i in range(len(participants)):
+        participants[i].send(message)
+
+def dh_exchange_standby(connection, timeout):
+    reference = time.time()
+    key = None
+
+    # While process hasn't timed out
+    while (timestamp - reference) < timeout:
+        timestamp = time.time()
+        message = connection.recv(12)
+
+        if message == None:
+            continue
+        else:
+            command = message[:8].decode()
+            if command == DHKY:
+                key_size = int.from_bytes(message[8:], 'big')
+                key = connection.recv(key_size)              
+            break
+
+    return key
+
+def dh_exchange_standby_all(participants, timeout):
+    keys_recieved = dict()
+    responded = []
+    reference = time.time()
+    timestamp = reference
+
+    while (timestamp - reference) < timeout:
+        # Check for acknowledgement
+        timestamp = time.time()
+        
+        if len(participants) == 0:
+            break
+
+        # Tabs on incoming and outgoing connections, and exceptions
+        output = []
+        readable, writable, exception = select.select(
+            participants, output, participants
+        )
+
+        for incoming in readable:
+            message = incoming.recv(12)
+            command = message[:8]
+            if command == DHKY:
+                key_size = int.from_bytes(message[8:], 'big')
+                key = incoming.recv(key_size)
+                ip_addr, port = incoming.getpeername()
+                keys_recieved[ip_addr] = key
+
+                responded.append(incoming)
+                participants.remove(incoming)
+    return responded, keys_recieved

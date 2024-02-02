@@ -2,16 +2,26 @@ import numpy as np
 from corrector import Fuzzy_Commitment
 from galois import *
 from network import *
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+
+# UNTESTED CODE
 
 class Miettinen_Protocol():
-    def __init__(self, n, k, f, w, rel_thresh, abs_thresh):
+    def __init__(self, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations):
         self.n = n
         self.k = k
         self.f = f
         self.w = w
         self.rel_thresh = rel_thresh
         self.abs_thresh = abs_thresh
+        self.auth_threshold = auth_threshold
+        self.success_threshold = success_threshold
+        self.max_iterations = max_iterations
         self.re = Fuzzy_Commitment(n, k)
+
+        self.current_keys = None
 
     def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
         block_num = int(len(signal)/(no_snap_shot_width + snap_shot_width))
@@ -52,14 +62,10 @@ class Miettinen_Protocol():
         print()
         return bits, signal
 
-    # implementing this in a bit
-    def key_strengthening_process(self):
-        return
-
     def device_protocol(self, host_socket):
         host_socket.setblocking(1)
         print("Iteration " + str(self.count))
-            
+
         # Sending ack that they are ready to begin
         print()
         print("Sending ACK")
@@ -68,43 +74,64 @@ class Miettinen_Protocol():
         # Wait for ack from host to being context extract, quit early if no response within time
         print()
         print("Waiting for ACK from host")
-        if not wait_for_ack(host_socket, self.timeout):
+        if not ack_standby(host_socket, self.timeout):
             print("No ACK recieved within time limit - early exit")
             print()
             return
         print()
 
-        # Extract bits from mic
-        print("Extracting context")
-        print()
-        witness, signal = self.extract_context()
+        # Generate initial private key for Diffie-Helman
+        initial_private_key = ec.generate_private_key(ec.SECP384R1())
         
-        # Wait for Commitment
-        print("Waiting for commitment from host")
-        commitment, h = wait_for_commitment(host_socket, self.timeout)
+        # Send initial key for Diffie-Helman
+        dh_exchange(host_socket, initial_private_key)
 
-        # Early exist if no commitment recieved in time
-        if not commitment:
-            print("No commitment recieved within time limit - early exit")
+        # Recieve other devices key
+        other_key = dh_exchange_standby(host_socket, self.timeout)
+
+        if other_key == None:
+            print("No initial key for Diffie-Helman recieved - early exit")
             print()
             return
-        print()
 
-        print("witness: " + str(hex(int(witness, 2))))
-        print("h: " + str(h))
-        print()
+        # Shared key generated
+        shared_key = initial_private_key.exchange(ec.ECDH(), other_key.public_key())
 
-        # Decommit
-        print("Decommiting")
-        C, success = self.re.decommit_witness(commitment, witness, h)
+        current_key = shared_key
+        successes = 0
+        total_iterations = 0
+        while successes < self.success_threshold and total_iterations < self.max_iterations:
+            # Extract bits from mic
+            print("Extracting context")
+            print()
+            witness, signal = self.extract_context()
+        
+            # Wait for Commitment
+            print("Waiting for commitment from host")
+            commitment, h = commit_standby(host_socket, self.timeout)
 
-        print("C: " + str(C))
-        print("success: " + str(success))
-        print()
+            # Early exist if no commitment recieved in time
+            if not commitment:
+                print("No commitment recieved within time limit - early exit")
+                print()
+                return
+            print()
 
-        # Log all information to NFS server
-        print("Logging all information to NFS server")
-        self.send_to_nfs_server("audio", signal, witness, h, commitment)
+            print("witness: " + str(hex(int(witness, 2))))
+            print("h: " + str(h))
+            print()
+
+            # Decommit
+            print("Decommiting")
+            C, success = self.re.decommit_witness(commitment, witness, h)
+
+            print("C: " + str(C))
+            print("success: " + str(success))
+            print()
+
+            # Log all information to NFS server
+            print("Logging all information to NFS server")
+            self.send_to_nfs_server("audio", signal, witness, h, commitment)
 
         self.count += 1
 
