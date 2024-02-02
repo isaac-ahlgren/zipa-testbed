@@ -1,4 +1,3 @@
-from galois import *
 from cryptography.hazmat.primitives import hashes
 import random
 
@@ -7,14 +6,9 @@ GEN_POLY =   0b10000011
 BLOCK_SIZE = 8
 
 class Fuzzy_Commitment:
-    def __init__(self, n, k):
-        self.n = n
-        self.k = k
-        self.block_size = BLOCK_SIZE
-        
-        self.GF = GaloisField(self.block_size, PRIME_POLY, GEN_POLY)
-        self.RS = ReedSolomonObj(self.GF, n, k)
-        self.PA = polynomial_arithmetic(self.GF)
+    def __init__(self, error_correction_obj, key_byte_length):
+        self.key_byte_length = key_byte_length
+        self.error_correction = error_correction_obj
         self.hash = hashes.Hash(hashes.SHA512())
 
     def get_random_coeffs(self, random_bits):
@@ -27,6 +21,8 @@ class Fuzzy_Commitment:
         return random_key_coeff
     
     def commit_witness(self, witness):
+        # Generate secret key
+        secret_key = random.randbytes(self.key_byte_length)
 
         random_coeffs = self.get_random_coeffs(witness)
     
@@ -43,16 +39,16 @@ class Fuzzy_Commitment:
         # Multply
         C = self.PA.mult(key, g)
 
+        
+        #TODO: Make calculating the hash function optional, not necessary for all protocols
+        #TODO: Make the hash calculated from the key generated, not the codeword
+        #TODO: Make commitment algorithm agnostic of codeword used
+
         # Get hash for codeword
         h_func = hashes.Hash(hashes.SHA512())
         #print(C.get_bytes())
-        h_func.update(C.get_bytes())
+        h_func.update(secret_key)
         h = h_func.finalize()
-
-        #print(C)
-        #print(len(C.coeffs))
-        #print(random_coeffs)
-        #print(len(random_coeffs))
 
         # Commit witness by getting XOR distance between codeword and witness
         for i in range(len(C.coeffs)):

@@ -17,6 +17,8 @@ class Shurmann_Siggs_Protocol:
         self.identifier = identifier
 
     def sigs_algo(self, x1, window_len=10000, bands=1000):
+        #TODO: Make algorithm output bytes instead of character strings
+        
         FFTs = []
         from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 

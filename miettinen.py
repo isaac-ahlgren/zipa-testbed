@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 # UNTESTED CODE
 
 class Miettinen_Protocol():
-    def __init__(self, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations):
+    def __init__(self, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations):
         self.n = n
         self.k = k
         self.f = f
@@ -20,6 +20,8 @@ class Miettinen_Protocol():
         self.success_threshold = success_threshold
         self.max_iterations = max_iterations
         self.re = Fuzzy_Commitment(n, k)
+
+        self.kdf = HKDF(algorithm=hashes.SHA256(), length=key_length)
 
         self.current_keys = None
 
@@ -124,6 +126,8 @@ class Miettinen_Protocol():
             # Decommit
             print("Decommiting")
             C, success = self.re.decommit_witness(commitment, witness, h)
+
+            
 
             print("C: " + str(C))
             print("success: " + str(success))
