@@ -35,9 +35,6 @@ class ZIPA_System:
         self.discoverable = [self.socket]
         self.browser = ZIPA_Service_Browser(ip, service)
 
-        # Set up sensors
-        self.sensors = {}
-
         # Set up protocol and associated processes
         self.protocol_threads = []
         self.protocols = []
@@ -84,21 +81,8 @@ class ZIPA_System:
         self.timeout = parameters['timeout']
         self.duration = parameters['duration']
         self.sampling = parameters['sampling']
-
-        # TODO: Switch cases or function to create new protocols, not overwriting either.
-        if parameters['protocol']['name'] == "shurmann-siggs":
-            print("Creating an instance of the Shurmann-Sigss protocol.")
-            self.sensors['mic'] = Microphone(self.sampling, int(self.duration * self.sampling))
-            self.protocols.append(
-                Shurmann_Siggs_Protocol(
-                    self.sensors['mic'], 
-                    parameters['protocol']['n'], 
-                    parameters['protocol']['k'], 
-                    self.timeout, 
-                    self.nfs, 
-                    self.id
-                    )
-                )
+        # Create protocol based on JSON
+        self.create_protocol(parameters)
 
         print("Determining device role.")
         # Current device is selected as host
@@ -108,7 +92,6 @@ class ZIPA_System:
             for protocol in self.protocols:
                 # Find the protocol that the message demands
                 if protocol.name == parameters['protocol']['name']:
-                    # TODO: Update initialize_protocol to take in JSON
                     participants = self.initialize_protocol(parameters)
 
                     if len(participants) == 0:
@@ -159,3 +142,20 @@ class ZIPA_System:
                 print(f"Error connecction to {candidate}. Error: {str(failed)}.\n")
 
         return participants
+    
+    def create_protocol(self, parameters):
+        name = parameters['protocol']['name']
+
+        match name:
+            case "shurmann-siggs":
+                self.protocols.append(Shurmann_Siggs_Protocol(
+                    Microphone(self.sampling, int(self.duration * self.sampling)),
+                    parameters['protocol']['n'],
+                    parameters['protocol']['k'],
+                    self.timeout,
+                    self.nfs,
+                    self.id
+                ))
+            case _:
+                print("Protocol not supported.")
+
