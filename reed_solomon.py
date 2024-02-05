@@ -1,5 +1,13 @@
+import random
+from galois import *
 
-#TODO: Create function for creating codeword for key and decoding codeword for key
+#TODO: Something is wrong with this implementation I think, with parameters n = 12 and k = 8, it can correct 4 symbol errors when it only should be 2
+# See test.py to see what I mean
+
+# Currently built to assume block size will be 8 bits
+PRIME_POLY = 0b100011101
+GEN_POLY =   0b10000011
+BLOCK_SIZE = 8
 class ReedSolomonObj():
     def __init__(self, n, k, block_size, prime_poly, gen_poly):
         if k > n:
@@ -8,11 +16,54 @@ class ReedSolomonObj():
         self.n = n
         self.k = k
         self.t = int((n-k)/2)
-        self.block_size = block_size
-        self.prime_poly = prime_poly
-        self.gen_poly = gen_poly
+        self.block_size = BLOCK_SIZE
+        self.prime_poly = PRIME_POLY
+        self.gen_poly = GEN_POLY
         self.field = GaloisField(self.block_size, self.prime_poly, self.gen_poly)
-        self.PA = polynomial_arithmetic(field)
+        self.PA = polynomial_arithmetic(self.field)
+
+    def get_bytes_to_poly(self, b: bytes) -> polynomial:
+        coeffs = []
+        
+        for i in range(len(b)):
+            coeffs.append(b[i])
+        data = polynomial(len(b))
+        data.set_coeffs(coeffs)
+        data.resize()
+        return data
+
+    def encode(self, key: bytes) -> bytes:
+        key_poly = self.get_bytes_to_poly(key)
+
+        g = self.get_generator_poly()
+
+        # Multply
+        C = self.PA.mult(key_poly, g)
+ 
+        return C.get_bytes(self.n)
+
+    def decode(self, C: bytes) -> bytes:
+        C_poly = self.get_bytes_to_poly(C)
+        g = self.get_generator_poly()
+
+        # Collect syndrome polynomial
+        poly, syndromes = self.calculate_syndrome(C_poly, g)
+        if type(poly) != type(0):
+            sig = self.berlecamp_alg(poly, syndromes)
+        else:
+            data = self.PA.div(C_poly, g)
+            data.resize()
+            return data.get_bytes(self.k)
+
+        s_r = self.get_sigma_r(sig)
+        zeros = s_r.find_zeros(self.field)
+        found_errors = self.find_error_values(poly,zeros)
+        output = self.correct_found_errors(C_poly,zeros,found_errors)
+        output.resize()
+
+        data = self.PA.div(output, g)
+        data.resize()
+        return data.get_bytes(self.k)
 
     def calculate_syndrome(self, C, g):
         t = self.t
@@ -26,10 +77,10 @@ class ReedSolomonObj():
         if type(g) != type(polynomial(self.field)) or type(C) != type(polynomial(self.field)):
             raise Exception('C and g both must be polynomial objects.')
         s = self.PA.div(C, g, 1)
-        if s.coeffs == [1]:
+
+        if s.is_zero():
             return 0,0
-        iter = 1
-        
+        iter = 1    
 
         for i in range(1, 2*t+1):
             S_coeffs[i-1] = self.field.eval_poly(s, self.field.pow(self.field.generator, i))
@@ -100,7 +151,6 @@ class ReedSolomonObj():
         if L == 0:
             return 0
         
-        C.resize()
         return C
 
   
@@ -117,7 +167,6 @@ class ReedSolomonObj():
             sig_r_coeffs[pos] = s.coeffs[i]
             pos+=1
         sig_r.set_coeffs(sig_r_coeffs)
-        sig_r.resize()
         
         return sig_r
 
@@ -142,7 +191,7 @@ class ReedSolomonObj():
     def find_error_values(self, C, roots):
         matrix = []
         count = 0
-        Guass = GaussianObj(self.field)
+        Gauss = GaussianObj(self.field)
 
         B = []
 
@@ -156,7 +205,7 @@ class ReedSolomonObj():
                     
             count+=1
             matrix.append(A)
-        sols = Guass.solve_system(matrix)
+        sols = Gauss.solve_system(matrix)
         return sols
 
     def correct_found_errors(self,C,locations,errors):

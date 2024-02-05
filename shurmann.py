@@ -9,7 +9,7 @@ from network import *
 class Shurmann_Siggs_Protocol:
     def __init__(self, microphone, n, k, timeout, nfs_server_dir, identifier):
         self.signal_measurement = microphone
-        self.re = Fuzzy_Commitment(n, k)
+        self.re = Fuzzy_Commitment(ReedSolomonObj(n, k, None, None, None), 8) # Reed-Solomon doesn't work right now
         self.name = "shurmann-siggs"
         self.count = 0
         self.timeout = timeout

@@ -15,14 +15,24 @@ class polynomial():
             self.coeffs = []
             self.size = size
         
+    def is_zero(self):
+        output = True
+        for i in range(len(self.coeffs)):
+            if self.coeffs[i] != 0:
+                output = False
+                break
+        return output
 
     def set_coeffs(self, coeffs):
         for num in coeffs:
             if (len(self.coeffs) < self.size):
                 self.coeffs.append(num)
         
-    def get_bytes(self):
-        return bytes(self.coeffs)
+    def get_bytes(self, size):
+        output = self.coeffs.copy()
+        for i in range(abs(size - self.size)):
+            output.append(0)
+        return bytes(output)
 
     def set_size(self, size):
         self.size = size
@@ -107,7 +117,7 @@ class polynomial_arithmetic():
                     j-=1
                 i -= 1
             new_poly.set_coeffs(new_coeffs)
-            new_poly.resize()
+            #new_poly.resize()
             return new_poly
 
     #we divide f/g        
@@ -157,15 +167,11 @@ class polynomial_arithmetic():
                     for j in range(g.size-1, -1,-1):
                         if(g.coeffs[j] != 0 ):
                             dividend.coeffs[dividend_position-tmp_pos] ^= self.field.mult(g.coeffs[j], const)
-                            # dividend.resize()
                         tmp_pos+=1
 
                 dividend_position -= 1
         else:
             return zero_poly
-
-        quotient.resize()
-        dividend.resize()
 
         if remainder == 0:
             return quotient
