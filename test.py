@@ -17,7 +17,7 @@ def error(bits, error_rate):
     b[1] = abs(bits[1] - 1)
     b[2] = abs(bits[2] - 1)
     b[3] = abs(bits[3] - 1)
-   # b[4] = abs(bits[4] - 1)
+    b[4] = abs(bits[4] - 1)
 
     return bytes(b)
 
