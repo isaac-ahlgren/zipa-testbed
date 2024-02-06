@@ -88,7 +88,7 @@ byte_erasure (int loc, unsigned char dst[], int cwsize, int erasures[])
 int
 main (int argc, char *argv[])
 {
- 
+  srand(666);
   int npar = 4;
   int length_of_key = 8;
   int iterations = 500;
@@ -112,7 +112,7 @@ main (int argc, char *argv[])
       printf("Encoded data is: \"%s\"\n", codeword);
 
       codeword[0] = 0;
-      //codeword[1] = 0;
+      codeword[1] = 0;
       //codeword[2] = 0;
       //codeword[3] = 0;
       /* Now decode -- encoded codeword size must be passed */

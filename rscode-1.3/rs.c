@@ -30,7 +30,7 @@
 #include <stdlib.h>
 #include "ecc.h"
 
-int DEBUG = FALSE;
+int DEBUG = TRUE;
 
 static void
 compute_genpoly (int nbytes, struct ReedSolomon_Instance* rs);

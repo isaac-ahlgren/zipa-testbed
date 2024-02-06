@@ -227,7 +227,7 @@ static void mul_z_poly (int src[], int max_deg)
 void 
 Find_Roots (struct ReedSolomon_Instance* rs)
 {
-  int sum, r, k, max_deg = rs->max_deg;	
+  int sum, r, k, npar = rs->npar;	
   rs->NErrors = 0;
   int* Lambda = rs->Lambda;
   int* ErrorLocs = rs->ErrorLocs;
@@ -235,7 +235,7 @@ Find_Roots (struct ReedSolomon_Instance* rs)
   for (r = 1; r < 256; r++) {
     sum = 0;
     /* evaluate lambda at r */
-    for (k = 0; k < max_deg+1; k++) {
+    for (k = 0; k < npar+1; k++) {
       sum ^= gmult(gexp[(k*r)%255], Lambda[k]);
     }
     if (sum == 0) 
@@ -281,7 +281,7 @@ correct_errors_erasures (unsigned char codeword[],
   Modified_Berlekamp_Massey(rs);
   Find_Roots(rs);
   
-
+  NErrors = rs->NErrors;
   if ((NErrors <= npar) && NErrors > 0) { 
 
     /* first check for illegal error locs */
