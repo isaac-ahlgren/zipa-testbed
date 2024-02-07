@@ -71,9 +71,9 @@ class ReedSolomonObj():
         np_C = np.frombuffer(C, dtype=np.int8)
         erasures = np.zeros(8, dtype=np.intc)
 
-        self.decode_data(np_C, self.t + len(C), self.rs_instance)
+        self.decode_data(np_C, len(np_C), self.rs_instance)
         if self.check_syndrome(self.rs_instance):
-            self.correct_errors_erasures(np_C, self.t + len(C), 0, erasures, self.rs_instance)
+            self.correct_errors_erasures(np_C, len(np_C), 0, erasures, self.rs_instance)
         
         key = np_C[0:self.k]
         return key.tobytes()

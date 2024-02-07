@@ -238,11 +238,10 @@ Find_Roots (struct ReedSolomon_Instance* rs)
     for (k = 0; k < npar+1; k++) {
       sum ^= gmult(gexp[(k*r)%255], Lambda[k]);
     }
-    if (sum == 0) 
-      { 
-	ErrorLocs[rs->NErrors] = (255-r); rs->NErrors++; 
-	if (DEBUG) fprintf(stderr, "Root found at r = %d, (255-r) = %d\n", r, (255-r));
-      }
+    if (sum == 0) { 
+	    ErrorLocs[rs->NErrors] = (255-r); rs->NErrors++; 
+	    if (DEBUG) fprintf(stderr, "Root found at r = %d, (255-r) = %d\n", r, (255-r));
+    }
   }
 }
 

@@ -14,8 +14,8 @@ def error(bits, error_rate):
             b.append(bits[i])
     
     b[0] = (bits[0] + 1) % 256
-    b[1] = (bits[1] + 1) % 256
-    #b[2] = abs(bits[2] - 1)
+    #b[1] = (bits[1] + 1) % 256
+    b[2] = abs(bits[2] - 1)
     #b[3] = abs(bits[3] - 1)
     #b[4] = abs(bits[4] - 1)
 
@@ -29,27 +29,25 @@ if __name__ == "__main__":
     total_successes = 0
     total = 500
     for i in range(total):
-        key = b'\xee\xf4.\x07\x90f\x87\x8a' #random.randbytes(8)
-        for i in range(len(key)):
-            print(key[i])
-        quit()
+        key = random.randbytes(8)
         codeword = rs.encode(key)
-        print(codeword)
         err_codeword = error(codeword, 0)
-        print("codeword " + str(codeword))
-        print("err codeword " + str(err_codeword))
+        #print("codeword " + str(codeword))
+        #print("err codeword " + str(err_codeword))
         recieved_key = rs.decode(err_codeword)
-        print(key)
-        print(recieved_key)
-        print()
+        #print(key)
+        #print(recieved_key)
+        #print()
         if key == recieved_key:
             total_successes += 1
+            print("success")
+            print("------------------------------------------")
         else:
             print()
-            print("end")
             print(key)
             print(recieved_key)
+            print("failure")
+            print("------------------------------------------")
             print()
-        quit()
     print(total_successes/total)
 

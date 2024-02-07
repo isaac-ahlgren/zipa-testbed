@@ -59,7 +59,7 @@ initialize_rs_instance(int npar)
     struct ReedSolomon_Instance* rs = (struct ReedSolomon_Instance*) malloc(sizeof(struct ReedSolomon_Instance));
     rs->npar = npar;
     rs->max_deg = max_deg;
-    
+
     rs->pBytes = (int*) malloc(sizeof(int)*max_deg);
     memset(rs->pBytes, 0, sizeof(int)*max_deg);
 
