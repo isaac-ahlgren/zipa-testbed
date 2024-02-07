@@ -28,9 +28,11 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <string.h>
 #include "ecc.h"
 
-int DEBUG = TRUE;
+int DEBUG = FALSE;
+int INITIALIZED = FALSE;
 
 static void
 compute_genpoly (int nbytes, struct ReedSolomon_Instance* rs);
@@ -39,8 +41,11 @@ compute_genpoly (int nbytes, struct ReedSolomon_Instance* rs);
 void
 initialize_ecc ()
 {
-    /* Initialize the galois field arithmetic tables */
-    init_galois_tables();
+    if (INITIALIZED == FALSE) {
+        /* Initialize the galois field arithmetic tables */
+        init_galois_tables();
+        INITIALIZED = TRUE;
+    }
 }
 
 /* FUNCTION CREATED FOR ZIPA TESTBED. ALL FURTHER MODIFICATIONS TO THE CODE WILL BE IN SERVICE OF MAKING THAT WORK */
@@ -54,14 +59,25 @@ initialize_rs_instance(int npar)
     struct ReedSolomon_Instance* rs = (struct ReedSolomon_Instance*) malloc(sizeof(struct ReedSolomon_Instance));
     rs->npar = npar;
     rs->max_deg = max_deg;
+    
     rs->pBytes = (int*) malloc(sizeof(int)*max_deg);
+    memset(rs->pBytes, 0, sizeof(int)*max_deg);
+
     rs->synBytes = (int*) malloc(sizeof(int)*max_deg);
+    memset(rs->synBytes, 0, sizeof(int)*max_deg);
+
     rs->genPoly = (int*) malloc(2*sizeof(int)*max_deg);
+    memset(rs->genPoly, 0, 2*sizeof(int)*max_deg);
+
 
     rs->NErasures = 0;
     rs->NErrors = 0;
+
     rs->Lambda = (int*) malloc(sizeof(int)*max_deg);
+    memset(rs->Lambda, 0, sizeof(int)*max_deg);
+
     rs->Omega = (int*) malloc(sizeof(int)*max_deg);
+    memset(rs->Omega, 0, sizeof(int)*max_deg);
 
     /* Compute the encoder generator polynomial */
     compute_genpoly(npar, rs);

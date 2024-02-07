@@ -79,6 +79,9 @@ struct ReedSolomon_Instance {
 /* print debugging info */
 extern int DEBUG;
 
+/* flag for if the tables for the galois field are already computed */
+extern int INITIALIZED;
+
 /* Reed Solomon encode/decode routines */
 void initialize_ecc (void);
 struct ReedSolomon_Instance* initialize_rs_instance(int npar);

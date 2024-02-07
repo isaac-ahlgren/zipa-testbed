@@ -1,9 +1,6 @@
 from cryptography.hazmat.primitives import hashes
 import random
-
-PRIME_POLY = 0b100011101
-GEN_POLY =   0b10000011
-BLOCK_SIZE = 8
+import numpy as np
 
 class Fuzzy_Commitment:
     def __init__(self, error_correction_obj, key_byte_length):
@@ -11,12 +8,9 @@ class Fuzzy_Commitment:
         self.error_correction = error_correction_obj
         self.hash = hashes.Hash(hashes.SHA512())
     
-    def commit_witness(self, witness, use_hash_func=True):
+    def commit_witness(self, witness: ndarray, use_hash_func=True) ->:
         # Generate secret key
         secret_key = random.randbytes(self.key_byte_length)
-
-        # Encode secret key
-        C = self.error_correction.encode(secret_key)
 
         h = None
         if use_hash_func:
@@ -24,6 +18,9 @@ class Fuzzy_Commitment:
             h_func = hashes.Hash(hashes.SHA512())
             h_func.update(secret_key)
             h = h_func.finalize()
+
+        # Encode secret key
+        C = self.error_correction.encode(secret_key)
 
         # Commit witness by getting XOR distance between codeword and witness
         C ^= witness

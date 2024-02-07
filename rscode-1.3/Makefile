@@ -3,48 +3,20 @@
 # (c) Henry Minsky, Universal Access 1991-1996
 #
 
-RANLIB = ranlib
-AR = ar
-
-
-VERSION = 1.0
-DIRNAME= rscode-$(VERSION)
-
-
 CC = gcc
-# OPTIMIZE_FLAGS = -O69
+
 DEBUG_FLAGS = -g
-CFLAGS = -Wall -Wstrict-prototypes  $(OPTIMIZE_FLAGS) $(DEBUG_FLAGS) -I..
-LDFLAGS = $(OPTIMIZE_FLAGS) $(DEBUG_FLAGS)
+CFLAGS = -shared -fPIC -Wall -Wstrict-prototypes  $(OPTIMIZE_FLAGS) $(DEBUG_FLAGS) -I..
 
-LIB_CSRC = rs.c galois.c berlekamp.c crcgen.c 
-LIB_HSRC = ecc.h
-LIB_OBJS = rs.o galois.o berlekamp.o crcgen.o 
+CFILES = rs.c galois.c berlekamp.c crcgen.c  
 
-TARGET_LIB = libecc.a
-TEST_PROGS = example
+TARGET_LIB = libecc.so
 
-TARGETS = $(TARGET_LIB) $(TEST_PROGS)
-
-all: $(TARGETS)
-
-$(TARGET_LIB): $(LIB_OBJS)
-	$(RM) $@
-	$(AR) cq $@ $(LIB_OBJS)
-	if [ "$(RANLIB)" ]; then $(RANLIB) $@; fi
-
-example: example.o galois.o berlekamp.o crcgen.o rs.o
-	gcc -o example example.o -L. -lecc
+all: $(CFILES)
+	$(CC) $(CFLAGS) -o $(TARGET_LIB) $(CFILES)
 
 clean:
-	rm -f *.o example libecc.a
-	rm -f *~
-
-dist:
-	(cd ..; tar -cvf rscode-$(VERSION).tar $(DIRNAME))
-
-depend:
-	makedepend $(SRCS)
+	rm -f *.o libecc.so
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
 
