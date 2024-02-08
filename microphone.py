@@ -3,7 +3,7 @@ import wave
 import numpy as np
 import pyaudio
 
-
+# TODO: Make template class for all sensors so that they all have the same functions
 class Microphone:
     def __init__(self, sample_rate, buffer_size):
         self.format = pyaudio.paFloat32

@@ -1,15 +1,18 @@
 import mysql.connector
 import numpy as np
 
+from reed_solomon import ReedSolomonObj
 from corrector import Fuzzy_Commitment
-from galois import *
 from network import *
 
 
+# TODO: Make it so that key length is a parameter to the Shurmann and siggs protocol
+# It will need work with how many bits the quantizer
+# TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
 class Shurmann_Siggs_Protocol:
     def __init__(self, microphone, n, k, timeout, nfs_server_dir, identifier):
         self.signal_measurement = microphone
-        self.re = Fuzzy_Commitment(ReedSolomonObj(n, k, None, None, None), 8) # Reed-Solomon doesn't work right now
+        self.re = Fuzzy_Commitment(ReedSolomonObj(n ,k), 8)
         self.name = "shurmann-siggs"
         self.count = 0
         self.timeout = timeout
@@ -17,7 +20,8 @@ class Shurmann_Siggs_Protocol:
         self.identifier = identifier
 
     def sigs_algo(self, x1, window_len=10000, bands=1000):
-        #TODO: Make algorithm output bytes instead of character strings
+        def bitstring_to_bytes(s):
+            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
         
         FFTs = []
         from scipy.fft import fft, fftfreq, ifft, irfft, rfft
@@ -53,7 +57,7 @@ class Shurmann_Siggs_Protocol:
                     bs += "1"
                 else:
                     bs += "0"
-        return bs
+        return bitstring_to_bytes(bs)
 
     def extract_context(self):
         print("\nExtracting Context")
