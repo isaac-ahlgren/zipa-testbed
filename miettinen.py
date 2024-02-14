@@ -1,10 +1,12 @@
 import numpy as np
 from corrector import Fuzzy_Commitment
-from galois import *
 from network import *
+from reed_solomon import ReedSolomonObj
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives import hmac
+import os
 
 # UNTESTED CODE
 
@@ -19,11 +21,8 @@ class Miettinen_Protocol():
         self.auth_threshold = auth_threshold
         self.success_threshold = success_threshold
         self.max_iterations = max_iterations
-        self.re = Fuzzy_Commitment(n, k)
-
-        self.kdf = HKDF(algorithm=hashes.SHA256(), length=key_length)
-
-        self.current_keys = None
+        self.re = Fuzzy_Commitment(ReedSolomonObj(n ,k), key_length)
+        self.key_length = key_length
 
     def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
         block_num = int(len(signal)/(no_snap_shot_width + snap_shot_width))
@@ -44,8 +43,8 @@ class Miettinen_Protocol():
         return bits
 
     def miettinen_algo(self, x):
-        signal = signal_preprocessing(x, self.f, self.w)
-        key = gen_key(x, self.rel_thresh, self.abs_thresh)
+        signal = self.signal_preprocessing(x, self.f, self.w)
+        key = self.gen_key(x, self.rel_thresh, self.abs_thresh)
         return key
 
     def decommit_witness(self, commitment, witness, h):
@@ -125,9 +124,29 @@ class Miettinen_Protocol():
 
             # Decommit
             print("Decommiting")
-            C, success = self.re.decommit_witness(commitment, witness, h)
+            prederived_key, success = self.re.decommit_witness(commitment, witness, h)
 
-            
+            kdf = HKDF(algorithm=hashes.SHA256(), length=self.key_length)
+            derived_key = kdf.derive(prederived_key, current_key)
+
+            # Key Confirmation Phase
+
+            # Hash prederived key
+            hash_func = hashes.Hash(hashes.SHA512())
+            hash_func.update(prederived_key)
+            pd_key_hash = hash_func.finalize()
+
+            # Generate Nonce
+            nonce = os.urandom(128)
+
+            # Create tag of Nonce
+            hmac = hmac.HMAC(derived_key, hashes.SHA256())
+            tag = hmac.update(nonce)
+
+            # Create challenge
+            challenge = pd_key_hash + nonce + hmac
+
+            # Send that shit
 
             print("C: " + str(C))
             print("success: " + str(success))
