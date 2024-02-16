@@ -100,7 +100,7 @@ class ZIPA_System:
                         return False
 
                     # Run the process in the background
-                    thread = Process(target=protocol.host_protocol(participants))
+                    thread = Process(target=protocol.host_protocol, args=[participants])
                     thread.start()
                     self.protocol_threads.append(thread)
         # Begin protocol
@@ -109,7 +109,7 @@ class ZIPA_System:
 
             for protocol in self.protocols:
                 if protocol.name == parameters['protocol']['name']:
-                    thread = Process(target=protocol.device_protocol(incoming))
+                    thread = Process(target=protocol.device_protocol, args=[incoming])
                     thread.start()
 
                     # Remove from discoverable as it's running the protocol
