@@ -8,7 +8,7 @@ class Fuzzy_Commitment:
         self.error_correction = error_correction_obj
         self.hash = hashes.Hash(hashes.SHA512())
     
-    def commit_witness(self, witness: ndarray, use_hash_func=True) ->:
+    def commit_witness(self, witness, use_hash_func=True):
         # Generate secret key
         secret_key = random.randbytes(self.key_byte_length)
 
@@ -24,7 +24,7 @@ class Fuzzy_Commitment:
 
         # Commit witness by getting XOR distance between codeword and witness
         C ^= witness
-        return key, h, C
+        return secret_key, h, C
 
     def decommit_witness(self, C, witness, h, use_hash_func=True):
         C ^= witness
