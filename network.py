@@ -13,6 +13,8 @@ DHKY = "dhkey   "
 def ack(connection):
     connection.send(ACKN.encode())
 
+
+
 def ack_standby(connection, timeout):
     acknowledged = False
     reference = time.time()
@@ -32,10 +34,14 @@ def ack_standby(connection, timeout):
 
     return acknowledged
 
+
+
 def ack_all(participants):
     # Host acknowledges all clients participating
     for participant in participants:
         participant.send(ACKN.encode())
+
+
 
 def ack_all_standby(participants, timeout):
     acknowledged = []
@@ -45,7 +51,8 @@ def ack_all_standby(participants, timeout):
     while (timestamp - reference) < timeout:
         # Check for acknowledgement
         timestamp = time.time()
-        
+
+
         if len(participants) == 0:
             break
 
@@ -60,49 +67,58 @@ def ack_all_standby(participants, timeout):
             if data == ACKN:
                 acknowledged.append(incoming)
                 participants.remove(incoming)
-    
+
+
     return acknowledged
 
-def commit(commitment, hexadecimal, participants):
+
+def commit(commitment, commitment_hash, time_start, time_stop, participants):
     # Convert message into bytestream with helpful information and send
-    bytestream = pickle.dumps(commitment)
-    length = len(bytestream).to_bytes(4, byteorder='big')
-    message = (COMM.encode() + hexadecimal + length + bytestream)
+    payload = pickle.dumps(commitment)
+    metadata = pickle.dumps(
+        {"time_start": time_start, "time_stop": time_stop, "hash": commitment_hash}
+    )
+    payload_length = len(payload).to_bytes(4, byteorder="big")
+    metadata_length = len(metadata).to_bytes(4, byteorder="big")
+    message = COMM.encode() + payload_length + metadata_length + payload + metadata
 
     for participant in participants:
         participant.send(message)
 
+
+
 def commit_standby(connection, timeout):
-    commitment = None
-    hexadecimal = None
-    reference = time.time()
-    timestamp = reference
+    payload, metadata = None
+    reference, timestamp = time.time()
 
     while (timestamp - reference) < timeout:
         timestamp = time.time()
-        # 8 byte command, 64 byte hex, 4 byte length
-        message = connection.recv(76)
+        # 8 byte command, 4 byte payload, 4 metadata
+        message = connection.recv(16)
 
         if message[:8].decode() == COMM:
-            # Unpack and return commitment and its hex
-            hexadecimal = message[8:72]
-            length = int.from_bytes(message[72:76], 'big')
-            message = connection.recv(length)
-            commitment = pickle.loads(message)
+            # Unpack and return commitment and its metadata
+            payload_length = int.from_bytes(message[8:12], byteorder="big")
+            metadata_length = int.from_bytes(message[12:16], byteorder="big")
+            payload = pickle.loads(connection.recv(payload_length))
+            metadata = pickle.loads(connection.recv(metadata_length))
 
-    return commitment, hexadecimal
+    return payload, metadata
+
 
 # UNTESTED CODE
 def dh_exchange(connection, key):
-    key_size = len(key).to_bytes(4, byteorder='big')
+    key_size = len(key).to_bytes(4, byteorder="big")
     message = DHKY + key_size + key
     connection.send(message)
 
+
 def dh_exchange_all(participants, key):
-    key_size = len(key).to_bytes(4, byteorder='big')
+    key_size = len(key).to_bytes(4, byteorder="big")
     message = DHKY + key_size + key
     for i in range(len(participants)):
         participants[i].send(message)
+
 
 def dh_exchange_standby(connection, timeout):
     reference = time.time()
@@ -118,11 +134,12 @@ def dh_exchange_standby(connection, timeout):
         else:
             command = message[:8].decode()
             if command == DHKY:
-                key_size = int.from_bytes(message[8:], 'big')
-                key = connection.recv(key_size)              
+                key_size = int.from_bytes(message[8:], "big")
+                key = connection.recv(key_size)
             break
 
     return key
+
 
 def dh_exchange_standby_all(participants, timeout):
     keys_recieved = dict()
@@ -133,7 +150,7 @@ def dh_exchange_standby_all(participants, timeout):
     while (timestamp - reference) < timeout:
         # Check for acknowledgement
         timestamp = time.time()
-        
+
         if len(participants) == 0:
             break
 
@@ -147,7 +164,7 @@ def dh_exchange_standby_all(participants, timeout):
             message = incoming.recv(12)
             command = message[:8]
             if command == DHKY:
-                key_size = int.from_bytes(message[8:], 'big')
+                key_size = int.from_bytes(message[8:], "big")
                 key = incoming.recv(key_size)
                 ip_addr, port = incoming.getpeername()
                 keys_recieved[ip_addr] = key
