@@ -1,5 +1,6 @@
 import random
 import ctypes
+import os
 import numpy as np
 
 # TODO: Needs to be tested under multiple threads to ensure the rscode is thread safe
@@ -13,7 +14,7 @@ class ReedSolomonObj():
         self.n = n
         self.k = k
         self.t = n - k
-        rscode = ctypes.cdll.LoadLibrary("./rscode-1.3/libecc.so")
+        rscode = ctypes.cdll.LoadLibrary(os.getcwd() + "/rscode-1.3/libecc.so")
 
         # Initialize library
         init = rscode.initialize_ecc
