@@ -99,7 +99,7 @@ class ZIPA_System:
                         return False
 
                     # Run the process in the background
-                    thread = Process(target=protocol.host_protocol(participants))
+                    thread = Process(target=protocol.host_protocol, args=[participants])
                     thread.start()
                     self.protocol_threads.append(thread)
         # Begin protocol
@@ -156,6 +156,10 @@ class ZIPA_System:
                     self.nfs,
                     self.id
                 ))
+            #case "miettinen":
+            #    self.protocols.append(Miettinen_Protocol(
+            #        
+            #    ))
             case _:
                 print("Protocol not supported.")
 

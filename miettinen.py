@@ -12,7 +12,7 @@ import os
 # UNTESTED CODE
 
 class Miettinen_Protocol():
-    def __init__(self, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations):
+    def __init__(self, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations, nfs_server_dir, identifier):
         self.n = n
         self.k = k
         self.f = f
@@ -22,8 +22,15 @@ class Miettinen_Protocol():
         self.auth_threshold = auth_threshold
         self.success_threshold = success_threshold
         self.max_iterations = max_iterations
+
+        self.name = "miettinen"
+
         self.re = Fuzzy_Commitment(ReedSolomonObj(n ,k), key_length)
         self.key_length = key_length
+
+        self.debug = False
+
+        self.count = 0
 
     def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
         block_num = int(len(signal)/(no_snap_shot_width + snap_shot_width))
@@ -44,9 +51,16 @@ class Miettinen_Protocol():
         return bits
 
     def miettinen_algo(self, x):
-        signal = self.signal_preprocessing(x, self.f, self.w)
-        key = self.gen_key(x, self.rel_thresh, self.abs_thresh)
-        return key
+        import random
+        #def bitstring_to_bytes(s):
+        #    return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
+        #signal = self.signal_preprocessing(x, self.f, self.w)
+        #key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
+        #return bitstring_to_bytes(key)
+        b = random.randbytes(self.n)
+        if self.debug:
+            b[0] = (b[0] + 1) % 256
+        return random.randbytes
 
     def decommit_witness(self, commitment, witness, h):
         C, success = self.re.decommit_witness(commitment, witness, h)
@@ -65,6 +79,7 @@ class Miettinen_Protocol():
         return bits, signal
 
     def device_protocol(self, host_socket):
+        self.debug = True
         host_socket.setblocking(1)
         print("Iteration " + str(self.count))
 
@@ -233,14 +248,16 @@ class Miettinen_Protocol():
             return
 
         # Generating Shared Keys
-        for i in (len(participating_sockets)):
+        successes = dict()
+        for i in range(len(participating_sockets)):
             ipaddr, port = participating_sockets[i].getpeername()
             public_key_bytes = keys_recieved[ipaddr]
             public_key = ec.EllipticCurvePublicKey(ec.SECP384R1(), public_key_bytes)
             keys_recieved[ipaddr] = initial_private_key.exchange(ec.ECDH, public_key)
+            successes[ipaddr] = 0
 
+        done_pairing = []
         current_keys = keys_recieved
-        successes = [0 for i in range(len(participating_sockets))]
         total_iterations = 0
         while successes < self.success_threshold and total_iterations < self.max_iterations:
 
@@ -279,7 +296,10 @@ class Miettinen_Protocol():
             hash_func.update(prederived_key)
             pd_key_hash = hash_func.finalize()
 
+            generated_hashes = dict()
             for i in range(len(participating_sockets)):
+                ipaddr, port = participating_sockets[i].getpeername()
+                current_key = current_keys[ipaddr]
                 kdf = HKDF(algorithm=hashes.SHA256(), length=self.key_length)
                 derived_key = kdf.derive(prederived_key, current_key)
 
@@ -293,12 +313,28 @@ class Miettinen_Protocol():
                 # Create key confirmation message
                 hash = pd_key_hash + nonce + tag
 
+                generated_hashes[ipaddr] = hash
+                 
                 send_hash(participating_sockets[i], hash)
+
+            # Recieve all hashes
+            participating_sockets, recieved_hashes = send_hash_standby_all(participating_sockets, self.timeout)
+            for i in range(len(participating_sockets)):
+                ipaddr, port = participating_sockets[i].getpeername()
+                recieved_hash = recieved_hashes[ipaddr]
+                generated_hash = generated_hashes[ipaddr]
+                if constant_time.bytes_eq(generated_hash, recieved_hash):
+                    successes[ipaddr] += 1
+                    current_keys[ipaddr] = derived_key
+
+                    if successes[ipaddr] < self.success_threshold:
+                        done_pairing.append(participating_sockets[i]) 
+                        participating_sockets.remove(participating_sockets[i])
 
 
             # Log all information to NFS server
             print("Logging all information to NFS server")
-            self.send_to_nfs_server("audio", signal, witness, h, commitment)
+            #self.send_to_nfs_server("audio", signal, witness, h, commitment)
 
         self.count += 1
 
@@ -317,3 +353,32 @@ class Miettinen_Protocol():
         with open(hash_file_name, "w") as text_file:
             text_file.write(str(h))
 
+import socket
+def device(prot):
+    print("device")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.connect(("127.0.0.1", 2000))
+    prot.device_protocol(s)
+
+def host(prot):
+    print("host")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(("127.0.0.1", 2000))
+    s.setblocking(0)
+    s.listen()
+    conn, addr = s.accept()
+    prot.host_protocol([conn])
+
+if __name__ == "__main__":
+    import multiprocessing as mp
+    import random
+    random.seed(0)
+    prot = Miettinen_Protocol(64, 16, 4, 5*48000, 6*48000, 0.5, 0.5, 0.9, 5, 20, "", 0)
+    h = mp.Process(target=host, args=[prot])
+    d = mp.Process(target=device, args=[prot])
+    h.start()
+    d.start()
