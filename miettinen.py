@@ -7,12 +7,14 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hmac
 from cryptography.hazmat.primitives import constant_time
+from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives.serialization import PublicFormat
 import os
 
 # UNTESTED CODE
 
 class Miettinen_Protocol():
-    def __init__(self, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations, nfs_server_dir, identifier):
+    def __init__(self, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations, nfs_server_dir, identifier, timeout):
         self.n = n
         self.k = k
         self.f = f
@@ -22,6 +24,8 @@ class Miettinen_Protocol():
         self.auth_threshold = auth_threshold
         self.success_threshold = success_threshold
         self.max_iterations = max_iterations
+
+        self.timeout = timeout
 
         self.name = "miettinen"
 
@@ -100,8 +104,8 @@ class Miettinen_Protocol():
         # Generate initial private key for Diffie-Helman
         initial_private_key = ec.generate_private_key(ec.SECP384R1())
         
-        public_key = initial_private_key.public_key().public_bytes()
-
+        public_key = initial_private_key.public_key().public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
+        
         # Send initial key for Diffie-Helman
         dh_exchange(host_socket, public_key)
 
@@ -113,7 +117,7 @@ class Miettinen_Protocol():
             print()
             return
 
-        other_public_key = ec.EllipticCurvePublicKey(ec.SECP384R1(), other_public_key_bytes)
+        other_public_key = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP384R1(), other_public_key_bytes)
 
         # Shared key generated
         shared_key = initial_private_key.exchange(ec.ECDH(), other_public_key)
@@ -217,6 +221,9 @@ class Miettinen_Protocol():
         print("Iteration " + str(self.count))
         print()
   
+        # ACK all devices
+        ack_all(participants)
+
         participating_sockets = ack_all_standby(device_sockets, self.timeout)
 
         # Exit early if no devices to pair with
@@ -234,7 +241,7 @@ class Miettinen_Protocol():
         initial_private_key = ec.generate_private_key(ec.SECP384R1())
         
         # Obtain Public Key
-        public_key = initial_private_key.public_key().public_bytes()
+        public_key = initial_private_key.public_key().public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
 
         # Send initial key for Diffie-Helman
         dh_exchange_all(participating_sockets, public_key)
@@ -252,16 +259,18 @@ class Miettinen_Protocol():
         for i in range(len(participating_sockets)):
             ipaddr, port = participating_sockets[i].getpeername()
             public_key_bytes = keys_recieved[ipaddr]
-            public_key = ec.EllipticCurvePublicKey(ec.SECP384R1(), public_key_bytes)
-            keys_recieved[ipaddr] = initial_private_key.exchange(ec.ECDH, public_key)
+            public_key = ec.EllipticCurvePublicKey.from_encoded_point(ec.SECP384R1(), public_key_bytes)
+            keys_recieved[ipaddr] = initial_private_key.exchange(ec.ECDH(), public_key)
             successes[ipaddr] = 0
 
         done_pairing = []
         current_keys = keys_recieved
         total_iterations = 0
-        while successes < self.success_threshold and total_iterations < self.max_iterations:
+        while len(participating_sockets) == 0 and total_iterations < self.max_iterations:
 
             # ACK all devices
+            ack_all(participants)
+
             participating_sockets = ack_all_standby(device_sockets, self.timeout)
 
             # Exit early if no devices to pair with
@@ -368,16 +377,16 @@ def host(prot):
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(("127.0.0.1", 2000))
-    s.setblocking(0)
     s.listen()
     conn, addr = s.accept()
+    s.setblocking(0)
     prot.host_protocol([conn])
 
 if __name__ == "__main__":
     import multiprocessing as mp
     import random
     random.seed(0)
-    prot = Miettinen_Protocol(64, 16, 4, 5*48000, 6*48000, 0.5, 0.5, 0.9, 5, 20, "", 0)
+    prot = Miettinen_Protocol(64, 16, 4, 5*48000, 6*48000, 0.5, 0.5, 0.9, 5, 20, "", 0, 30)
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()

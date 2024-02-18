@@ -96,17 +96,18 @@ def commit_standby(connection, timeout):
 # UNTESTED CODE
 def dh_exchange(connection, key):
     key_size = len(key).to_bytes(4, byteorder='big')
-    message = DHKY + key_size + key
+    message = DHKY.encode() + key_size + key
     connection.send(message)
 
 def dh_exchange_all(participants, key):
     key_size = len(key).to_bytes(4, byteorder='big')
-    message = DHKY + key_size + key
+    message = DHKY.encode() + key_size + key
     for i in range(len(participants)):
         participants[i].send(message)
 
 def dh_exchange_standby(connection, timeout):
     reference = time.time()
+    timestamp = reference
     key = None
 
     # While process hasn't timed out
@@ -146,7 +147,7 @@ def dh_exchange_standby_all(participants, timeout):
 
         for incoming in readable:
             message = incoming.recv(12)
-            command = message[:8]
+            command = message[:8].decode()
             if command == DHKY:
                 key_size = int.from_bytes(message[8:], 'big')
                 key = incoming.recv(key_size)
@@ -159,12 +160,12 @@ def dh_exchange_standby_all(participants, timeout):
 
 def send_hash(connection, hash):
     hash_size = len(hash).to_bytes(4, byteorder='big')
-    message = HASH + hash_size + hash
+    message = HASH.encode() + hash_size + hash
     connection.send(message)
 
 def send_hash_all(participants, hash):
     hash_size = len(hash).to_bytes(4, byteorder='big')
-    message = HASH + hash_size + hash
+    message = HASH.encode() + hash_size + hash
     for i in range(len(participants)):
         participants[i].send(message)
 
@@ -183,7 +184,7 @@ def get_hash_standby(connection, timeout):
             command = message[:8].decode()
             if command == HASH:
                 hash_size = int.from_bytes(message[8:], 'big')
-                hash = connection.recv(hash_size)              
+                hash = connection.recv(hash_size)
             break
 
     return hash
