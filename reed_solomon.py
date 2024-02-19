@@ -61,13 +61,13 @@ class ReedSolomonObj():
                                                  np.ctypeslib.ndpointer(ctypes.c_int, flags="C_CONTIGUOUS"),
                                                  ctypes.c_voidp]
 
-    def encode(self, key: bytes) -> bytes:
+    def encode(self, key: bytearray) -> bytearray:
         np_key = np.frombuffer(key, dtype=np.int8)
         C = np.zeros(self.t + len(key), dtype=np.int8)
         self.encode_data(np_key, len(key), C, self.rs_instance)
-        return C.tobytes()
+        return bytearray(C.tobytes())
 
-    def decode(self, C: bytes) -> bytes:
+    def decode(self, C: bytearray) -> bytearray:
         np_C = np.frombuffer(C, dtype=np.int8)
         erasures = np.zeros(8, dtype=np.intc)
 
@@ -76,4 +76,4 @@ class ReedSolomonObj():
             self.correct_errors_erasures(np_C, len(np_C), 0, erasures, self.rs_instance)
         
         key = np_C[0:self.k]
-        return key.tobytes()
+        return bytearray(key.tobytes())

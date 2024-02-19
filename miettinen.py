@@ -61,11 +61,9 @@ class Miettinen_Protocol():
         #signal = self.signal_preprocessing(x, self.f, self.w)
         #key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
         #return bitstring_to_bytes(key)
-        b = random.randbytes(self.n)
+        b = bytearray(random.randbytes(self.n))
         if self.debug:
-            b = list(b)
             b[0] = 0
-            b = bytes(b)
         return b
 
     def decommit_witness(self, commitment, witness, h):
@@ -391,7 +389,7 @@ if __name__ == "__main__":
     import multiprocessing as mp
     import random
     random.seed(0)
-    prot = Miettinen_Protocol(64, 16, 4, 5*48000, 6*48000, 0.5, 0.5, 0.9, 5, 20, "", 0, 30)
+    prot = Miettinen_Protocol(8, 12, 8, 5*48000, 6*48000, 0.5, 0.5, 0.9, 5, 20, "", 0, 30)
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
