@@ -63,8 +63,10 @@ class Miettinen_Protocol():
         #return bitstring_to_bytes(key)
         b = random.randbytes(self.n)
         if self.debug:
-            b[0] = (b[0] + 1) % 256
-        return random.randbytes
+            b = list(b)
+            b[0] = 0
+            b = bytes(b)
+        return b
 
     def decommit_witness(self, commitment, witness, h):
         C, success = self.re.decommit_witness(commitment, witness, h)
@@ -77,7 +79,8 @@ class Miettinen_Protocol():
     def extract_context(self):
         print()
         print("Extracting Context")
-        signal = self.signal_measurement.get_audio()
+        #signal = self.signal_measurement.get_audio()
+        signal = None
         bits = self.miettinen_algo(signal)
         print()
         return bits, signal
@@ -107,9 +110,11 @@ class Miettinen_Protocol():
         public_key = initial_private_key.public_key().public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
         
         # Send initial key for Diffie-Helman
+        print("Send DH public key\n")
         dh_exchange(host_socket, public_key)
 
         # Recieve other devices key
+        print("Waiting for DH public key\n")
         other_public_key_bytes = dh_exchange_standby(host_socket, self.timeout)
 
         if other_public_key_bytes == None:
@@ -122,6 +127,7 @@ class Miettinen_Protocol():
         # Shared key generated
         shared_key = initial_private_key.exchange(ec.ECDH(), other_public_key)
 
+        print("device")
         current_key = shared_key
         successes = 0
         total_iterations = 0
@@ -221,9 +227,6 @@ class Miettinen_Protocol():
         print("Iteration " + str(self.count))
         print()
   
-        # ACK all devices
-        ack_all(participants)
-
         participating_sockets = ack_all_standby(device_sockets, self.timeout)
 
         # Exit early if no devices to pair with
@@ -244,9 +247,11 @@ class Miettinen_Protocol():
         public_key = initial_private_key.public_key().public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
 
         # Send initial key for Diffie-Helman
+        print("Send every device the public key\n")
         dh_exchange_all(participating_sockets, public_key)
 
         # Recieve other devices key
+        print('Recieve every devices public key\n')
         participating_sockets, keys_recieved = dh_exchange_standby_all(participating_sockets, self.timeout)
 
         if len(participating_sockets) == 0:
@@ -266,12 +271,12 @@ class Miettinen_Protocol():
         done_pairing = []
         current_keys = keys_recieved
         total_iterations = 0
-        while len(participating_sockets) == 0 and total_iterations < self.max_iterations:
-
+        while len(participating_sockets) != 0 and total_iterations < self.max_iterations:
+            print("host")
             # ACK all devices
-            ack_all(participants)
+            ack_all(participating_sockets)
 
-            participating_sockets = ack_all_standby(device_sockets, self.timeout)
+            participating_sockets = ack_all_standby(participating_sockets, self.timeout)
 
             # Exit early if no devices to pair with
             if len(participating_sockets) == 0:

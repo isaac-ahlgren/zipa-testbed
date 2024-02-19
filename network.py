@@ -210,7 +210,7 @@ def send_hash_standby_all(participants, timeout):
 
         for incoming in readable:
             message = incoming.recv(12)
-            command = message[:8]
+            command = message[:8].decode()
             if command == HASH:
                 hash_size = int.from_bytes(message[8:], 'big')
                 hash = incoming.recv(hash_size)
