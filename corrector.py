@@ -8,8 +8,6 @@ class Fuzzy_Commitment:
         self.error_correction = error_correction_obj
     
     def xor_bytes(self, bytes1: bytearray, bytes2: bytearray) -> bytearray:
-        print(len(bytes1))
-        print(len(bytes2))
         output = bytearray([0 for i in range(len(bytes1))])
         for i in range(len(bytes1)):
             output = bytes1[i] ^ bytes2[i]
