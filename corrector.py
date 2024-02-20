@@ -10,7 +10,7 @@ class Fuzzy_Commitment:
     def xor_bytes(self, bytes1: bytearray, bytes2: bytearray) -> bytearray:
         output = bytearray([0 for i in range(len(bytes1))])
         for i in range(len(bytes1)):
-            output = bytes1[i] ^ bytes2[i]
+            output[i] = bytes1[i] ^ bytes2[i]
         return output
 
     def commit_witness(self, witness):
@@ -22,10 +22,10 @@ class Fuzzy_Commitment:
 
         # Commit witness by getting XOR distance between codeword and witness
         commitment = self.xor_bytes(C, witness)
-        return secret_key, C
+        return secret_key, commitment
 
     def decommit_witness(self, commitment, witness):
-        C = xor_bytes(commitment, witness)
+        C = self.xor_bytes(commitment, witness)
 
         secret_key = self.error_correction.decode(C)
 

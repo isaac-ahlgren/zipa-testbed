@@ -23,11 +23,11 @@ def ack_standby(connection, timeout):
     while (timestamp - reference) < timeout:
         # Check for acknowledgement
         timestamp = time.time()
-        command = connection.recv(8).decode()
+        command = connection.recv(8)
 
         if command == None:
             continue
-        elif command == ACKN:
+        elif command == ACKN.encode():
             acknowledged = True
             break
 
@@ -57,19 +57,18 @@ def ack_all_standby(participants, timeout):
         )
 
         for incoming in readable:
-            data = incoming.recv(8).decode()
-            if data == ACKN:
+            data = incoming.recv(8)
+            if data == ACKN.encode():
                 acknowledged.append(incoming)
                 participants.remove(incoming)
     
     return acknowledged
 
-def send_commit(commitment, hexadecimal, participants):
-    # Convert message into bytestream with helpful information and send
-    bytestream = pickle.dumps(commitment)
-    length = len(bytestream).to_bytes(4, byteorder='big')
-    message = (COMM.encode() + hexadecimal + length + bytestream)
-
+#TODO: make it so that the size of the hash can be variable
+def send_commit(commitment, hash, participants):
+    length = len(commitment).to_bytes(4, byteorder='big')
+    message = (COMM.encode() + hash + length + commitment)
+    print("host: " + str(message))
     for participant in participants:
         participant.send(message)
 
@@ -81,17 +80,18 @@ def commit_standby(connection, timeout):
 
     while (timestamp - reference) < timeout:
         timestamp = time.time()
-        # 8 byte command, 64 byte hex, 4 byte length
+        # 8 byte command, 64 byte hash, 4 byte length
         message = connection.recv(76)
 
-        if message[:8].decode() == COMM:
+        if message[:8] == COMM.encode():
             # Unpack and return commitment and its hex
-            hexadecimal = message[8:72]
+            hash = message[8:72]
             length = int.from_bytes(message[72:76], 'big')
             message = connection.recv(length)
-            commitment = pickle.loads(message)
+            commitment = message
+            break
 
-    return commitment, hexadecimal
+    return commitment, hash
 
 # UNTESTED CODE
 def dh_exchange(connection, key):
@@ -118,11 +118,11 @@ def dh_exchange_standby(connection, timeout):
         if message == None:
             continue
         else:
-            command = message[:8].decode()
-            if command == DHKY:
+            command = message[:8]
+            if command == DHKY.encode():
                 key_size = int.from_bytes(message[8:], 'big')
                 key = connection.recv(key_size)              
-            break
+                break
 
     return key
 
@@ -147,8 +147,8 @@ def dh_exchange_standby_all(participants, timeout):
 
         for incoming in readable:
             message = incoming.recv(12)
-            command = message[:8].decode()
-            if command == DHKY:
+            command = message[:8]
+            if command == DHKY.encode():
                 key_size = int.from_bytes(message[8:], 'big')
                 key = incoming.recv(key_size)
                 ip_addr, port = incoming.getpeername()
@@ -171,6 +171,7 @@ def send_hash_all(participants, hash):
 
 def get_hash_standby(connection, timeout):
     reference = time.time()
+    timestamp = reference
     key = None
 
     # While process hasn't timed out
@@ -181,11 +182,11 @@ def get_hash_standby(connection, timeout):
         if message == None:
             continue
         else:
-            command = message[:8].decode()
-            if command == HASH:
+            command = message[:8]
+            if command == HASH.encode():
                 hash_size = int.from_bytes(message[8:], 'big')
                 hash = connection.recv(hash_size)
-            break
+                break
 
     return hash
 
@@ -210,8 +211,8 @@ def send_hash_standby_all(participants, timeout):
 
         for incoming in readable:
             message = incoming.recv(12)
-            command = message[:8].decode()
-            if command == HASH:
+            command = message[:8]
+            if command == HASH.encode():
                 hash_size = int.from_bytes(message[8:], 'big')
                 hash = incoming.recv(hash_size)
                 ip_addr, port = incoming.getpeername()

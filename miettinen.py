@@ -66,14 +66,6 @@ class Miettinen_Protocol():
             b[0] = 0
         return b
 
-    def decommit_witness(self, commitment, witness, h):
-        C, success = self.re.decommit_witness(commitment, witness, h)
-        return C, success
-
-    def commit_witness(self, witness):
-        secret_key, h, commitment = self.re.commit_witness(witness)
-        return secret_key, h, commitment
-
     def extract_context(self):
         print()
         print("Extracting Context")
@@ -125,7 +117,6 @@ class Miettinen_Protocol():
         # Shared key generated
         shared_key = initial_private_key.exchange(ec.ECDH(), other_public_key)
 
-        print("device")
         current_key = shared_key
         successes = 0
         total_iterations = 0
@@ -144,8 +135,6 @@ class Miettinen_Protocol():
             success = False
 
             # Extract bits from mic
-            print("Extracting context")
-            print()
             witness, signal = self.extract_context()
         
             # Wait for Commitment
@@ -154,21 +143,19 @@ class Miettinen_Protocol():
 
             # Early exist if no commitment recieved in time
             if not commitment:
-                print("No commitment recieved within time limit - early exit")
-                print()
+                print("No commitment recieved within time limit - early exit\n")
                 return
             print()
 
-            print("witness: " + str(hex(int(witness, 2))))
-            print("h: " + str(h))
+            print("witness: " + str(witness))
             print()
 
             # Decommit
             print("Decommiting")
-            prederived_key, success = self.re.decommit_witness(commitment, witness, h)
+            prederived_key = self.re.decommit_witness(commitment, witness)
 
-            kdf = HKDF(algorithm=hashes.SHA256(), length=self.key_length)
-            derived_key = kdf.derive(prederived_key, current_key)
+            kdf = HKDF(algorithm=hashes.SHA256(), length=self.key_length, salt=None, info=None)
+            derived_key = kdf.derive(prederived_key + current_key)
 
             # Key Confirmation Phase
 
@@ -182,7 +169,8 @@ class Miettinen_Protocol():
 
             # Create tag of Nonce
             mac = hmac.HMAC(derived_key, hashes.SHA256())
-            tag = mac.update(nonce)
+            mac.update(nonce)
+            tag = mac.finalize()
 
             # Create key confirmation message
             hash = pd_key_hash + nonce + tag
@@ -202,7 +190,7 @@ class Miettinen_Protocol():
             if constant_time.bytes_eq(host_hash, hash):
                 success = True
                 successes += 1
-                current_key = derived_key          
+                current_key = derived_key
 
             print("Produced Key: " + str(derived_key))
             print("success: " + str(success))
@@ -213,6 +201,9 @@ class Miettinen_Protocol():
             
             # Lets not log anything yet
             #self.send_to_nfs_server("audio", signal, witness, h, commitment)
+
+            # Increment total number of iterations key evolution has occured
+            total_iterations += 1
         
         if successes/total_iterations >= self.auth_threshold:
             print("Total Key Pairing Success: auth - " + str(successes/total_iterations))
@@ -270,7 +261,6 @@ class Miettinen_Protocol():
         current_keys = keys_recieved
         total_iterations = 0
         while len(participating_sockets) != 0 and total_iterations < self.max_iterations:
-            print("host")
             # ACK all devices
             ack_all(participating_sockets)
 
@@ -285,20 +275,18 @@ class Miettinen_Protocol():
             print()
 
             # Extract key from mic
-            print("Extracting Context")
             witness, signal = self.extract_context()
-            print()
 
             # Commit Secret
             print("Commiting Witness")
-            prederived_key, h, commitment = self.re.commit_witness(witness)
+            prederived_key, commitment = self.re.commit_witness(witness)
 
-            print("witness: " + str(hex(int(witness, 2))))
-            print("h: " + str(h))
+            print("witness: " + str(witness))
             print()
 
             print("Sending commitment")
             print()
+            h = bytes([0 for i in range(64)]) # Scheme does not send hash but function expects 64 byte hash (this is gonna change in the future)
             send_commit(commitment, h, participating_sockets)
 
             # Key Confirmation Phase
@@ -312,15 +300,16 @@ class Miettinen_Protocol():
             for i in range(len(participating_sockets)):
                 ipaddr, port = participating_sockets[i].getpeername()
                 current_key = current_keys[ipaddr]
-                kdf = HKDF(algorithm=hashes.SHA256(), length=self.key_length)
-                derived_key = kdf.derive(prederived_key, current_key)
+                kdf = HKDF(algorithm=hashes.SHA256(), length=self.key_length, salt=None, info=None)
+                derived_key = kdf.derive(prederived_key + current_key)
 
                 # Generate Nonce
                 nonce = os.urandom(16)
 
                 # Create tag of Nonce
                 mac = hmac.HMAC(derived_key, hashes.SHA256())
-                tag = mac.update(nonce)
+                mac.update(nonce)
+                tag = mac.finalize()
 
                 # Create key confirmation message
                 hash = pd_key_hash + nonce + tag
@@ -342,6 +331,9 @@ class Miettinen_Protocol():
                     if successes[ipaddr] < self.success_threshold:
                         done_pairing.append(participating_sockets[i]) 
                         participating_sockets.remove(participating_sockets[i])
+
+            # Increment total times key evolution has occured
+            total_iterations += 1
 
 
             # Log all information to NFS server
