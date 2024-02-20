@@ -24,6 +24,7 @@ class Fuzzy_Commitment:
         commitment = self.xor_bytes(C, witness)
         return secret_key, commitment
 
+
     def decommit_witness(self, commitment, witness):
         C = self.xor_bytes(commitment, witness)
 

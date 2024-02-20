@@ -1,6 +1,7 @@
 import socket
 import pickle
 import select
+import json
 from multiprocessing import Process
 
 from browser import ZIPA_Service_Browser
@@ -77,7 +78,7 @@ class ZIPA_System:
         # Retrieve command, JSON object size, JSON object
         command = data.decode()
         length = int.from_bytes(incoming.recv(4), byteorder='big')
-        parameters = pickle.loads(incoming.recv(length))
+        parameters = json.loads(incoming.recv(length))
         self.timeout = parameters['timeout']
         self.duration = parameters['duration']
         self.sampling = parameters['sampling']
@@ -108,7 +109,7 @@ class ZIPA_System:
 
             for protocol in self.protocols:
                 if protocol.name == parameters['protocol']['name']:
-                    thread = Process(target=protocol.device_protocol(incoming))
+                    thread = Process(target=protocol.device_protocol, args=[incoming])
                     thread.start()
 
                     # Remove from discoverable as it's running the protocol
@@ -117,7 +118,7 @@ class ZIPA_System:
 
     def initialize_protocol(self, parameters):
         print(f"Initializing {parameters['protocol']['name']} protocol on all participating devices.")
-        bytestream = pickle.dumps(parameters)
+        bytestream = json.dumps(parameters).encode('utf8')
         length = len(bytestream).to_bytes(4, byteorder='big')
         message = (STRT.encode() + length + bytestream)
         candidates = self.browser.get_ip_addrs_for_zipa()

@@ -1,3 +1,5 @@
+import time
+
 import mysql.connector
 import numpy as np
 
@@ -59,12 +61,16 @@ class Shurmann_Siggs_Protocol:
                     bs += "0"
         return bitstring_to_bytes(bs)
 
+    # TODO: Add timestamp information
     def extract_context(self):
-        print("\nExtracting Context")
+        print("\nExtracting Context\n")
+        # Time audio gathering
+        start = time.time()
         signal = self.signal_measurement.get_audio()
+        stop = time.time()
         bits = self.sigs_algo(signal)
-        print()
-        return bits, signal
+
+        return bits, signal, start, stop
 
     def device_protocol(self, host):
         host.setblocking(1)
@@ -80,36 +86,105 @@ class Shurmann_Siggs_Protocol:
             print("No ACK recieved within time limit - early exit.\n\n")
             return
 
+        # TODO: Update this with time info
         # Extract bits from mic
         print("Extracting context\n")
-        witness, signal = self.extract_context()
+        witness, signal, start, stop = self.extract_context()
 
         # Wait for Commitment
         print("Waiting for commitment from host")
-        commitment, h = commit_standby(host, self.timeout)
+        host_commitment, host_metadata = commit_standby(host, self.timeout)
 
         # Early exist if no commitment recieved in time
-        if not commitment:
-            print("No commitment recieved within time limit - early exit")
-            print()
+        if not host_commitment:
+            print("No commitment recieved within time limit - early exit\n")
             return
-        print()
 
-        print("witness: " + str(hex(int(witness, 2))))
-        print("h: " + str(h))
-        print()
+        print(
+            f"Witness:\n{str(hex(int(witness, 2)))}\nRecieved hash: {str(host_metadata['hash'])}\n"
+        )
+
+        C = None
+        success = False
+        sampling = self.signal_measurement.sample_rate
+        client_time = stop - start
+        APPROX = 500
+        shifted_signal = np.array(signal.copy())
+
+        # TODO: Align timing as close as possible, then begin to iterate through the thousands
+
+        # shifted_time = (stop - host_metadata["time_start"]) if host_metadata["time_start"] > start else (host_metadata["time_stop"] - start)
+
+        # If the host begins after the client
+        if host_metadata["time_start"] > start:
+            shifted_time = stop - host_metadata["time_start"]
+            shifted_total_frames = int(shifted_time * sampling)
+            shifted_signal = shifted_signal[-(shifted_total_frames - APPROX) :]
+            print(
+                f"Losing beginning frames. Total no. of frames: {shifted_total_frames}"
+            )
+        # Else if the host begins before the client
+        elif host_metadata["time_start"] < start:
+            shifted_time = host_metadata["time_stop"] - start
+            shifted_total_frames = int(shifted_time * sampling)
+            shifted_signal = shifted_signal[: shifted_total_frames + APPROX]
+            print(f"Losing end frames. Total no. of frames: {shifted_total_frames}")
+
+        for window in range(1000):
+            # Debugging
+            print(f"Iteration #{window}. Length: {len(shifted_signal)}\nC: {str(C)}\n Value: {shifted_signal[window]}")
+            witness = self.sigs_algo(shifted_signal[window:])
+            C, success = self.re.decommit_witness(
+                host_commitment, witness, host_metadata["hash"]
+            )
+            if success:
+                print(f"Success!\nC: {str(C)}")
+                break
+
+        print(f"Witness:\n{str(hex(int(witness, 2)))}\nRecieved hash: {str(host_metadata['hash'])}\n")
+
+        C = None
+        success = False
+        sampling = self.microphone.sample_rate
+        client_time = stop - start
+        APPROX = 500
+        shifted_signal = np.array(signal.copy())
+
+        # TODO: Align timing as close as possible, then begin to iterate through the thousands
+
+        # If the host begins after the client
+        if host_metadata["time_start"] > start:
+            shifted_time = stop - host_metadata["time_start"]
+            shifted_total_frames = int(shifted_time * sampling)
+            shifted_signal = shifted_signal[-(shifted_total_frames - APPROX) :]
+        # Else if the host begins before the client
+        elif host_metadata["time_start"] < start:
+            shifted_time = host_metadata["time_stop"] - start
+            shifted_total_frames = int(shifted_time * sampling)
+            shifted_signal = shifted_signal[: shifted_total_frames + APPROX]
+
+        for window in range(1000):
+            # Debugging
+            print(f"Shifting window. Iteration #{window}.\n")
+            witness = self.sigs_algo(shifted_signal[window:])
+            C, success = self.re.decommit_witness(
+                host_commitment, witness, host_metadata["hash"]
+            )
+            if success:
+                print("Success!\n")
+                break
 
         # Decommit
-        print("Decommiting")
-        C, success = self.re.decommit_witness(commitment, witness, h)
+        # print("Decommiting")
+        # C, success = self.re.decommit_witness(commitment, witness, h)
 
-        print("C: " + str(C))
-        print("success: " + str(success))
-        print()
+        print(f"C: {str(C)}\nSuccess? {str(success)}\n")
 
         # Log all information to NFS server
         print("Logging all information to NFS server")
-        self.send_to_nfs_server("audio", signal, witness, h, commitment)
+        self.send_to_nfs_server(
+            "audio", signal, witness, host_metadata["hash"], host_commitment
+        )
 
         self.count += 1
 
@@ -130,9 +205,10 @@ class Shurmann_Siggs_Protocol:
         print("ACKing all participating devices")
         ack_all(participating_sockets)
 
+        # TODO: Update with time info
         # Extract key from mic
         print("Extracting Context")
-        witness, signal = self.extract_context()
+        witness, signal, start, stop = self.extract_context()
         print()
 
         # Commit Secret
@@ -153,7 +229,10 @@ class Shurmann_Siggs_Protocol:
 
         self.count += 1
 
-    def send_to_nfs_server(self, signal_type, signal, witness, h, commitment):
+    # TODO: Have timestamp info sent to NFS
+    def send_to_nfs_server(
+        self, signal_type, signal, timestamp, witness, h, commitment
+    ):
         root_file_name = self.nfs_server_dir + "/" + signal_type
 
         signal_file_name = (
