@@ -8,7 +8,7 @@ STRT = "start   "
 ACKN = "ack     "
 COMM = "comm    "
 DHKY = "dhkey   "
-HASH = "hash    "
+NONC = "nonce    "
 
 
 def ack(connection):
@@ -68,7 +68,6 @@ def ack_all_standby(participants, timeout):
 def send_commit(commitment, hash, participants):
     length = len(commitment).to_bytes(4, byteorder='big')
     message = (COMM.encode() + hash + length + commitment)
-    print("host: " + str(message))
     for participant in participants:
         participant.send(message)
 
@@ -158,18 +157,18 @@ def dh_exchange_standby_all(participants, timeout):
                 participants.remove(incoming)
     return responded, keys_recieved
 
-def send_hash(connection, hash):
-    hash_size = len(hash).to_bytes(4, byteorder='big')
-    message = HASH.encode() + hash_size + hash
+def send_nonce(connection, nonce):
+    nonce_size = len(nonce).to_bytes(4, byteorder='big')
+    message = NONC.encode() + nonce_size + nonce
     connection.send(message)
 
-def send_hash_all(participants, hash):
-    hash_size = len(hash).to_bytes(4, byteorder='big')
-    message = HASH.encode() + hash_size + hash
+def send_nonce_all(participants, nonce):
+    nonce_size = len(nonce).to_bytes(4, byteorder='big')
+    message = NONC.encode() + nonce_size + nonce
     for i in range(len(participants)):
         participants[i].send(message)
 
-def get_hash_standby(connection, timeout):
+def get_nonce_standby(connection, timeout):
     reference = time.time()
     timestamp = reference
     key = None
@@ -183,15 +182,15 @@ def get_hash_standby(connection, timeout):
             continue
         else:
             command = message[:8]
-            if command == HASH.encode():
-                hash_size = int.from_bytes(message[8:], 'big')
-                hash = connection.recv(hash_size)
+            if command == NONC.encode():
+                nonce_size = int.from_bytes(message[8:], 'big')
+                nonce = connection.recv(nonce_size)
                 break
 
-    return hash
+    return nonce
 
-def send_hash_standby_all(participants, timeout):
-    hashes_recieved = dict()
+def send_nonce_standby_all(participants, timeout):
+    nonces_recieved = dict()
     responded = []
     reference = time.time()
     timestamp = reference
@@ -212,12 +211,12 @@ def send_hash_standby_all(participants, timeout):
         for incoming in readable:
             message = incoming.recv(12)
             command = message[:8]
-            if command == HASH.encode():
-                hash_size = int.from_bytes(message[8:], 'big')
-                hash = incoming.recv(hash_size)
+            if command == NONC.encode():
+                nonce_size = int.from_bytes(message[8:], 'big')
+                nonce = incoming.recv(nonce_size)
                 ip_addr, port = incoming.getpeername()
-                hashes_recieved[ip_addr] = hash
+                nonces_recieved[ip_addr] = nonce
 
                 responded.append(incoming)
                 participants.remove(incoming)
-    return responded, hashes_recieved
+    return responded, nonces_recieved

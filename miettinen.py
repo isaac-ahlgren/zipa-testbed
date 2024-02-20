@@ -29,12 +29,16 @@ class Miettinen_Protocol():
 
         self.name = "miettinen"
 
-        self.re = Fuzzy_Commitment(ReedSolomonObj(n ,k), key_length)
         self.key_length = key_length
+        self.re = Fuzzy_Commitment(ReedSolomonObj(n ,k), key_length)
+        self.hash_func = hashes.SHA256()
+        self.ec_curve = ec.SECP384R1()
+        self.nonce_byte_size = 16
 
         self.debug = False
 
         self.count = 0
+        self.start = 1 # variable for testing 
 
     def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
         block_num = int(len(signal)/(no_snap_shot_width + snap_shot_width))
@@ -61,9 +65,11 @@ class Miettinen_Protocol():
         #signal = self.signal_preprocessing(x, self.f, self.w)
         #key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
         #return bitstring_to_bytes(key)
-        b = bytearray(random.randbytes(self.n))
+
+        b = bytearray([i for i in range(self.start, self.start+self.n)])
         if self.debug:
             b[0] = 0
+        self.start += self.n
         return b
 
     def extract_context(self):
@@ -177,7 +183,7 @@ class Miettinen_Protocol():
 
             send_hash(host_socket, hash)
 
-            host_hash = get_hash_standby(host_socket, self.timeout)        
+            host_hash = get_nonce_standby(host_socket, self.timeout)        
 
             # Early exist if no commitment recieved in time
             if not host_hash:
@@ -292,70 +298,108 @@ class Miettinen_Protocol():
             # Key Confirmation Phase
 
             # Hash prederived key
-            hash_func = hashes.Hash(hashes.SHA512())
-            hash_func.update(prederived_key)
-            pd_key_hash = hash_func.finalize()
+            pd_key_hash = self.hash_function(prederived_key)
 
-            generated_hashes = dict()
+            # Recieve all nonces
+            participating_sockets, recieved_nonces = send_nonce_standby_all(participating_sockets, self.timeout)
+            derived_keys = dict() # dictionary to keep track of derived keys
             for i in range(len(participating_sockets)):
+                # Derive new key using previous key and new prederived key from fuzzy commitment
                 ipaddr, port = participating_sockets[i].getpeername()
-                current_key = current_keys[ipaddr]
-                kdf = HKDF(algorithm=hashes.SHA256(), length=self.key_length, salt=None, info=None)
+                kdf = HKDF(algorithm=self.hash_func, length=self.key_length, salt=None, info=None)
                 derived_key = kdf.derive(prederived_key + current_key)
+                derived_keys[ipaddr] = derived_key
 
-                # Generate Nonce
-                nonce = os.urandom(16)
+                # Retrieve nonce for device
+                recieved_nonce = recieved_nonces[ipaddr]
 
-                # Create tag of Nonce
-                mac = hmac.HMAC(derived_key, hashes.SHA256())
-                mac.update(nonce)
-                tag = mac.finalize()
-
-                # Create key confirmation message
-                hash = pd_key_hash + nonce + tag
-
-                generated_hashes[ipaddr] = hash
-                 
-                send_hash(participating_sockets[i], hash)
-
-            # Recieve all hashes
-            participating_sockets, recieved_hashes = send_hash_standby_all(participating_sockets, self.timeout)
-            for i in range(len(participating_sockets)):
-                ipaddr, port = participating_sockets[i].getpeername()
-                recieved_hash = recieved_hashes[ipaddr]
-                generated_hash = generated_hashes[ipaddr]
-                if constant_time.bytes_eq(generated_hash, recieved_hash):
+                if self.verify_mac_from_device(recieved_nonce, derived_key, pd_key_hash):
                     successes[ipaddr] += 1
                     current_keys[ipaddr] = derived_key
 
-                    if successes[ipaddr] < self.success_threshold:
-                        done_pairing.append(participating_sockets[i]) 
-                        participating_sockets.remove(participating_sockets[i])
+            derived_keys = dict() # dictionary to keep track of derived keys
+            for i in range(len(participating_sockets)):
+                # Get current sockets current key
+                ipaddr, port = participating_sockets[i].getpeername()
+                current_key = current_keys[ipaddr]
+
+                # Derive new key using previous key and new prederived key from fuzzy commitment
+                kdf = HKDF(algorithm=self.hash_func, length=self.key_length, salt=None, info=None)
+                derived_key = kdf.derive(prederived_key + current_key)
+                derived_keys[ipaddr] = derived_key
+
+                # Send key confirmation value
+                self.send_key_confirmation(participating_sockets[i], pd_key_hash, derived_key)
 
             # Increment total times key evolution has occured
             total_iterations += 1
 
-
-            # Log all information to NFS server
-            print("Logging all information to NFS server")
-            #self.send_to_nfs_server("audio", signal, witness, h, commitment)
-
         self.count += 1
 
-    def send_to_nfs_server(self, signal_type, signal, witness, h, commitment):
-        root_file_name = self.nfs_server_dir + "/" + signal_type
+    def hash_function(self, bytes):
+        hash_func = hashes.Hash(hashes.SHA512())
+        hash_func.update(bytes)
+        return hash_func.finalize()
 
-        signal_file_name = root_file_name + "_signal_id" + str(self.identifier) + "_it" + str(self.count) + ".csv"
-        witness_file_name = root_file_name + "_witness_id" + str(self.identifier) + "_it" + str(self.count) + ".txt"
-        hash_file_name = root_file_name + "_hash_id" + str(self.identifier) + "_it" + str(self.count) + ".txt"
-        commitment_file_name = root_file_name + "_commitment_id" + str(self.identifier) + "_it" + str(self.count) + ".csv"
+    def send_nonce_msg_to_device(self, connection, recieved_nonce, derived_key):
+        nonce = os.urandom(self.nonce_byte_size)
 
-        np.savetxt(signal_file_name, signal)
-        np.savetxt(commitment_file_name, np.array(commitment.coeffs))
-        with open(witness_file_name, "w") as text_file:
-            text_file.write(witness)
-        with open(hash_file_name, "w") as text_file:
-            text_file.write(str(h))
+        # Concatenate nonces together
+        concat_nonce = nonce + recieved_nonce
+
+        # Create tag of Nonce
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(concat_nonce)
+        tag = mac.finalize()
+
+        # Construct nonce message
+        nonce_msg = nonce + tag
+
+        send_nonce(connection, nonce_msg)
+
+    def send_nonce_msg_to_host(self, connection, prederived_key_hash, derived_key):
+        # Generate Nonce
+        nonce = os.urandom(self.nonce_byte_size)
+
+        # Create tag of Nonce
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(nonce)
+        tag = mac.finalize()
+
+        # Create key confirmation message
+        nonce_msg = prederived_key_hash + nonce + tag
+                 
+        send_nonce(connection, nonce_msg)
+
+    def verify_mac_from_host(self, recieved_nonce_msg, generated_nonce, derived_key):
+        recieved_nonce = recieved_nonce_msg[0:self.nonce_byte_size]
+
+        # Create tag of Nonce
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(recieved_nonce + generated_nonce)
+        generated_tag = mac.finalize()
+        
+        recieved_tag = recieved_nonce_msg[self.nonce_byte_size:]
+        if constant_time.bytes_eq(generated_tag, recieved_tag):
+            success = True
+        return success
+
+    def verify_mac_from_device(self, recieved_nonce_msg, derived_key, prederived_key_hash):
+        success = False
+        
+        # Retrieve nonce used by device
+        pd_hash_len = len(prederived_key_hash)
+        recieved_nonce = recieved_nonce_msg[pd_hash_len:pd_hash_len + self.nonce_byte_size]
+
+        # Generate new MAC tag for the nonce with respect to the derived key
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(recieved_nonce)
+        generated_tag = mac.finalize()
+
+        recieved_tag = recieved_nonce_msg[pd_hash_len + self.nonce_byte_size:]
+        if constant_time.bytes_eq(generated_tag, recieved_tag):
+            success = True
+        return success
 
 import socket
 def device(prot):
