@@ -1,15 +1,22 @@
 import numpy as np
+import multiprocessing as mp
 from corrector import Fuzzy_Commitment
-from galois import *
 from network import *
+from reed_solomon import ReedSolomonObj
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives import hmac
+from cryptography.hazmat.primitives import constant_time
+from cryptography.hazmat.primitives.serialization import Encoding
+from cryptography.hazmat.primitives.serialization import PublicFormat
+import os
 
 # UNTESTED CODE
 
 class Miettinen_Protocol():
-    def __init__(self, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations):
+    def __init__(self, signal_measurement, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations, nfs_server_dir, identifier, timeout):
+        self.signal_measurement = signal_measurement
         self.n = n
         self.k = k
         self.f = f
@@ -19,11 +26,20 @@ class Miettinen_Protocol():
         self.auth_threshold = auth_threshold
         self.success_threshold = success_threshold
         self.max_iterations = max_iterations
-        self.re = Fuzzy_Commitment(n, k)
 
-        self.kdf = HKDF(algorithm=hashes.SHA256(), length=key_length)
+        self.timeout = timeout
 
-        self.current_keys = None
+        self.name = "miettinen"
+
+        self.key_length = key_length
+        self.re = Fuzzy_Commitment(ReedSolomonObj(n ,k), key_length)
+        self.hash_func = hashes.SHA256()
+        self.ec_curve = ec.SECP384R1()
+        self.nonce_byte_size = 16
+
+        self.debug = False
+
+        self.count = 0
 
     def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
         block_num = int(len(signal)/(no_snap_shot_width + snap_shot_width))
@@ -44,22 +60,17 @@ class Miettinen_Protocol():
         return bits
 
     def miettinen_algo(self, x):
-        signal = signal_preprocessing(x, self.f, self.w)
-        key = gen_key(x, self.rel_thresh, self.abs_thresh)
-        return key
-
-    def decommit_witness(self, commitment, witness, h):
-        C, success = self.re.decommit_witness(commitment, witness, h)
-        return C, success
-
-    def commit_witness(self, witness):
-        secret_key, h, commitment = self.re.commit_witness(witness)
-        return secret_key, h, commitment
+        def bitstring_to_bytes(s):
+            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
+        signal = self.signal_preprocessing(x, self.f, self.w)
+        key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
+        return bitstring_to_bytes(key)
 
     def extract_context(self):
         print()
         print("Extracting Context")
         signal = self.signal_measurement.get_audio()
+        signal = None
         bits = self.miettinen_algo(signal)
         print()
         return bits, signal
@@ -83,29 +94,46 @@ class Miettinen_Protocol():
         print()
 
         # Generate initial private key for Diffie-Helman
-        initial_private_key = ec.generate_private_key(ec.SECP384R1())
+        initial_private_key = ec.generate_private_key(self.ec_curve)
+        
+        public_key = initial_private_key.public_key().public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
         
         # Send initial key for Diffie-Helman
-        dh_exchange(host_socket, initial_private_key)
+        print("Send DH public key\n")
+        dh_exchange(host_socket, public_key)
 
         # Recieve other devices key
-        other_key = dh_exchange_standby(host_socket, self.timeout)
+        print("Waiting for DH public key\n")
+        other_public_key_bytes = dh_exchange_standby(host_socket, self.timeout)
 
-        if other_key == None:
+        if other_public_key_bytes == None:
             print("No initial key for Diffie-Helman recieved - early exit")
             print()
             return
 
+        other_public_key = ec.EllipticCurvePublicKey.from_encoded_point(self.ec_curve, other_public_key_bytes)
+
         # Shared key generated
-        shared_key = initial_private_key.exchange(ec.ECDH(), other_key.public_key())
+        shared_key = initial_private_key.exchange(ec.ECDH(), other_public_key)
 
         current_key = shared_key
         successes = 0
         total_iterations = 0
         while successes < self.success_threshold and total_iterations < self.max_iterations:
-            # Extract bits from mic
-            print("Extracting context")
+            # Sending ack that they are ready to begin
+
+            print("Waiting for ACK from host.")
+            if not ack_standby(host_socket, self.timeout):
+                print("No ACK recieved within time limit - early exit.\n\n")
+                return
+            
             print()
+            print("Sending ACK")
+            ack(host_socket)
+
+            success = False
+
+            # Extract bits from sensor
             witness, signal = self.extract_context()
         
             # Wait for Commitment
@@ -114,84 +142,270 @@ class Miettinen_Protocol():
 
             # Early exist if no commitment recieved in time
             if not commitment:
-                print("No commitment recieved within time limit - early exit")
-                print()
+                print("No commitment recieved within time limit - early exit\n")
                 return
             print()
 
-            print("witness: " + str(hex(int(witness, 2))))
-            print("h: " + str(h))
+            print("witness: " + str(witness))
             print()
 
             # Decommit
             print("Decommiting")
-            C, success = self.re.decommit_witness(commitment, witness, h)
+            prederived_key = self.re.decommit_witness(commitment, witness)
 
-            
 
-            print("C: " + str(C))
-            print("success: " + str(success))
+            kdf = HKDF(algorithm=self.hash_func, length=self.key_length, salt=None, info=None)
+            derived_key = kdf.derive(prederived_key + current_key)
+
+            # Key Confirmation Phase
+
+            # Hash prederived key
+            pd_key_hash = self.hash_function(prederived_key)
+
+            # Send nonce message to host
+            generated_nonce = self.send_nonce_msg_to_host(host_socket, pd_key_hash, derived_key)
+
+            # Recieve nonce message
+            recieved_nonce_msg = get_nonce_msg_standby(host_socket, self.timeout)
+
+            # Early exist if no commitment recieved in time
+            if not recieved_nonce_msg:
+                print("No nonce message recieved within time limit - early exit")
+                print()
+                return
             print()
 
-            # Log all information to NFS server
-            print("Logging all information to NFS server")
-            self.send_to_nfs_server("audio", signal, witness, h, commitment)
+            # If hashes are equal, then it was successful
+            if self.verify_mac_from_host(recieved_nonce_msg, generated_nonce, derived_key):
+                print("device is here")
+                success = True
+                successes += 1
+                current_key = derived_key
+
+            print("Produced Key: " + str(derived_key))
+            print("success: " + str(success) + ", Number of successes: " + str(successes) + ", Total number of iterations: " + str(total_iterations))
+            print()
+
+            # Increment total number of iterations key evolution has occured
+            total_iterations += 1
+        
+        if successes/total_iterations >= self.auth_threshold:
+            print("Total Key Pairing Success: auth - " + str(successes/total_iterations))
+        else:
+            print("Total Key Pairing Failure: auth - " + str(successes/total_iterations))
 
         self.count += 1
 
     def host_protocol(self, device_sockets):
         print("Iteration " + str(self.count))
         print()
-  
-        participating_sockets = wait_for_all_ack(device_sockets, self.timeout)
+        for device in device_sockets:
+            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
+            p.start()
+    
+    def host_protocol_single_threaded(self, device_socket):
+        device_socket.setblocking(1)
+        if not ack_standby(device_socket, self.timeout):
+            print("No ACK recieved within time limit - early exit.\n\n")
+            return
 
-        # Exit early if no devices to pair with
-        if len(participating_sockets) == 0:
+        print("ACKing participating device")
+        ack(device_socket)
+
+        # Generate initial private key for Diffie-Helman
+        initial_private_key = ec.generate_private_key(self.ec_curve)
+        
+        # Obtain Public Key
+        public_key = initial_private_key.public_key().public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
+
+        # Send initial key for Diffie-Helman
+        print("Send every device the public key\n")
+        dh_exchange(device_socket, public_key)
+
+        # Recieve other devices key
+        print('Recieve every devices public key\n')
+        other_public_key_bytes = dh_exchange_standby(device_socket, self.timeout)
+
+        if other_public_key_bytes == None:
             print("No advertised devices joined the protocol - early exit")
             print()
             return
-        print("Successfully ACKed participating devices")
-        print()
-        
 
-        print("ACKing all participating devices")
-        ack_all(participating_sockets)
+        other_public_key = ec.EllipticCurvePublicKey.from_encoded_point(self.ec_curve, other_public_key_bytes)
 
-        # Extract key from mic
-        print("Extracting Context")
-        witness, signal = self.extract_context()
-        print()
+        # Shared key generated
+        shared_key = initial_private_key.exchange(ec.ECDH(), other_public_key)
 
-        # Commit Secret
-        print("Commiting Witness")
-        secret_key, h, commitment = self.re.commit_witness(witness)
+        current_key = shared_key
+        total_iterations = 0
+        successes = 0
+        while successes < self.success_threshold and total_iterations < self.max_iterations:
+            success = False
+            # ACK all devices
+            ack(device_socket)
 
-        print("witness: " + str(hex(int(witness, 2))))
-        print("h: " + str(h))
-        print()
+            if not ack_standby(device_socket, self.timeout):
+                print("No ACK recieved within time limit - early exit.\n\n")
+                return
+            
+            print("Successfully ACKed participating device")
+            print()
 
-        print("Sending commitment")
-        print()
-        send_commitment(commitment, h, participating_sockets)
+            # Extract key from sensor
+            witness, signal = self.extract_context()
 
-        # Log all information to NFS server
-        print("Logging all information to NFS server")
-        self.send_to_nfs_server("audio", signal, witness, h, commitment)
+            # Commit Secret
+            print("Commiting Witness")
+            prederived_key, commitment = self.re.commit_witness(witness)
+
+            print("witness: " + str(witness))
+            print()
+
+            print("Sending commitment")
+            print()
+            h = bytes([0 for i in range(64)]) # Scheme does not send hash but function expects 64 byte hash (this is gonna change in the future)
+            send_commit(commitment, h, device_socket)
+
+            # Key Confirmation Phase
+
+            # Hash prederived key
+            pd_key_hash = self.hash_function(prederived_key)
+
+            # Recieve nonce message
+            recieved_nonce_msg = get_nonce_msg_standby(device_socket, self.timeout)
+
+            # Early exist if no commitment recieved in time
+            if not recieved_nonce_msg:
+                print("No nonce message recieved within time limit - early exit")
+                print()
+                return
+            print()
+            
+            # Derive new key using previous key and new prederived key from fuzzy commitment
+            kdf = HKDF(algorithm=self.hash_func, length=self.key_length, salt=None, info=None)
+            derived_key = kdf.derive(prederived_key + current_key)
+
+            if self.verify_mac_from_device(recieved_nonce_msg, derived_key, pd_key_hash):
+                success = True
+                successes += 1
+                current_key = derived_key
+
+            # Create and send key confirmation value
+            self.send_nonce_msg_to_device(device_socket, recieved_nonce_msg, derived_key, pd_key_hash)
+
+            # Increment total times key evolution has occured
+            total_iterations += 1
+
+            print("success: " + str(success) + ", Number of successes: " + str(successes) + ", Total number of iterations: " + str(total_iterations))
+            print()
+        if successes/total_iterations >= self.auth_threshold:
+            print("Total Key Pairing Success: auth - " + str(successes/total_iterations))
+        else:
+            print("Total Key Pairing Failure: auth - " + str(successes/total_iterations))
 
         self.count += 1
 
-    def send_to_nfs_server(self, signal_type, signal, witness, h, commitment):
-        root_file_name = self.nfs_server_dir + "/" + signal_type
+    def hash_function(self, bytes):
+        hash_func = hashes.Hash(self.hash_func)
+        hash_func.update(bytes)
+        return hash_func.finalize()
 
-        signal_file_name = root_file_name + "_signal_id" + str(self.identifier) + "_it" + str(self.count) + ".csv"
-        witness_file_name = root_file_name + "_witness_id" + str(self.identifier) + "_it" + str(self.count) + ".txt"
-        hash_file_name = root_file_name + "_hash_id" + str(self.identifier) + "_it" + str(self.count) + ".txt"
-        commitment_file_name = root_file_name + "_commitment_id" + str(self.identifier) + "_it" + str(self.count) + ".csv"
+    def send_nonce_msg_to_device(self, connection, recieved_nonce_msg, derived_key, prederived_key_hash):
+        nonce = os.urandom(self.nonce_byte_size)
 
-        np.savetxt(signal_file_name, signal)
-        np.savetxt(commitment_file_name, np.array(commitment.coeffs))
-        with open(witness_file_name, "w") as text_file:
-            text_file.write(witness)
-        with open(hash_file_name, "w") as text_file:
-            text_file.write(str(h))
+        # Concatenate nonces together
+        pd_hash_len = len(prederived_key_hash)
+        recieved_nonce = recieved_nonce_msg[pd_hash_len:pd_hash_len + self.nonce_byte_size]
+        concat_nonce = nonce + recieved_nonce
 
+        # Create tag of Nonce
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(concat_nonce)
+        tag = mac.finalize()
+
+        # Construct nonce message
+        nonce_msg = nonce + tag
+
+        send_nonce_msg(connection, nonce_msg)
+
+        return nonce
+
+    def send_nonce_msg_to_host(self, connection, prederived_key_hash, derived_key):
+        # Generate Nonce
+        nonce = os.urandom(self.nonce_byte_size)
+
+        # Create tag of Nonce
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(nonce)
+        tag = mac.finalize()
+
+        # Create key confirmation message
+        nonce_msg = prederived_key_hash + nonce + tag
+                 
+        send_nonce_msg(connection, nonce_msg)
+
+        return nonce
+
+    def verify_mac_from_host(self, recieved_nonce_msg, generated_nonce, derived_key):
+        success = False
+
+        recieved_nonce = recieved_nonce_msg[0:self.nonce_byte_size]
+
+        # Create tag of Nonce
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(recieved_nonce + generated_nonce)
+        generated_tag = mac.finalize()
+
+        recieved_tag = recieved_nonce_msg[self.nonce_byte_size:]
+        if constant_time.bytes_eq(generated_tag, recieved_tag):
+            success = True
+        return success
+
+    def verify_mac_from_device(self, recieved_nonce_msg, derived_key, prederived_key_hash):
+        success = False
+        
+        # Retrieve nonce used by device
+        pd_hash_len = len(prederived_key_hash)
+        recieved_nonce = recieved_nonce_msg[pd_hash_len:pd_hash_len + self.nonce_byte_size]
+
+        # Generate new MAC tag for the nonce with respect to the derived key
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(recieved_nonce)
+        generated_tag = mac.finalize()
+
+        recieved_tag = recieved_nonce_msg[pd_hash_len + self.nonce_byte_size:]
+        if constant_time.bytes_eq(generated_tag, recieved_tag):
+            success = True
+        return success
+
+'''
+###TESTING CODE###
+import socket
+def device(prot):
+    print("device")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.connect(("127.0.0.1", 2000))
+    prot.device_protocol(s)
+
+def host(prot):
+    print("host")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(("127.0.0.1", 2000))
+    s.listen()
+    conn, addr = s.accept()
+    s.setblocking(0)
+    prot.host_protocol([conn])
+
+if __name__ == "__main__":
+    import multiprocessing as mp
+    import random
+    random.seed(0)
+    prot = Miettinen_Protocol(8, 12, 8, 5*48000, 6*48000, 0.5, 0.5, 0.9, 5, 20, "", 0, 30)
+    h = mp.Process(target=host, args=[prot])
+    d = mp.Process(target=device, args=[prot])
+    h.start()
+    d.start()'''

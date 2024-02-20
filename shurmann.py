@@ -221,7 +221,7 @@ class Shurmann_Siggs_Protocol:
 
         print("Sending commitment")
         print()
-        commit(commitment, h, start, stop, participating_sockets)
+        send_commit(commitment, h, participating_sockets)
 
         # Log all information to NFS server
         print("Logging all information to NFS server")
