@@ -3,8 +3,6 @@ from multiprocessing import shared_memory
 
 import numpy as np
 
-MAX_CLIENTS = 0x400
-
 # MAIN TEST FOR THIS:
 # you want multiple processes (threads) to read from the buffer at the same time during
 class Sensor():
@@ -25,7 +23,7 @@ class Sensor():
 
         self.MAX_SENSOR_CLIENTS = 1024
         self.semaphore = mp.Semaphore(self.MAX_SENSOR_CLIENTS)
-        self.mutex = mp.Lock()
+        self.mutex = mp.Semaphore()
         self.sensor.start()
 
     def poll(self):
@@ -39,13 +37,14 @@ class Sensor():
 
             for d in data:
                 self.addressable_buffer[self.pointer.value] = d
-                self.pointer.value += 1 % self.sensor.buffer_size
+                self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
+            self.mutex.release()
 
     def read(self):
         data = np.empty((self.sensor.buffer_size,), dtype=self.sensor.data_type)
         
         print("Checking if mutex lock is still in play...")
-        while self.mutex.value == 1: 
+        while self.mutex.get_value() != 1: 
             pass
 
         self.semaphore.acquire()
@@ -59,8 +58,6 @@ class Sensor():
 
         return data
     
-
-
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     def sen_thread(sen):
@@ -76,6 +73,7 @@ if __name__ == "__main__":
                 output[j + i*length] = data[j]
         plt.plot(output)
         plt.show()
+        quit()
 
     from test_sensor import Test_Sensor
     ts = Test_Sensor(48000, 3*48000, signal_type='sine')
