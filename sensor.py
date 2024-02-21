@@ -82,4 +82,3 @@ if __name__ == "__main__":
     p = mp.Process(target=getter_thread, args=[sen_reader])
     p.start()
 
-

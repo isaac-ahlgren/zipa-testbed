@@ -1,5 +1,4 @@
 import socket
-import pickle
 import select
 import json
 from multiprocessing import Process
@@ -163,4 +162,3 @@ class ZIPA_System:
             #    ))
             case _:
                 print("Protocol not supported.")
-

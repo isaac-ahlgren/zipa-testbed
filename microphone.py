@@ -1,60 +1,56 @@
-import wave
+import time
 
 import numpy as np
 import pyaudio
 
 # TODO: Make template class for all sensors so that they all have the same functions
 class Microphone:
-    def __init__(self, sample_rate, buffer_size):
-        self.format = pyaudio.paFloat32
-        self.sample_rate = sample_rate
+    def __init__(self, sample_rate, time_length):
+        self.format = pyaudio.paInt32  # Change to 16-bit format
+        self.sampling = sample_rate
         self.pyaud = pyaudio.PyAudio()
-        self.buffer_size = buffer_size
-        self.chunk_size = buffer_size
-        # Opens an audio stream for input
+        self.buffer_size = time_length * sample_rate
+        self.chunk_size = time_length * sample_rate
         self.stream = self.pyaud.open(
             format=self.format,
-            channels=1,
+            channels=1,  # Stereo audio
             rate=sample_rate,
             input=True,
             frames_per_buffer=self.chunk_size,
-            # Stores the data in a buffer to be used in the protocol
             stream_callback=self.get_callback(),
         )
-        self.chunks_per_buffer = int(buffer_size / self.chunk_size)
+        self.chunks_per_buffer = int(self.buffer_size / self.chunk_size)
         self.count = 0
-        # Initialize but keep instance on standby
         self.buffer_ready = False
         self.ready_buffer = None
         self.buffer = None
+        self.data_type = np.int32()
+        self.time_length = time_length
 
     def get_callback(self):
         def callback(in_data, frame_count, time_info, status):
-            # Store data in a buffer
-            self.ready_buffer = np.fromstring(in_data, dtype=np.float32)
-            # The buffer is available with new data
+            self.ready_buffer = np.frombuffer(
+                in_data, dtype=np.int32
+            )  # Adjust for 16-bit data
             self.buffer_ready = True
-            # Continue running the audio stream
             return (in_data, pyaudio.paContinue)
 
         return callback
 
-    def start_stream(self):
+    def start(self):
+        # Start stream, recording for specified time interval
         self.stream.start_stream()
+        time.sleep(self.time_length)
 
-    def stop_stream(self):
+    def stop(self):
         self.buffer_ready = False
         self.stream.stop_stream()
 
-    def get_audio(self):
-        # Wait for audio collection until the buffer is marked ready
-        while 1:
+    def extract(self):
+        while True:
             if self.buffer_ready:
                 break
-        # Populate the buffer with the last 3/4 of collected data
-        self.buffer = self.ready_buffer[int(len(self.ready_buffer) / 4) :]
-        # Keep track of how many times audio has been collected
+        self.buffer = self.ready_buffer
         self.count += 1
-        # Buffer is full of data
         self.buffer_ready = False
         return self.buffer
