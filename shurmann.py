@@ -1,12 +1,11 @@
 import time
-
-import mysql.connector
+import multiprocessing as mp
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import constant_time
 import numpy as np
-
 from reed_solomon import ReedSolomonObj
 from corrector import Fuzzy_Commitment
 from network import *
-
 
 # TODO: Make it so that key length is a parameter to the Shurmann and siggs protocol
 # It will need work with how many bits the quantizer
@@ -18,6 +17,15 @@ class Shurmann_Siggs_Protocol:
         self.name = "shurmann-siggs"
         self.count = 0
         self.timeout = timeout
+
+        self.n = n
+        self.k = k
+
+        self.hash_func = hashes.SHA512()
+
+        self.debug = False
+
+        # These variables should be in the NFS object
         self.nfs_server_dir = nfs_server_dir
         self.identifier = identifier
 
@@ -59,20 +67,16 @@ class Shurmann_Siggs_Protocol:
                     bs += "1"
                 else:
                     bs += "0"
+
         return bitstring_to_bytes(bs)
 
-    # TODO: Add timestamp information
     def extract_context(self):
-        print("\nExtracting Context\n")
-        # Time audio gathering
-        start = time.time()
         signal = self.signal_measurement.get_audio()
-        stop = time.time()
         bits = self.sigs_algo(signal)
-
-        return bits, signal, start, stop
+        return bits, signal
 
     def device_protocol(self, host):
+        self.debug = True
         host.setblocking(1)
         print(f"Iteration {str(self.count)}.\n")
 
@@ -80,225 +84,107 @@ class Shurmann_Siggs_Protocol:
         print("Sending ACK.\n")
         ack(host)
 
-        # Wait for ack from host to being context extract, quit early if no response within time
+        # Wait for ack from host to begin context extract, quit early if no response within time
         print("Waiting for ACK from host.")
         if not ack_standby(host, self.timeout):
             print("No ACK recieved within time limit - early exit.\n\n")
             return
 
-        # TODO: Update this with time info
         # Extract bits from mic
         print("Extracting context\n")
-        witness, signal, start, stop = self.extract_context()
+        witness, signal = self.extract_context()
 
         # Wait for Commitment
         print("Waiting for commitment from host")
-        host_commitment, host_metadata = commit_standby(host, self.timeout)
+        commitment, recieved_hash = commit_standby(host, self.timeout)
 
         # Early exist if no commitment recieved in time
-        if not host_commitment:
+        if not commitment:
             print("No commitment recieved within time limit - early exit\n")
             return
 
-        print(
-            f"Witness:\n{str(hex(int(witness, 2)))}\nRecieved hash: {str(host_metadata['hash'])}\n"
-        )
-
-        C = None
-        success = False
-        sampling = self.signal_measurement.sample_rate
-        client_time = stop - start
-        APPROX = 500
-        shifted_signal = np.array(signal.copy())
-
-        # TODO: Align timing as close as possible, then begin to iterate through the thousands
-
-        # shifted_time = (stop - host_metadata["time_start"]) if host_metadata["time_start"] > start else (host_metadata["time_stop"] - start)
-
-        # If the host begins after the client
-        if host_metadata["time_start"] > start:
-            shifted_time = stop - host_metadata["time_start"]
-            shifted_total_frames = int(shifted_time * sampling)
-            shifted_signal = shifted_signal[-(shifted_total_frames - APPROX) :]
-            print(
-                f"Losing beginning frames. Total no. of frames: {shifted_total_frames}"
-            )
-        # Else if the host begins before the client
-        elif host_metadata["time_start"] < start:
-            shifted_time = host_metadata["time_stop"] - start
-            shifted_total_frames = int(shifted_time * sampling)
-            shifted_signal = shifted_signal[: shifted_total_frames + APPROX]
-            print(f"Losing end frames. Total no. of frames: {shifted_total_frames}")
-
-        for window in range(1000):
-            # Debugging
-            print(f"Iteration #{window}. Length: {len(shifted_signal)}\nC: {str(C)}\n Value: {shifted_signal[window]}")
-            witness = self.sigs_algo(shifted_signal[window:])
-            C, success = self.re.decommit_witness(
-                host_commitment, witness, host_metadata["hash"]
-            )
-            if success:
-                print(f"Success!\nC: {str(C)}")
-                break
-
-        print(f"Witness:\n{str(hex(int(witness, 2)))}\nRecieved hash: {str(host_metadata['hash'])}\n")
-
-        C = None
-        success = False
-        sampling = self.microphone.sample_rate
-        client_time = stop - start
-        APPROX = 500
-        shifted_signal = np.array(signal.copy())
-
-        # TODO: Align timing as close as possible, then begin to iterate through the thousands
-
-        # If the host begins after the client
-        if host_metadata["time_start"] > start:
-            shifted_time = stop - host_metadata["time_start"]
-            shifted_total_frames = int(shifted_time * sampling)
-            shifted_signal = shifted_signal[-(shifted_total_frames - APPROX) :]
-        # Else if the host begins before the client
-        elif host_metadata["time_start"] < start:
-            shifted_time = host_metadata["time_stop"] - start
-            shifted_total_frames = int(shifted_time * sampling)
-            shifted_signal = shifted_signal[: shifted_total_frames + APPROX]
-
-        for window in range(1000):
-            # Debugging
-            print(f"Shifting window. Iteration #{window}.\n")
-            witness = self.sigs_algo(shifted_signal[window:])
-            C, success = self.re.decommit_witness(
-                host_commitment, witness, host_metadata["hash"]
-            )
-            if success:
-                print("Success!\n")
-                break
-
         # Decommit
-        # print("Decommiting")
-        # C, success = self.re.decommit_witness(commitment, witness, h)
+        print("Decommiting")
+        key = self.re.decommit_witness(commitment, witness)
 
-        print(f"C: {str(C)}\nSuccess? {str(success)}\n")
+        generated_hash = self.hash_function(key)
+ 
+        success = False
+        if constant_time.bytes_eq(generated_hash, recieved_hash):
+            success = True
 
-        # Log all information to NFS server
-        print("Logging all information to NFS server")
-        self.send_to_nfs_server(
-            "audio", signal, witness, host_metadata["hash"], host_commitment
-        )
+        print(f"key: {str(key)}\n success: {str(success)}\n")
 
         self.count += 1
 
     def host_protocol(self, device_sockets):
         print("Iteration " + str(self.count))
         print()
+        for device in device_sockets:
+            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
+            p.start()
 
-        participating_sockets = ack_all_standby(device_sockets, self.timeout)
+    def host_protocol_single_threaded(self, device_socket):
 
         # Exit early if no devices to pair with
-        if len(participating_sockets) == 0:
-            print("No advertised devices joined the protocol - early exit")
-            print()
+        if not ack_standby(device_socket, self.timeout):
+            print("No ACK recieved within time limit - early exit.\n\n")
             return
-        print("Successfully ACKed participating devices")
+        print("Successfully ACKed participating device")
         print()
 
         print("ACKing all participating devices")
-        ack_all(participating_sockets)
+        ack(device_socket)
 
-        # TODO: Update with time info
         # Extract key from mic
         print("Extracting Context")
-        witness, signal, start, stop = self.extract_context()
+        witness, signal = self.extract_context()
         print()
 
         # Commit Secret
         print("Commiting Witness")
-        secret_key, h, commitment = self.re.commit_witness(witness)
+        secret_key, commitment = self.re.commit_witness(witness)
 
-        print("witness: " + str(hex(int(witness, 2))))
-        print("h: " + str(h))
-        print()
+        hash = self.hash_function(secret_key)
 
         print("Sending commitment")
         print()
-        send_commit(commitment, h, participating_sockets)
-
-        # Log all information to NFS server
-        print("Logging all information to NFS server")
-        self.send_to_nfs_server("audio", signal, witness, h, commitment)
+        send_commit(commitment, hash, device_socket)
 
         self.count += 1
 
-    # TODO: Have timestamp info sent to NFS
-    def send_to_nfs_server(
-        self, signal_type, signal, timestamp, witness, h, commitment
-    ):
-        root_file_name = self.nfs_server_dir + "/" + signal_type
+    def hash_function(self, bytes):
+        hash_func = hashes.Hash(self.hash_func)
+        hash_func.update(bytes)
+        return hash_func.finalize()
 
-        signal_file_name = (
-            root_file_name
-            + "_signal_id"
-            + str(self.identifier)
-            + "_it"
-            + str(self.count)
-            + ".csv"
-        )
-        witness_file_name = (
-            root_file_name
-            + "_witness_id"
-            + str(self.identifier)
-            + "_it"
-            + str(self.count)
-            + ".txt"
-        )
-        hash_file_name = (
-            root_file_name
-            + "_hash_id"
-            + str(self.identifier)
-            + "_it"
-            + str(self.count)
-            + ".txt"
-        )
-        commitment_file_name = (
-            root_file_name
-            + "_commitment_id"
-            + str(self.identifier)
-            + "_it"
-            + str(self.count)
-            + ".csv"
-        )
 
-        np.savetxt(signal_file_name, signal)
-        np.savetxt(commitment_file_name, np.array(commitment.coeffs))
-        with open(witness_file_name, "w") as text_file:
-            text_file.write(witness)
-        with open(hash_file_name, "w") as text_file:
-            text_file.write(str(h))
+'''###TESTING CODE###
+import socket
+def device(prot):
+    print("device")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.connect(("127.0.0.1", 2000))
+    prot.device_protocol(s)
 
-        conn = None
-        try:
-            conn = mysql.connector.connect(
-                user="luke",
-                password="lucor011&",
-                host="10.17.29.18",
-                database="file_log",
-            )
-            cursor = conn.cursor()
+def host(prot):
+    print("host")
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(("127.0.0.1", 2000))
+    s.listen()
+    conn, addr = s.accept()
+    s.setblocking(0)
+    prot.host_protocol([conn])
 
-            for file_name in [
-                signal_file_name,
-                witness_file_name,
-                hash_file_name,
-                commitment_file_name,
-            ]:
-                cursor.execute(
-                    "INSERT INTO file_paths (file_path) VALUES (%s)", (file_name,)
-                )
-
-            conn.commit()
-        except mysql.connector.Error as err:
-            print("Error connecting to MySQL:", err)
-        finally:
-            if conn and conn.is_connected():
-                cursor.close()
-                conn.close()
+if __name__ == "__main__":
+    import multiprocessing as mp
+    import random
+    prot = Shurmann_Siggs_Protocol(None, 12, 8, 10, None, None)
+    h = mp.Process(target=host, args=[prot])
+    d = mp.Process(target=device, args=[prot])
+    h.start()
+    d.start()'''

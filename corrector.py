@@ -26,8 +26,10 @@ class Fuzzy_Commitment:
 
 
     def decommit_witness(self, commitment, witness):
+        # Decommit by XORing the commitment and the witness
         C = self.xor_bytes(commitment, witness)
 
+        # Correct errors in the decommiting process due to the witness
         secret_key = self.error_correction.decode(C)
 
         return secret_key

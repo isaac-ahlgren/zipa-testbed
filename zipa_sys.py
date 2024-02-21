@@ -157,6 +157,7 @@ class ZIPA_System:
                     self.nfs,
                     self.id
                 ))
+            #TODO: make it so miettinen can be called (but the signal processing algorithm for it should be tested first)
             #case "miettinen":
             #    self.protocols.append(Miettinen_Protocol(
             #        
