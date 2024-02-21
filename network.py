@@ -10,11 +10,8 @@ COMM = "comm    "
 DHKY = "dhkey   "
 NONC = "nonce   "
 
-
 def ack(connection):
     connection.send(ACKN.encode())
-
-
 
 def ack_standby(connection, timeout):
     acknowledged = False
@@ -35,7 +32,6 @@ def ack_standby(connection, timeout):
 
     return acknowledged
 
-
 #TODO: make it so that the size of the hash can be variable
 def send_commit(commitment, hash, device):
     length = len(commitment).to_bytes(4, byteorder='big')
@@ -43,8 +39,8 @@ def send_commit(commitment, hash, device):
     device.send(message)
 
 def commit_standby(connection, timeout):
-    payload, metadata = None
-    reference, timestamp = time.time()
+    reference = time.time()
+    timestamp = reference
 
     while (timestamp - reference) < timeout:
         timestamp = time.time()
@@ -61,7 +57,6 @@ def commit_standby(connection, timeout):
 
     return commitment, hash
 
-# UNTESTED CODE
 def dh_exchange(connection, key):
     key_size = len(key).to_bytes(4, byteorder='big')
     message = DHKY.encode() + key_size + key

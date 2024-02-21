@@ -12,10 +12,8 @@ from cryptography.hazmat.primitives.serialization import Encoding
 from cryptography.hazmat.primitives.serialization import PublicFormat
 import os
 
-# UNTESTED CODE
-
 class Miettinen_Protocol():
-    def __init__(self, signal_measurement, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations, nfs_server_dir, identifier, timeout):
+    def __init__(self, signal_measurement, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations, timeout):
         self.signal_measurement = signal_measurement
         self.n = n
         self.k = k
@@ -59,6 +57,7 @@ class Miettinen_Protocol():
                 bits += '0'
         return bits
 
+    #TODO: algorithm needs to be testing using real life data
     def miettinen_algo(self, x):
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
@@ -67,14 +66,13 @@ class Miettinen_Protocol():
         return bitstring_to_bytes(key)
 
     def extract_context(self):
-        print()
-        print("Extracting Context")
         signal = self.signal_measurement.get_audio()
         signal = None
         bits = self.miettinen_algo(signal)
         print()
         return bits, signal
 
+    #TODO: Throw all the Diffie-Helman stuff in its own function since it's called exactly the same pretty much by both device and host protocols, it'll make it easier to read
     def device_protocol(self, host_socket):
         host_socket.setblocking(1)
         print("Iteration " + str(self.count))
@@ -153,7 +151,7 @@ class Miettinen_Protocol():
             print("Decommiting")
             prederived_key = self.re.decommit_witness(commitment, witness)
 
-
+            # Derive key
             kdf = HKDF(algorithm=self.hash_func, length=self.key_length, salt=None, info=None)
             derived_key = kdf.derive(prederived_key + current_key)
 
@@ -177,7 +175,6 @@ class Miettinen_Protocol():
 
             # If hashes are equal, then it was successful
             if self.verify_mac_from_host(recieved_nonce_msg, generated_nonce, derived_key):
-                print("device is here")
                 success = True
                 successes += 1
                 current_key = derived_key
