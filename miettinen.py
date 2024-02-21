@@ -35,8 +35,6 @@ class Miettinen_Protocol():
         self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
 
-        self.debug = False
-
         self.count = 0
 
     def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
@@ -67,9 +65,7 @@ class Miettinen_Protocol():
 
     def extract_context(self):
         signal = self.signal_measurement.get_audio()
-        signal = None
         bits = self.miettinen_algo(signal)
-        print()
         return bits, signal
 
     #TODO: Throw all the Diffie-Helman stuff in its own function since it's called exactly the same pretty much by both device and host protocols, it'll make it easier to read

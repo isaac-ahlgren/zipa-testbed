@@ -21,9 +21,7 @@ class Shurmann_Siggs_Protocol:
         self.n = n
         self.k = k
 
-        self.hash_func = hashes.SHA512()
-
-        self.debug = False
+        self.hash_func = hashes.SHA512() # Can't change this without breaking the commit network function (will fix later)
 
         # These variables should be in the NFS object
         self.nfs_server_dir = nfs_server_dir
@@ -76,7 +74,6 @@ class Shurmann_Siggs_Protocol:
         return bits, signal
 
     def device_protocol(self, host):
-        self.debug = True
         host.setblocking(1)
         print(f"Iteration {str(self.count)}.\n")
 
