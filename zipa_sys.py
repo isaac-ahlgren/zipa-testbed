@@ -13,7 +13,6 @@ from shurmann import Shurmann_Siggs_Protocol
 HOST = "host    "
 STRT = "start   "
 
-
 class ZIPA_System:
     def __init__(self, identity, ip, port, service, nfs):
         # Object is created and filled with identifying info as well as setup information

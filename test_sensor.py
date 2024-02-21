@@ -10,6 +10,7 @@ class Test_Sensor:
         self.ready_buffer = None
         self.buffer = None
         self.data_type = np.float32
+        self.data_type_size = 4
 
         self.signal_type = signal_type
 

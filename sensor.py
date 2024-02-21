@@ -1,6 +1,5 @@
 import multiprocessing as mp
 from multiprocessing import shared_memory
-from microphone import Microphone
 
 import numpy as np
 
@@ -13,7 +12,7 @@ class Sensor():
         self.sensor = device
         self.shm = shared_memory.SharedMemory(
             create=True,
-            size=device.data_type.itemsize * device.buffer_size,
+            size=device.data_type_size * device.buffer_size,
             name="sensor_buffer",
         )
         self.addressable_buffer = np.ndarray(
@@ -31,7 +30,7 @@ class Sensor():
 
     def poll(self):
         while True:
-            while self.semaphore._Semaphore__value != self.MAX_SENSOR_CLIENTS:
+            while self.semaphore.get_value() != self.MAX_SENSOR_CLIENTS:
                 pass
 
             self.mutex.acquire()
@@ -46,7 +45,7 @@ class Sensor():
         data = np.empty((self.sensor.buffer_size,), dtype=self.sensor.data_type)
         
         print("Checking if mutex lock is still in play...")
-        while self.mutex.locked(): 
+        while self.mutex.value == 1: 
             pass
 
         self.semaphore.acquire()
@@ -62,7 +61,27 @@ class Sensor():
     
 
 
-    if __name__ == "__main__":
-        from test_sensor import Test_Sensor
-        ts = Test_Sensor(48000, 3*48000, signal_type='sine')
-        sen_reader = Sensor(ts)
+if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    def sen_thread(sen):
+        p = mp.Process(target=sen.poll)
+        p.start()
+
+    def getter_thread(sen):
+        length = 3*48000
+        output = np.zeros(10*length)
+        for i in range(10):
+            data = sen.read()
+            for j in range(length):
+                output[j + i*length] = data[j]
+        plt.plot(output)
+        plt.show()
+
+    from test_sensor import Test_Sensor
+    ts = Test_Sensor(48000, 3*48000, signal_type='sine')
+    sen_reader = Sensor(ts)
+    sen_thread(sen_reader)
+    p = mp.Process(target=getter_thread, args=[sen_reader])
+    p.start()
+
+
