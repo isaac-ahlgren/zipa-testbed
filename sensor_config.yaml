@@ -1,0 +1,7 @@
+time_collected: 120
+sensor_sample_rates:
+  microphone: 44100
+  bmp280: 50
+  pir: 2
+  veml7700: 40
+  test_sensor: 44100

@@ -2,11 +2,13 @@ import socket
 import select
 import json
 from multiprocessing import Process
+import yaml
 
 from browser import ZIPA_Service_Browser
 from microphone import Microphone
 from network import *
 from shurmann import Shurmann_Siggs_Protocol
+from sensor_reader import Sensor_Reader
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -37,6 +39,7 @@ class ZIPA_System:
         # Set up protocol and associated processes
         self.protocol_threads = []
         self.protocols = []
+
 
     def start(self):
         print("Starting browser thread.\n")
@@ -162,3 +165,13 @@ class ZIPA_System:
             #    ))
             case _:
                 print("Protocol not supported.")
+
+    def get_sensor_configs(self, yaml_file):
+        with open(f'{yaml_file}','r') as f:
+            config_params = yaml.safe_load(f)
+        time_to_collect = config_params['time_collected']
+        sensor_sample_rates = config_params['sensor_sample_rates']
+        return time_to_collect, sensor_sample_rates
+
+
+

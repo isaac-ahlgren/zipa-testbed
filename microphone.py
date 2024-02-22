@@ -5,12 +5,12 @@ import pyaudio
 
 # TODO: Make template class for all sensors so that they all have the same functions
 class Microphone:
-    def __init__(self, sample_rate, time_length):
+    def __init__(self, sample_rate, buffer_size):
         self.format = pyaudio.paInt32  # Change to 16-bit format
         self.sampling = sample_rate
         self.pyaud = pyaudio.PyAudio()
-        self.buffer_size = time_length * sample_rate
-        self.chunk_size = time_length * sample_rate
+        self.buffer_size = buffer_size
+        self.chunk_size = buffer_size
         self.stream = self.pyaud.open(
             format=self.format,
             channels=1,  # Stereo audio
@@ -25,7 +25,7 @@ class Microphone:
         self.ready_buffer = None
         self.buffer = None
         self.data_type = np.int32()
-        self.time_length = time_length
+        self.time_length = int(buffer_size/sample_rate)
 
     def get_callback(self):
         def callback(in_data, frame_count, time_info, status):
