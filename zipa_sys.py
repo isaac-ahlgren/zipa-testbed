@@ -9,6 +9,7 @@ import yaml
 from bmp280 import BMP280Sensor
 from browser import ZIPA_Service_Browser
 from microphone import Microphone
+from miettinen import Miettinen_Protocol
 from network import *
 from PIR import PIRSensor
 from sensor import Sensor
@@ -168,19 +169,32 @@ class ZIPA_System:
             case "shurmann-siggs":
                 self.protocols.append(
                     Shurmann_Siggs_Protocol(
-                        Microphone(self.sampling, int(self.duration * self.sampling)),
-                        parameters["protocol"]["n"],
-                        parameters["protocol"]["k"],
+                        self.sensors[parameters["sensor"]],
+                        parameters["n"],
+                        parameters["k"],
                         self.timeout,
                         self.nfs,
                         self.id,
                     )
                 )
-            # TODO: make it so miettinen can be called (but the signal processing algorithm for it should be tested first)
-            # case "miettinen":
-            #    self.protocols.append(Miettinen_Protocol(
-            #
-            #    ))
+
+            case "miettinen":
+                self.protocols.append(
+                    Miettinen_Protocol(
+                        self.sensors[parameters["sensor"]],
+                        8,  # TODO Rework once shurmann has parameterized key length
+                        parameters["n"],
+                        parameters["k"],
+                        parameters["protocol"]["f"],
+                        parameters["protocol"]["w"],
+                        parameters["protocol"]["rel_thresh"],
+                        parameters["protocol"]["abs_thresh"],
+                        parameters["protocol"]["auth_thesh"],
+                        parameters["protocol"]["success_thresh"],
+                        parameters["protocol"]["max_iterations"],
+                        self.timeout,
+                    )
+                )
             case _:
                 print("Protocol not supported.")
 

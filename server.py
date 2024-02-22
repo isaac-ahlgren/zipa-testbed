@@ -1,14 +1,14 @@
-import socket
-import socket
-import pickle
 import json
+import socket
 
 HOST = "host    "
 IP_ADDR = "192.168.1.146"
 TARGET_IP_ADDR = ("192.168.1.168", 5005)
-JSON = {
-    "protocol": {"name": "shurmann-siggs", "n": 16, "k": 4},
-    "sensor": "mic",
+SHURMANN_JSON = {
+    "protocol": {"name": "shurmann-siggs"},
+    "n": 12,
+    "k": 8,
+    "sensor": "microphone",
     "timeout": 10,
     "duration": 15,
     "sampling": 44100,
@@ -16,13 +16,29 @@ JSON = {
     "iterations": 0,
 }
 
-json_string = json.dumps(JSON)
+MIETTINEN_JSON = {
+    "protocol": {
+        "name": "miettinen",
+        "f": 5,
+        "w": 5,
+        "rel_thresh": 0.1,
+        "abs_thresh": 0.5,
+        "auth_thresh": 0.9,
+        "success_thresh": 10,
+        "max_iterations": 50,
+    },
+    "n": 12,
+    "k": 8,
+    "sensor": "microphone",
+}
+
+json_string = json.dumps(SHURMANN_JSON)
 
 if __name__ == "__main__":
     # Pack up message
-    bytestream = json.dumps(JSON).encode('utf8')
-    length = len(bytestream).to_bytes(4, byteorder='big')
-    message = (HOST.encode() + length + bytestream)
+    bytestream = json.dumps(SHURMANN_JSON).encode("utf8")
+    length = len(bytestream).to_bytes(4, byteorder="big")
+    message = HOST.encode() + length + bytestream
     # print(f"JSON: {JSON}\nLength of JSON's bytestream: {length}\nMessage: {message}")
 
     # Create socket and connect to client that acts as host

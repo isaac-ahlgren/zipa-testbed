@@ -1,24 +1,38 @@
-import numpy as np
 import multiprocessing as mp
+import os
+
+import numpy as np
+from cryptography.hazmat.primitives import constant_time, hashes, hmac
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
 from corrector import Fuzzy_Commitment
 from network import *
 from reed_solomon import ReedSolomonObj
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.primitives import hmac
-from cryptography.hazmat.primitives import constant_time
-from cryptography.hazmat.primitives.serialization import Encoding
-from cryptography.hazmat.primitives.serialization import PublicFormat
-import os
 
-class Miettinen_Protocol():
-    def __init__(self, signal_measurement, key_length, n, k, f, w, rel_thresh, abs_thresh, auth_threshold, success_threshold, max_iterations, timeout):
-        self.signal_measurement = signal_measurement
+
+class Miettinen_Protocol:
+    def __init__(
+        self,
+        sensor,
+        key_length,
+        n,
+        k,
+        f,
+        w,
+        rel_thresh,
+        abs_thresh,
+        auth_threshold,
+        success_threshold,
+        max_iterations,
+        timeout,
+    ):
+        self.sensor = sensor
         self.n = n
         self.k = k
-        self.f = f
-        self.w = w
+        self.f = f*self.sensor.sample_rate
+        self.w = w*self.sensor.sample_rater
         self.rel_thresh = rel_thresh
         self.abs_thresh = abs_thresh
         self.auth_threshold = auth_threshold
@@ -30,7 +44,7 @@ class Miettinen_Protocol():
         self.name = "miettinen"
 
         self.key_length = key_length
-        self.re = Fuzzy_Commitment(ReedSolomonObj(n ,k), key_length)
+        self.re = Fuzzy_Commitment(ReedSolomonObj(n, k), key_length)
         self.hash_func = hashes.SHA256()
         self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
@@ -38,37 +52,44 @@ class Miettinen_Protocol():
         self.count = 0
 
     def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
-        block_num = int(len(signal)/(no_snap_shot_width + snap_shot_width))
+        block_num = int(len(signal) / (no_snap_shot_width + snap_shot_width))
         c = np.zeros(block_num)
         for i in range(block_num):
-            c[i] = np.mean(signal[i*(no_snap_shot_width + snap_shot_width):(i+1)*snap_shot_width])
+            c[i] = np.mean(
+                signal[
+                    i
+                    * (no_snap_shot_width + snap_shot_width) : (i + 1)
+                    * snap_shot_width
+                ]
+            )
         return c
 
     def gen_key(self, c, rel_thresh, abs_thresh):
         bits = ""
-        for i in range(len(c)-1):
-            feature1 = np.abs(c[i]/(c[i-1]) - 1)
-            feature2 = np.abs(c[i] - c[i-1])
+        for i in range(len(c) - 1):
+            feature1 = np.abs(c[i] / (c[i - 1]) - 1)
+            feature2 = np.abs(c[i] - c[i - 1])
             if feature1 > rel_thresh and feature2 > abs_thresh:
-                bits += '1'
+                bits += "1"
             else:
-                bits += '0'
+                bits += "0"
         return bits
 
-    #TODO: algorithm needs to be testing using real life data
+    # TODO: algorithm needs to be testing using real life data
     def miettinen_algo(self, x):
         def bitstring_to_bytes(s):
-            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
+            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
+
         signal = self.signal_preprocessing(x, self.f, self.w)
         key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
         return bitstring_to_bytes(key)
 
     def extract_context(self):
-        signal = self.signal_measurement.get_audio()
+        signal = self.sensor.read()
         bits = self.miettinen_algo(signal)
         return bits, signal
 
-    #TODO: Throw all the Diffie-Helman stuff in its own function since it's called exactly the same pretty much by both device and host protocols, it'll make it easier to read
+    # TODO: Throw all the Diffie-Helman stuff in its own function since it's called exactly the same pretty much by both device and host protocols, it'll make it easier to read
     def device_protocol(self, host_socket):
         host_socket.setblocking(1)
         print("Iteration " + str(self.count))
@@ -89,9 +110,11 @@ class Miettinen_Protocol():
 
         # Generate initial private key for Diffie-Helman
         initial_private_key = ec.generate_private_key(self.ec_curve)
-        
-        public_key = initial_private_key.public_key().public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
-        
+
+        public_key = initial_private_key.public_key().public_bytes(
+            Encoding.X962, PublicFormat.CompressedPoint
+        )
+
         # Send initial key for Diffie-Helman
         print("Send DH public key\n")
         dh_exchange(host_socket, public_key)
@@ -105,7 +128,9 @@ class Miettinen_Protocol():
             print()
             return
 
-        other_public_key = ec.EllipticCurvePublicKey.from_encoded_point(self.ec_curve, other_public_key_bytes)
+        other_public_key = ec.EllipticCurvePublicKey.from_encoded_point(
+            self.ec_curve, other_public_key_bytes
+        )
 
         # Shared key generated
         shared_key = initial_private_key.exchange(ec.ECDH(), other_public_key)
@@ -113,14 +138,17 @@ class Miettinen_Protocol():
         current_key = shared_key
         successes = 0
         total_iterations = 0
-        while successes < self.success_threshold and total_iterations < self.max_iterations:
+        while (
+            successes < self.success_threshold
+            and total_iterations < self.max_iterations
+        ):
             # Sending ack that they are ready to begin
 
             print("Waiting for ACK from host.")
             if not ack_standby(host_socket, self.timeout):
                 print("No ACK recieved within time limit - early exit.\n\n")
                 return
-            
+
             print()
             print("Sending ACK")
             ack(host_socket)
@@ -129,7 +157,7 @@ class Miettinen_Protocol():
 
             # Extract bits from sensor
             witness, signal = self.extract_context()
-        
+
             # Wait for Commitment
             print("Waiting for commitment from host")
             commitment, h = commit_standby(host_socket, self.timeout)
@@ -148,7 +176,9 @@ class Miettinen_Protocol():
             prederived_key = self.re.decommit_witness(commitment, witness)
 
             # Derive key
-            kdf = HKDF(algorithm=self.hash_func, length=self.key_length, salt=None, info=None)
+            kdf = HKDF(
+                algorithm=self.hash_func, length=self.key_length, salt=None, info=None
+            )
             derived_key = kdf.derive(prederived_key + current_key)
 
             # Key Confirmation Phase
@@ -157,7 +187,9 @@ class Miettinen_Protocol():
             pd_key_hash = self.hash_function(prederived_key)
 
             # Send nonce message to host
-            generated_nonce = self.send_nonce_msg_to_host(host_socket, pd_key_hash, derived_key)
+            generated_nonce = self.send_nonce_msg_to_host(
+                host_socket, pd_key_hash, derived_key
+            )
 
             # Recieve nonce message
             recieved_nonce_msg = get_nonce_msg_standby(host_socket, self.timeout)
@@ -170,22 +202,35 @@ class Miettinen_Protocol():
             print()
 
             # If hashes are equal, then it was successful
-            if self.verify_mac_from_host(recieved_nonce_msg, generated_nonce, derived_key):
+            if self.verify_mac_from_host(
+                recieved_nonce_msg, generated_nonce, derived_key
+            ):
                 success = True
                 successes += 1
                 current_key = derived_key
 
             print("Produced Key: " + str(derived_key))
-            print("success: " + str(success) + ", Number of successes: " + str(successes) + ", Total number of iterations: " + str(total_iterations))
+            print(
+                "success: "
+                + str(success)
+                + ", Number of successes: "
+                + str(successes)
+                + ", Total number of iterations: "
+                + str(total_iterations)
+            )
             print()
 
             # Increment total number of iterations key evolution has occured
             total_iterations += 1
-        
-        if successes/total_iterations >= self.auth_threshold:
-            print("Total Key Pairing Success: auth - " + str(successes/total_iterations))
+
+        if successes / total_iterations >= self.auth_threshold:
+            print(
+                "Total Key Pairing Success: auth - " + str(successes / total_iterations)
+            )
         else:
-            print("Total Key Pairing Failure: auth - " + str(successes/total_iterations))
+            print(
+                "Total Key Pairing Failure: auth - " + str(successes / total_iterations)
+            )
 
         self.count += 1
 
@@ -195,7 +240,7 @@ class Miettinen_Protocol():
         for device in device_sockets:
             p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
             p.start()
-    
+
     def host_protocol_single_threaded(self, device_socket):
         device_socket.setblocking(1)
         if not ack_standby(device_socket, self.timeout):
@@ -207,16 +252,18 @@ class Miettinen_Protocol():
 
         # Generate initial private key for Diffie-Helman
         initial_private_key = ec.generate_private_key(self.ec_curve)
-        
+
         # Obtain Public Key
-        public_key = initial_private_key.public_key().public_bytes(Encoding.X962, PublicFormat.CompressedPoint)
+        public_key = initial_private_key.public_key().public_bytes(
+            Encoding.X962, PublicFormat.CompressedPoint
+        )
 
         # Send initial key for Diffie-Helman
         print("Send every device the public key\n")
         dh_exchange(device_socket, public_key)
 
         # Recieve other devices key
-        print('Recieve every devices public key\n')
+        print("Recieve every devices public key\n")
         other_public_key_bytes = dh_exchange_standby(device_socket, self.timeout)
 
         if other_public_key_bytes == None:
@@ -224,7 +271,9 @@ class Miettinen_Protocol():
             print()
             return
 
-        other_public_key = ec.EllipticCurvePublicKey.from_encoded_point(self.ec_curve, other_public_key_bytes)
+        other_public_key = ec.EllipticCurvePublicKey.from_encoded_point(
+            self.ec_curve, other_public_key_bytes
+        )
 
         # Shared key generated
         shared_key = initial_private_key.exchange(ec.ECDH(), other_public_key)
@@ -232,7 +281,10 @@ class Miettinen_Protocol():
         current_key = shared_key
         total_iterations = 0
         successes = 0
-        while successes < self.success_threshold and total_iterations < self.max_iterations:
+        while (
+            successes < self.success_threshold
+            and total_iterations < self.max_iterations
+        ):
             success = False
             # ACK all devices
             ack(device_socket)
@@ -240,7 +292,7 @@ class Miettinen_Protocol():
             if not ack_standby(device_socket, self.timeout):
                 print("No ACK recieved within time limit - early exit.\n\n")
                 return
-            
+
             print("Successfully ACKed participating device")
             print()
 
@@ -256,7 +308,9 @@ class Miettinen_Protocol():
 
             print("Sending commitment")
             print()
-            h = bytes([0 for i in range(64)]) # Scheme does not send hash but function expects 64 byte hash (this is gonna change in the future)
+            h = bytes(
+                [0 for i in range(64)]
+            )  # Scheme does not send hash but function expects 64 byte hash (this is gonna change in the future)
             send_commit(commitment, h, device_socket)
 
             # Key Confirmation Phase
@@ -273,28 +327,45 @@ class Miettinen_Protocol():
                 print()
                 return
             print()
-            
+
             # Derive new key using previous key and new prederived key from fuzzy commitment
-            kdf = HKDF(algorithm=self.hash_func, length=self.key_length, salt=None, info=None)
+            kdf = HKDF(
+                algorithm=self.hash_func, length=self.key_length, salt=None, info=None
+            )
             derived_key = kdf.derive(prederived_key + current_key)
 
-            if self.verify_mac_from_device(recieved_nonce_msg, derived_key, pd_key_hash):
+            if self.verify_mac_from_device(
+                recieved_nonce_msg, derived_key, pd_key_hash
+            ):
                 success = True
                 successes += 1
                 current_key = derived_key
 
             # Create and send key confirmation value
-            self.send_nonce_msg_to_device(device_socket, recieved_nonce_msg, derived_key, pd_key_hash)
+            self.send_nonce_msg_to_device(
+                device_socket, recieved_nonce_msg, derived_key, pd_key_hash
+            )
 
             # Increment total times key evolution has occured
             total_iterations += 1
 
-            print("success: " + str(success) + ", Number of successes: " + str(successes) + ", Total number of iterations: " + str(total_iterations))
+            print(
+                "success: "
+                + str(success)
+                + ", Number of successes: "
+                + str(successes)
+                + ", Total number of iterations: "
+                + str(total_iterations)
+            )
             print()
-        if successes/total_iterations >= self.auth_threshold:
-            print("Total Key Pairing Success: auth - " + str(successes/total_iterations))
+        if successes / total_iterations >= self.auth_threshold:
+            print(
+                "Total Key Pairing Success: auth - " + str(successes / total_iterations)
+            )
         else:
-            print("Total Key Pairing Failure: auth - " + str(successes/total_iterations))
+            print(
+                "Total Key Pairing Failure: auth - " + str(successes / total_iterations)
+            )
 
         self.count += 1
 
@@ -303,12 +374,16 @@ class Miettinen_Protocol():
         hash_func.update(bytes)
         return hash_func.finalize()
 
-    def send_nonce_msg_to_device(self, connection, recieved_nonce_msg, derived_key, prederived_key_hash):
+    def send_nonce_msg_to_device(
+        self, connection, recieved_nonce_msg, derived_key, prederived_key_hash
+    ):
         nonce = os.urandom(self.nonce_byte_size)
 
         # Concatenate nonces together
         pd_hash_len = len(prederived_key_hash)
-        recieved_nonce = recieved_nonce_msg[pd_hash_len:pd_hash_len + self.nonce_byte_size]
+        recieved_nonce = recieved_nonce_msg[
+            pd_hash_len : pd_hash_len + self.nonce_byte_size
+        ]
         concat_nonce = nonce + recieved_nonce
 
         # Create tag of Nonce
@@ -334,7 +409,7 @@ class Miettinen_Protocol():
 
         # Create key confirmation message
         nonce_msg = prederived_key_hash + nonce + tag
-                 
+
         send_nonce_msg(connection, nonce_msg)
 
         return nonce
@@ -342,36 +417,41 @@ class Miettinen_Protocol():
     def verify_mac_from_host(self, recieved_nonce_msg, generated_nonce, derived_key):
         success = False
 
-        recieved_nonce = recieved_nonce_msg[0:self.nonce_byte_size]
+        recieved_nonce = recieved_nonce_msg[0 : self.nonce_byte_size]
 
         # Create tag of Nonce
         mac = hmac.HMAC(derived_key, self.hash_func)
         mac.update(recieved_nonce + generated_nonce)
         generated_tag = mac.finalize()
 
-        recieved_tag = recieved_nonce_msg[self.nonce_byte_size:]
+        recieved_tag = recieved_nonce_msg[self.nonce_byte_size :]
         if constant_time.bytes_eq(generated_tag, recieved_tag):
             success = True
         return success
 
-    def verify_mac_from_device(self, recieved_nonce_msg, derived_key, prederived_key_hash):
+    def verify_mac_from_device(
+        self, recieved_nonce_msg, derived_key, prederived_key_hash
+    ):
         success = False
-        
+
         # Retrieve nonce used by device
         pd_hash_len = len(prederived_key_hash)
-        recieved_nonce = recieved_nonce_msg[pd_hash_len:pd_hash_len + self.nonce_byte_size]
+        recieved_nonce = recieved_nonce_msg[
+            pd_hash_len : pd_hash_len + self.nonce_byte_size
+        ]
 
         # Generate new MAC tag for the nonce with respect to the derived key
         mac = hmac.HMAC(derived_key, self.hash_func)
         mac.update(recieved_nonce)
         generated_tag = mac.finalize()
 
-        recieved_tag = recieved_nonce_msg[pd_hash_len + self.nonce_byte_size:]
+        recieved_tag = recieved_nonce_msg[pd_hash_len + self.nonce_byte_size :]
         if constant_time.bytes_eq(generated_tag, recieved_tag):
             success = True
         return success
 
-'''
+
+"""
 ###TESTING CODE###
 import socket
 def device(prot):
@@ -401,4 +481,4 @@ if __name__ == "__main__":
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
-    d.start()'''
+    d.start()"""

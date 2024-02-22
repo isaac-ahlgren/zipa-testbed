@@ -10,9 +10,10 @@ from network import *
 # TODO: Make it so that key length is a parameter to the Shurmann and siggs protocol
 # It will need work with how many bits the quantizer
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
+# TODO: Make it so window_len and bands are parameterized
 class Shurmann_Siggs_Protocol:
-    def __init__(self, microphone, n, k, timeout, nfs_server_dir, identifier):
-        self.signal_measurement = microphone
+    def __init__(self, sensor, n, k, timeout, nfs_server_dir, identifier):
+        self.sensor = sensor
         self.re = Fuzzy_Commitment(ReedSolomonObj(n ,k), 8)
         self.name = "shurmann-siggs"
         self.count = 0
@@ -69,7 +70,7 @@ class Shurmann_Siggs_Protocol:
         return bitstring_to_bytes(bs)
 
     def extract_context(self):
-        signal = self.signal_measurement.get_audio()
+        signal = self.sensor.read()
         bits = self.sigs_algo(signal)
         return bits, signal
 
