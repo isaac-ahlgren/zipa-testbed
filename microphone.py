@@ -25,7 +25,6 @@ class Microphone:
         self.ready_buffer = None
         self.buffer = None
         self.data_type = np.int32()
-        self.time_length = int(buffer_size/sample_rate)
 
     def get_callback(self):
         def callback(in_data, frame_count, time_info, status):
