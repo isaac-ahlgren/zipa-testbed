@@ -29,14 +29,16 @@ class Sensor_Reader:
         self.poll_process.start()
 
     def poll(self):
+        print("Beginning polling process.")
         while True:
+
             while self.semaphore.get_value() != self.MAX_SENSOR_CLIENTS:
                 pass
 
             self.mutex.acquire()
-
+            print("Beginning data extraction.")
             data = self.sensor.extract()
-
+            print("Data extraction complete.")
             for d in data:
                 self.addressable_buffer[self.pointer.value] = d
                 self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
