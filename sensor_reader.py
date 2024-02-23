@@ -3,15 +3,15 @@ from multiprocessing import shared_memory
 
 import numpy as np
 
+
 # MAIN TEST FOR THIS:
 # you want multiple processes (threads) to read from the buffer at the same time during
-class Sensor_Reader():
+class Sensor_Reader:
     def __init__(self, device):
         self.sensor = device
         self.shm = shared_memory.SharedMemory(
             create=True,
             size=device.data_type.itemsize * device.buffer_size,
-            name="sensor_buffer",
         )
         self.addressable_buffer = np.ndarray(
             (self.sensor.buffer_size,),
@@ -44,9 +44,9 @@ class Sensor_Reader():
 
     def read(self):
         data = np.empty((self.sensor.buffer_size,), dtype=self.sensor.data_type)
-        
+
         print("Checking if mutex lock is still in play...")
-        while self.mutex.get_value() != 1: 
+        while self.mutex.get_value() != 1:
             pass
 
         self.semaphore.acquire()
@@ -55,11 +55,12 @@ class Sensor_Reader():
             data[d] = self.addressable_buffer[
                 (self.pointer.value + d) % self.sensor.buffer_size
             ]
-        
+
         self.semaphore.release()
 
         return data
-    
+
+
 """
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
