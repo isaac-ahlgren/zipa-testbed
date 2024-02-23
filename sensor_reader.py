@@ -36,8 +36,9 @@ class Sensor_Reader:
                 pass
 
             self.mutex.acquire()
-            print("Beginning data extraction.")
             data = self.sensor.extract()
+            print(data)
+            quit()
             print("Data extraction complete.")
             for d in data:
                 self.addressable_buffer[self.pointer.value] = d
