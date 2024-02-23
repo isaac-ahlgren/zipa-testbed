@@ -1,4 +1,5 @@
-import time
+import multiprocessing as mp
+from multiprocessing import shared_memory
 
 import numpy as np
 import pyaudio
@@ -25,8 +26,10 @@ class Microphone(SensorInterface):
         )
         self.chunks_per_buffer = int(self.buffer_size / self.chunk_size)
         self.count = 0
-        self.buffer_ready = False
-        self.ready_buffer = None
+        self.buffer_ready = mp.Value("b", False)
+        self.ready_buffer = shared_memory.SharedMemory(
+            create=True, size=self.data_type.itemsize * buffer_size
+        )
         self.buffer = None
         self.data_type = np.int32()
 
@@ -36,7 +39,7 @@ class Microphone(SensorInterface):
             self.ready_buffer = np.frombuffer(
                 in_data, dtype=np.int32
             )  # Adjust for 16-bit data
-            self.buffer_ready = True
+            self.buffer_ready.value = True
             return (in_data, pyaudio.paContinue)
 
         return callback
@@ -46,14 +49,14 @@ class Microphone(SensorInterface):
         self.stream.start_stream()
 
     def stop(self):
-        self.buffer_ready = False
+        self.buffer_ready.value = False
         self.stream.stop_stream()
 
     def extract(self):
         while True:
-            if self.buffer_ready:
+            if self.buffer_ready.value:
                 break
-        self.buffer = self.ready_buffer
+        output = self.ready_buffer.copy()
         self.count += 1
-        self.buffer_ready = False
-        return self.buffer
+        self.buffer_ready.value = False
+        return output
