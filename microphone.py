@@ -24,6 +24,7 @@ class Microphone(SensorInterface):
             frames_per_buffer=self.chunk_size,
             stream_callback=self.get_callback(),
         )
+        self.data_type = np.int32()
         self.chunks_per_buffer = int(self.buffer_size / self.chunk_size)
         self.count = 0
         self.buffer_ready = mp.Value("b", False)
@@ -31,7 +32,6 @@ class Microphone(SensorInterface):
             create=True, size=self.data_type.itemsize * buffer_size
         )
         self.buffer = None
-        self.data_type = np.int32()
 
     def get_callback(self):
         def callback(in_data, frame_count, time_info, status):
