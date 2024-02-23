@@ -12,7 +12,6 @@ from microphone import Microphone
 from miettinen import Miettinen_Protocol
 from network import *
 from PIR import PIRSensor
-from sensor import Sensor
 from sensor_reader import Sensor_Reader
 from shurmann import Shurmann_Siggs_Protocol
 from test_sensor import Test_Sensor
@@ -228,4 +227,4 @@ class ZIPA_System:
 
         # Wrap physical sensors into sensor reader
         for device in self.devices:
-            self.sensors[device] = self.devices[device]
+            self.sensors[device] = Sensor_Reader(self.devices[device])
