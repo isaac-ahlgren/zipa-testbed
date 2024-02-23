@@ -32,6 +32,7 @@ class Microphone(SensorInterface):
 
     def get_callback(self):
         def callback(in_data, frame_count, time_info, status):
+            print("Currently inside of the mic's callback function.")
             self.ready_buffer = np.frombuffer(
                 in_data, dtype=np.int32
             )  # Adjust for 16-bit data
