@@ -34,7 +34,7 @@ class Sensor_Reader:
 
             while self.semaphore.get_value() != self.MAX_SENSOR_CLIENTS:
                 pass
-
+            print(f"Beginning data extraction using {self.sensor.name}.")
             self.mutex.acquire()
             data = self.sensor.extract()
             print(f"Recieved from: {self.sensor.name} --> {data}")
