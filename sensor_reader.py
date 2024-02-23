@@ -37,7 +37,7 @@ class Sensor_Reader:
 
             self.mutex.acquire()
             data = self.sensor.extract()
-            print(data)
+            print(f"Recieved from: {self.sensor.name} --> {data}")
             quit()
             print("Data extraction complete.")
             for d in data:
