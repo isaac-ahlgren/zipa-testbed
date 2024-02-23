@@ -28,6 +28,12 @@ class ZIPA_System:
         self.id = identity
         self.nfs = nfs
 
+         # TODO replace parameters with results from YAML parser
+        time_to_collect, sample_rates = self.get_sensor_configs(
+            os.getcwd() + "/sensor_config.yaml"
+        )
+        self.create_sensors(sample_rates, time_to_collect)
+
         # Set up a listening socket
         self.ip = ip
         self.port = port
@@ -47,11 +53,7 @@ class ZIPA_System:
         # Set up protocol and associated processes
         self.protocol_threads = []
         self.protocols = []
-        # TODO replace parameters with results from YAML parser
-        time_to_collect, sample_rates = self.get_sensor_configs(
-            os.getcwd() + "/sensor_config.yaml"
-        )
-        self.create_sensors(sample_rates, time_to_collect)
+       
 
     def start(self):
         print("Starting browser thread.\n")
