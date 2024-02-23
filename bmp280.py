@@ -9,11 +9,11 @@ class BMP280Sensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size):
         # Sensor configuration parameters
         self.sample_rate = sample_rate
-        self.buffer_size = buffer_size
+        self.buffer_size = buffer_size * 3 # Returns Temp, Altitude, and Pressure
         self.name = "bmp280"
         self.parent_conn, self.child_conn = multiprocessing.Pipe()
         self.process = multiprocessing.Process(target=self._sample_sensor, args=(self.child_conn,))
-        self.buffer = np.zeros((buffer_size, 3))  # Initialize buffer for temperature, pressure, altitude
+        self.buffer = np.zeros((buffer_size,))  # Initialize buffer for temperature, pressure, altitude
         self.buffer_index = 0
         self.buffer_full = False
         self.data_type = self.buffer.dtype
@@ -46,8 +46,10 @@ class BMP280Sensor(SensorInterface):
     def extract(self):
         while self.parent_conn.poll():  # Check if there's data to read
             data = self.parent_conn.recv()  # Read data
-            self.buffer[self.buffer_index] = data
-            self.buffer_index += 1
+            self.buffer[self.buffer_index] = data[0]
+            self.buffer[self.buffer_index + 1] = data[1]
+            self.buffer[self.buffer_index + 2] = data[2]
+            self.buffer_index += 3
             if self.buffer_index >= self.buffer_size:
                 self.buffer_index = 0
                 self.buffer_full = True
