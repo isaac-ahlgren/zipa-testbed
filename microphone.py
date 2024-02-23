@@ -54,7 +54,7 @@ class Microphone(SensorInterface):
         self.stream.stop_stream()
 
     def extract(self):
-        output = []
+        output = np.empty((self.buffer_size,), dtype=self.data_type)
         while True:
             if self.buffer_ready.value:
                 break
