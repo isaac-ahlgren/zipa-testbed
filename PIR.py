@@ -8,6 +8,7 @@ class PIRSensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size, pin=12):
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size
+        self.name = "pir"
         self.pin = pin
         self.parent_conn, self.child_conn = multiprocessing.Pipe()
         self.process = multiprocessing.Process(target=self._monitor_sensor, args=(self.child_conn,))

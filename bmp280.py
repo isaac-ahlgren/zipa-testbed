@@ -10,6 +10,7 @@ class BMP280Sensor(SensorInterface):
         # Sensor configuration parameters
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size
+        self.name = "bmp280"
         self.parent_conn, self.child_conn = multiprocessing.Pipe()
         self.process = multiprocessing.Process(target=self._sample_sensor, args=(self.child_conn,))
         self.buffer = np.zeros((buffer_size, 3))  # Initialize buffer for temperature, pressure, altitude

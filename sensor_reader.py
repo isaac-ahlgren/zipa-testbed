@@ -25,7 +25,7 @@ class Sensor_Reader:
         self.semaphore = mp.Semaphore(self.MAX_SENSOR_CLIENTS)
         self.mutex = mp.Semaphore()
         self.sensor.start()
-        self.poll_process = mp.Process(target=self.poll)
+        self.poll_process = mp.Process(target=self.poll, name=device.name)
         self.poll_process.start()
 
     def poll(self):
@@ -61,7 +61,7 @@ class Sensor_Reader:
         return data
 
 
-"""
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     def sen_thread(sen):
@@ -80,9 +80,9 @@ if __name__ == "__main__":
         quit()
 
     from test_sensor import Test_Sensor
-    ts = Test_Sensor(48000, 3*48000, signal_type='sine')
+    ts = Test_Sensor(48000, 3*48000, signal_type='random')
     sen_reader = Sensor_Reader(ts)
     sen_thread(sen_reader)
     p = mp.Process(target=getter_thread, args=[sen_reader])
     p.start()
-"""
+

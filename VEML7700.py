@@ -10,6 +10,7 @@ class LightSensor(SensorInterface):
         # Sensor configuration parameters
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size
+        self.name = "lux"
         self.parent_conn, self.child_conn = multiprocessing.Pipe()
         self.process = multiprocessing.Process(target=self._read_sensor, args=(self.child_conn,))
         self.buffer = np.zeros(buffer_size)  # Initialize buffer for lux readings
