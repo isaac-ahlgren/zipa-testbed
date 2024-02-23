@@ -8,6 +8,7 @@ import numpy as np
 class Sensor():
     def __init__(self, device):
         self.sensor = device
+        self.sample_rate = device.sample_rate
         self.name = device.name
         self.shm = shared_memory.SharedMemory(
             create=True,

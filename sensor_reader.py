@@ -10,7 +10,7 @@ class Sensor_Reader():
         self.sensor = device
         self.shm = shared_memory.SharedMemory(
             create=True,
-            size=device.data_type_size * device.buffer_size,
+            size=device.data_type.itemsize * device.buffer_size,
             name="sensor_buffer",
         )
         self.addressable_buffer = np.ndarray(

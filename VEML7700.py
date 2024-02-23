@@ -15,6 +15,7 @@ class LightSensor(SensorInterface):
         self.buffer = np.zeros(buffer_size)  # Initialize buffer for lux readings
         self.buffer_index = 0
         self.buffer_full = False
+        self.data_type = self.buffer.dtype
 
     def _read_sensor(self, conn):
         # Initialize the sensor in the child process

@@ -14,6 +14,7 @@ class PIRSensor(SensorInterface):
         self.buffer = np.zeros(buffer_size, dtype=int)  # Store states as 1s and 0s
         self.buffer_index = 0
         self.buffer_full = False
+        self.data_type = self.buffer.dtype
 
     def _monitor_sensor(self, conn):
         GPIO.setmode(GPIO.BCM)

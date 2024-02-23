@@ -15,6 +15,7 @@ class BMP280Sensor(SensorInterface):
         self.buffer = np.zeros((buffer_size, 3))  # Initialize buffer for temperature, pressure, altitude
         self.buffer_index = 0
         self.buffer_full = False
+        self.data_type = self.buffer.dtype
 
     def _sample_sensor(self, conn):
         # Initialize the sensor in the child process

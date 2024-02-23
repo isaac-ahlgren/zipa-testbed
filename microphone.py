@@ -3,8 +3,11 @@ import time
 import numpy as np
 import pyaudio
 
+from sensor_interface import SensorInterface
+
+
 # TODO: Make template class for all sensors so that they all have the same functions
-class Microphone:
+class Microphone(SensorInterface):
     def __init__(self, sample_rate, buffer_size):
         self.format = pyaudio.paInt32  # Change to 16-bit format
         self.sampling = sample_rate
@@ -39,7 +42,6 @@ class Microphone:
     def start(self):
         # Start stream, recording for specified time interval
         self.stream.start_stream()
-        time.sleep(self.time_length)
 
     def stop(self):
         self.buffer_ready = False
