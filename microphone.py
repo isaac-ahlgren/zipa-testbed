@@ -31,6 +31,7 @@ class Microphone(SensorInterface):
         self.ready_buffer = shared_memory.SharedMemory(
             create=True, size=self.data_type.itemsize * buffer_size
         )
+        self.addressable_buffer = np.ndarray(buffer_size, dtype=self.data_type, buffer=self.ready_buffer.buf)
         self.buffer = None
 
     def get_callback(self):
@@ -53,10 +54,11 @@ class Microphone(SensorInterface):
         self.stream.stop_stream()
 
     def extract(self):
+        output = []
         while True:
             if self.buffer_ready.value:
                 break
-        output = self.ready_buffer.copy()
+        np.copyto(output, self.addressable_buffer)
         self.count += 1
         self.buffer_ready.value = False
         return output
