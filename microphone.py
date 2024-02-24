@@ -62,3 +62,13 @@ class Microphone(SensorInterface):
         self.count += 1
         self.buffer_ready.value = False
         return output
+
+
+if __name__ == "__main__":
+    from sensor_reader import Sensor_Reader
+    import time
+    mic = Microphone(44100, 44100*10)
+    sr = Sensor_Reader(mic)
+    time.sleep(3)
+    print("getting ready to read")
+    print(sr.read())  

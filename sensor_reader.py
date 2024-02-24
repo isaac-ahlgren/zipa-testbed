@@ -38,7 +38,6 @@ class Sensor_Reader:
             self.mutex.acquire()
             data = self.sensor.extract()
             print(f"Recieved from: {self.sensor.name} --> {data}")
-            quit()
             print("Data extraction complete.")
             for d in data:
                 self.addressable_buffer[self.pointer.value] = d
@@ -46,14 +45,16 @@ class Sensor_Reader:
             self.mutex.release()
 
     def read(self):
+        print("here")
         data = np.empty((self.sensor.buffer_size,), dtype=self.sensor.data_type)
-
+        
         print("Checking if mutex lock is still in play...")
         while self.mutex.get_value() != 1:
             pass
 
         self.semaphore.acquire()
 
+        print("reader acquired mutex")
         for d in range(self.sensor.buffer_size):
             data[d] = self.addressable_buffer[
                 (self.pointer.value + d) % self.sensor.buffer_size
