@@ -7,7 +7,6 @@ import pyaudio
 from sensor_interface import SensorInterface
 
 
-# TODO: Make template class for all sensors so that they all have the same functions
 class Microphone(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size):
         self.queue = mp.Queue()
@@ -60,5 +59,5 @@ if __name__ == "__main__":
     sr = Sensor_Reader(mic)
     time.sleep(3)
     print("getting ready to read")
-    plt.plot(sr.read(11*44100))
+    plt.plot(sr.read(10*44100))
     plt.show()  
