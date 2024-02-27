@@ -5,7 +5,9 @@ import numpy as np
 import pyaudio
 
 from sensor_interface import SensorInterface
-
+import time
+import os
+import wave
 
 class Microphone(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size):
@@ -49,15 +51,25 @@ class Microphone(SensorInterface):
 
     def extract(self):
         return self.queue.get()
+        
 
-
+# Test case
 if __name__ == "__main__":
     from sensor_reader import Sensor_Reader
     import time
     import matplotlib.pyplot as plt
-    mic = Microphone(44100, 44100*10, 1024)
+    mic = Microphone(44100, 44100*5, 1024) # Changed to 5; quicker
     sr = Sensor_Reader(mic)
     time.sleep(3)
     print("getting ready to read")
-    plt.plot(sr.read(10*44100))
+    results = sr.read(5*44100)
+    # plt.plot(sr.read(5*44100)) # Changed to 5; quicker
+    print("results collected, saving file") 
+    filename = "recording.wav"
+    with wave.open(filename, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(mic.pyaud.get_sample_size(pyaudio.paInt32))
+        wf.setframerate(mic.sampling)
+        wf.writeframes(b"".join(results))
+    print(f"Audio file written. Size: {os.path.getsize(filename)} bytes")
     plt.show()  

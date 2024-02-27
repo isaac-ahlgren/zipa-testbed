@@ -35,17 +35,20 @@ class Sensor_Reader:
 
             while self.semaphore.get_value() != self.MAX_SENSOR_CLIENTS:
                 pass
-            self.mutex.acquire()
-            data = self.sensor.extract()
-            for d in data:
-                self.addressable_buffer[self.pointer.value] = d
-                self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
-
-            if self.pointer.value + len(d) <= self.sensor_buffer_size:
-                full_buffer = True
             
-            if full_buffer: # Only release the mutex once there is a full buffer
-                self.mutex.release()
+            self.mutex.acquire() # Stuck here, can't acquire another "mutex"
+
+            while not full_buffer:
+                data = self.sensor.extract()
+                
+                for d in data:
+                    self.addressable_buffer[self.pointer.value] = d
+                    self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
+
+                if self.pointer.value + len(data) >= self.sensor.buffer_size:
+                    full_buffer = True
+                
+            self.mutex.release()
 
     def read(self, sample_num):
         data = np.empty((self.sensor.buffer_size,), dtype=self.sensor.data_type)
