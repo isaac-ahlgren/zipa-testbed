@@ -11,9 +11,7 @@ import wave
 
 class Microphone(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size):
-        self.queue = mp.Queue()
-        self.microphone_process = mp.Process(target=self.poll)
-
+        SensorInterface.__init__(self)
         self.format = pyaudio.paInt32  # Change to 16-bit format
         self.sampling = sample_rate
         self.name = "mic"
@@ -30,16 +28,8 @@ class Microphone(SensorInterface):
         self.data_type = np.int32()
         self.chunks_per_buffer = int(self.buffer_size / self.chunk_size)
         self.count = 0
+        self.start_thread()
 
-        self.microphone_process.start()
-
-    def poll(self):
-        while True:
-            output = self.stream.read(self.chunk_size)
-            buf = np.frombuffer(
-                output, dtype=np.int32
-            )  # Adjust for 16-bit data
-            self.queue.put(buf)
 
     def start(self):
         # Start stream, recording for specified time interval
@@ -49,8 +39,12 @@ class Microphone(SensorInterface):
         self.buffer_ready.value = False
         self.stream.stop_stream()
 
-    def extract(self):
-        return self.queue.get()
+    def read(self, chunk_size):
+        output = self.stream.read(self.chunk_size)
+        buf = np.frombuffer(
+            output, dtype=np.int32
+        )
+        return buf
         
 
 # Test case
