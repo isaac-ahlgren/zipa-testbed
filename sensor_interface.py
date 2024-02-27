@@ -13,7 +13,7 @@ class SensorInterface():
     def stop(self):
         raise NotImplementedError
     
-    def read(self, chunk_size):
+    def read(self):
         raise NotImplementedError
     
     def extract(self):
@@ -21,7 +21,7 @@ class SensorInterface():
     
     def poll(self):
         while True:
-            buf = self.read(self.chunk_size)
+            buf = self.read()
             self.queue.put(buf)
 
     def start_thread(self):

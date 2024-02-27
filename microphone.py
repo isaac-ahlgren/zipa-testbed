@@ -39,7 +39,7 @@ class Microphone(SensorInterface):
         self.buffer_ready.value = False
         self.stream.stop_stream()
 
-    def read(self, chunk_size):
+    def read(self):
         output = self.stream.read(self.chunk_size)
         buf = np.frombuffer(
             output, dtype=np.int32
