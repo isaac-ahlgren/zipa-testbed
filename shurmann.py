@@ -70,7 +70,7 @@ class Shurmann_Siggs_Protocol:
         return bitstring_to_bytes(bs)
 
     def extract_context(self):
-        signal = self.sensor.read()
+        signal = self.sensor.read(44100 * 10) # TODO replace later
         bits = self.sigs_algo(signal)
         return bits, signal
 
