@@ -187,7 +187,7 @@ class ZIPA_System:
                         parameters["protocol"]["w"],
                         parameters["protocol"]["rel_thresh"],
                         parameters["protocol"]["abs_thresh"],
-                        parameters["protocol"]["auth_thesh"],
+                        parameters["protocol"]["auth_thresh"],
                         parameters["protocol"]["success_thresh"],
                         parameters["protocol"]["max_iterations"],
                         parameters["timeout"],
