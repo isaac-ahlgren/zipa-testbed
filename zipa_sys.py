@@ -31,7 +31,7 @@ class ZIPA_System:
         time_to_collect, sample_rates, chunk_sizes = self.get_sensor_configs(
             os.getcwd() + "/sensor_config.yaml"
         )
-        self.create_sensors(sample_rates, time_to_collect)
+        self.create_sensors(sample_rates, time_to_collect, chunk_sizes)
 
         # Set up a listening socket
         self.ip = ip
