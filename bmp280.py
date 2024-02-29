@@ -1,4 +1,3 @@
-import multiprocessing
 import time
 import board
 import adafruit_bmp280
@@ -6,56 +5,53 @@ from sensor_interface import SensorInterface
 import numpy as np
 
 class BMP280Sensor(SensorInterface):
-    def __init__(self, sample_rate, buffer_size):
+    def __init__(self, sample_rate, buffer_size, chunk_size):
         # Sensor configuration parameters
+        SensorInterface.__init__(self)
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size * 3 # Returns Temp, Altitude, and Pressure
+        self.chunk_size = chunk_size * 3
+        self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "bmp280"
-        self.parent_conn, self.child_conn = multiprocessing.Pipe()
-        self.process = multiprocessing.Process(target=self._sample_sensor, args=(self.child_conn,))
-        self.buffer = np.zeros((buffer_size,))  # Initialize buffer for temperature, pressure, altitude
+        self.data_type = np.float32()
+        self.buffer = np.empty((chunk_size,), dtype=np.float32())  # Initialize buffer for temperature, pressure, altitude
         self.buffer_index = 0
         self.buffer_full = False
         self.data_type = self.buffer.dtype
-
-    def _sample_sensor(self, conn):
-        # Initialize the sensor in the child process
-        i2c = board.I2C()
-        bmp280 = adafruit_bmp280.Adafruit_BMP280_I2C(i2c)
-
-        while True:
-            if conn.poll():  # Check for the stop signal
-                if conn.recv() == 'STOP':
-                    break
-
-            temperature = bmp280.temperature
-            pressure = bmp280.pressure
-            altitude = bmp280.altitude
-
-            # Send the data back to the parent process
-            conn.send([temperature, pressure, altitude])
-            time.sleep(1 / self.sample_rate)
+        self.bmp = adafruit_bmp280.Adafruit_BMP280_I2C(board.I2C())
+        self.start_thread()
 
     def start(self):
-        self.process.start()
+        pass
 
     def stop(self):
-        self.parent_conn.send('STOP')
-        self.process.join()
+        pass
 
-    def extract(self):
-        while self.parent_conn.poll():  # Check if there's data to read
-            data = self.parent_conn.recv()  # Read data
-            self.buffer[self.buffer_index] = data[0]
-            self.buffer[self.buffer_index + 1] = data[1]
-            self.buffer[self.buffer_index + 2] = data[2]
-            self.buffer_index += 3
-            if self.buffer_index >= self.buffer_size:
-                self.buffer_index = 0
-                self.buffer_full = True
-        
-        # Return a copy of the buffer
-        if self.buffer_full:
-            return self.buffer.copy()
-        else:
-            return self.buffer[:self.buffer_index].copy()
+    
+    def read(self):
+        data = np.empty(self.chunk_size, self.data_type)
+        for i in range(0, self.chunk_size, 3):
+            data[i] = self.bmp.temperature
+            data[i + 1] = self.bmp.pressure
+            data[i + 2] = self.bmp.altitude
+            # print(results) is collecting data correctly
+            time.sleep(1 / self.sample_rate)
+        #print(f"length: {len(data)}")
+        # print(f"From BMP read function: {data}")
+        return data
+
+
+
+if __name__ == "__main__":
+    from sensor_reader import Sensor_Reader
+    import time
+    bmp = BMP280Sensor(50, 50, 25)
+    sr = Sensor_Reader(bmp)
+    time.sleep(3) # BMP needs ten seconds to populate on 1st pass
+    print("Getting ready to read.")
+    for i in range(5):
+        results = sr.read(50 * 3) # TODO Address special case for BMP
+        print(results)
+        time.sleep(5)
+    
+    exit()

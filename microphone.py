@@ -58,6 +58,11 @@ if __name__ == "__main__":
     print("getting ready to read")
     results = sr.read(5*44100)
     # plt.plot(sr.read(5*44100)) # Changed to 5; quicker
+    for i in range(5):
+        print(f"Iteration {i}")
+        results = sr.read(5 * 44100)
+        print(results)
+        time.sleep(5)
     print("results collected, saving file") 
     filename = "recording.wav"
     with wave.open(filename, "wb") as wf:

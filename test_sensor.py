@@ -21,7 +21,7 @@ class Test_Sensor(SensorInterface):
     def stop(self):
         pass
 
-    def extract(self):
+    def read(self):
         output = np.zeros(self.buffer_size, dtype=self.data_type)
         if self.signal_type == 'random':
             rng = np.random.default_rng()

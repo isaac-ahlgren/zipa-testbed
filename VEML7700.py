@@ -1,4 +1,3 @@
-import multiprocessing
 import time
 import board
 import adafruit_veml7700
@@ -6,52 +5,47 @@ from sensor_interface import SensorInterface
 import numpy as np
 
 class LightSensor(SensorInterface):
-    def __init__(self, sample_rate, buffer_size):
+    def __init__(self, sample_rate, buffer_size, chunk_size):
+        SensorInterface.__init__(self)
         # Sensor configuration parameters
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size
+        self.chunk_size = chunk_size
+        self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "lux"
-        self.parent_conn, self.child_conn = multiprocessing.Pipe()
-        self.process = multiprocessing.Process(target=self._read_sensor, args=(self.child_conn,))
-        self.buffer = np.zeros(buffer_size)  # Initialize buffer for lux readings
+        self.buffer = np.zeros(chunk_size, np.float32())  # Initialize buffer for lux readings
         self.buffer_index = 0
         self.buffer_full = False
         self.data_type = self.buffer.dtype
-
-    def _read_sensor(self, conn):
-        # Initialize the sensor in the child process
-        i2c = board.I2C()
-        sensor = adafruit_veml7700.VEML7700(i2c)
-
-        while True:
-            if conn.poll():  # Check for the stop signal
-                if conn.recv() == 'STOP':
-                    break
-            
-            lux = sensor.lux
-            # Send the lux data back to the parent process
-            conn.send(lux)
-            time.sleep(1 / self.sample_rate)
+        self.light = adafruit_veml7700.VEML7700(board.I2C())
+        self.start_thread()
 
     def start(self):
-        self.process.start()
+        pass
 
     def stop(self):
-        self.parent_conn.send('STOP')
-        self.process.join()
+        pass
+    
+    def read(self):
+        data = np.empty(self.chunk_size, self.data_type)
 
-    def extract(self):
-        while self.parent_conn.poll():  # Check if there's data to read
-            lux = self.parent_conn.recv()  # Read lux data
-            self.buffer[self.buffer_index] = lux
-            self.buffer_index += 1
-            if self.buffer_index >= self.buffer_size:
-                self.buffer_index = 0
-                self.buffer_full = True
+        for i in range(self.chunk_size):
+            lux = self.light.lux
+            data[i] = np.float32(lux)
+            time.sleep(1 / self.sample_rate)
 
-        # Return a copy of the buffer
-        if self.buffer_full:
-            return self.buffer.copy()
-        else:
-            return self.buffer[:self.buffer_index].copy()
-
+        return data
+        
+# TODO buffer not updating in chunks, running into overflow values
+if __name__ == "__main__":
+    from sensor_reader import Sensor_Reader
+    import time
+    veml = LightSensor(40, 40 * 5, 8)
+    sr = Sensor_Reader(veml)
+    time.sleep(3)
+    print("Beginning reading.")
+    for i in range(10):
+        results = sr.read(40 * 5)
+        print(f"Number of results: {len(results)},\n {results}")
+        time.sleep(10)
+    exit()
