@@ -1,7 +1,13 @@
-time_collected: 120
+time_collected: 10 # TODO Adjust back to 2 mins
 sensor_sample_rates:
   microphone: 44100
   bmp280: 50
   pir: 2
   veml7700: 40
   test_sensor: 44100
+chunk_sizes:
+  microphone: 1024
+  bmp280: 5
+  pir: 1
+  veml7700: 4
+  test_sensor: 1024
