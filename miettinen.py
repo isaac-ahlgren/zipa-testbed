@@ -32,8 +32,8 @@ class Miettinen_Protocol:
         self.sensor = sensor
         self.n = n
         self.k = k
-        self.f = f*self.sensor.sample_rate
-        self.w = w*self.sensor.sample_rater
+        self.f = f*self.sensor.sensor.sample_rate
+        self.w = w*self.sensor.sensor.sample_rate
         self.rel_thresh = rel_thresh
         self.abs_thresh = abs_thresh
         self.auth_threshold = auth_threshold
@@ -86,7 +86,7 @@ class Miettinen_Protocol:
         return bitstring_to_bytes(key)
 
     def extract_context(self):
-        signal = self.sensor.read(self.time_length * self.sensor.sample_rate) # TODO replace later
+        signal = self.sensor.read(self.time_length * self.sensor.sensor.sample_rate) # TODO replace later
         bits = self.miettinen_algo(signal)
         return bits, signal
 
