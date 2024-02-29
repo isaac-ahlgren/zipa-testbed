@@ -28,8 +28,7 @@ class ZIPA_System:
         self.id = identity
         self.nfs = nfs
 
-         # TODO replace parameters with results from YAML parser
-        time_to_collect, sample_rates = self.get_sensor_configs(
+        time_to_collect, sample_rates, chunk_sizes = self.get_sensor_configs(
             os.getcwd() + "/sensor_config.yaml"
         )
         self.create_sensors(sample_rates, time_to_collect)
@@ -204,27 +203,28 @@ class ZIPA_System:
             config_params = yaml.safe_load(f)
         time_to_collect = config_params["time_collected"]
         sensor_sample_rates = config_params["sensor_sample_rates"]
-        return time_to_collect, sensor_sample_rates
+        chunk_sizes = config_params["chunk_sizes"]
+        return time_to_collect, sensor_sample_rates, chunk_sizes
 
-    def create_sensors(self, sample_rates, time_length):
+    def create_sensors(self, sample_rates, time_length, chunk_sizes):
         # ASSUME ORDER: Mic, BMP, PIR, VEML, TEST_SENSOR
         # Create instances of physical sensors
         self.devices = {}
         self.sensors = {}
         self.devices["microphone"] = Microphone(
-            sample_rates["microphone"], sample_rates["microphone"] * time_length
+            sample_rates["microphone"], sample_rates["microphone"] * time_length, chunk_sizes["microphone"]
         )
         self.devices["bmp280"] = BMP280Sensor(
-            sample_rates["bmp280"], sample_rates["bmp280"] * time_length
+            sample_rates["bmp280"], sample_rates["bmp280"] * time_length, chunk_sizes["bmp280"]
         )
         self.devices["pir"] = PIRSensor(
-            sample_rates["pir"], sample_rates["pir"] * time_length
+            sample_rates["pir"], sample_rates["pir"] * time_length, chunk_sizes["pir"]
         )
         self.devices["veml7700"] = LightSensor(
-            sample_rates["veml7700"], sample_rates["veml7700"] * time_length
+            sample_rates["veml7700"], sample_rates["veml7700"] * time_length, chunk_sizes["veml7700"]
         )
         self.devices["test_sensor"] = Test_Sensor(
-            sample_rates["test_sensor"], sample_rates["test_sensor"] * time_length
+            sample_rates["test_sensor"], sample_rates["test_sensor"] * time_length, chunk_sizes["test_sensor"]
         )
 
         # Wrap physical sensors into sensor reader

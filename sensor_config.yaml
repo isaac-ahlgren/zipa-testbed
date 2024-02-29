@@ -5,3 +5,9 @@ sensor_sample_rates:
   pir: 2
   veml7700: 40
   test_sensor: 44100
+chunk_sizes:
+  microphone: 1024
+  bmp280: 5
+  pir: 1
+  veml7700: 4
+  test_sensor: 1024
