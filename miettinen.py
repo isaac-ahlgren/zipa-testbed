@@ -85,7 +85,7 @@ class Miettinen_Protocol:
         return bitstring_to_bytes(key)
 
     def extract_context(self):
-        signal = self.sensor.read()
+        signal = self.sensor.read(120 * 44100) # TODO replace later
         bits = self.miettinen_algo(signal)
         return bits, signal
 

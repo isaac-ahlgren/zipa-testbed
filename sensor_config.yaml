@@ -1,4 +1,4 @@
-time_collected: 10 # TODO Adjust back to 2 mins
+time_collected: 120 # TODO Adjust back to 2 mins
 sensor_sample_rates:
   microphone: 44100
   bmp280: 50
