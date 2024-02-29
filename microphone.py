@@ -13,7 +13,7 @@ class Microphone(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size):
         SensorInterface.__init__(self)
         self.format = pyaudio.paInt32  # Change to 16-bit format
-        self.sampling = sample_rate
+        self.sample_rate = sample_rate
         self.name = "mic"
         self.pyaud = pyaudio.PyAudio()
         self.buffer_size = buffer_size
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     with wave.open(filename, "wb") as wf:
         wf.setnchannels(1)
         wf.setsampwidth(mic.pyaud.get_sample_size(pyaudio.paInt32))
-        wf.setframerate(mic.sampling)
+        wf.setframerate(mic.sample_rate)
         wf.writeframes(b"".join(results))
     print(f"Audio file written. Size: {os.path.getsize(filename)} bytes")
     plt.show()  

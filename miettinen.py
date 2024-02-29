@@ -27,6 +27,7 @@ class Miettinen_Protocol:
         success_threshold,
         max_iterations,
         timeout,
+        time_length
     ):
         self.sensor = sensor
         self.n = n
@@ -40,7 +41,7 @@ class Miettinen_Protocol:
         self.max_iterations = max_iterations
 
         self.timeout = timeout
-
+        self.time_length = time_length
         self.name = "miettinen"
 
         self.key_length = key_length
@@ -85,7 +86,7 @@ class Miettinen_Protocol:
         return bitstring_to_bytes(key)
 
     def extract_context(self):
-        signal = self.sensor.read(120 * 44100) # TODO replace later
+        signal = self.sensor.read(self.time_length * self.sensor.sample_rate) # TODO replace later
         bits = self.miettinen_algo(signal)
         return bits, signal
 

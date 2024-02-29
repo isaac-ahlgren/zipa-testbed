@@ -93,9 +93,6 @@ class ZIPA_System:
         command = data.decode()
         length = int.from_bytes(incoming.recv(4), byteorder="big")
         parameters = json.loads(incoming.recv(length))
-        self.timeout = parameters["timeout"]
-        self.duration = parameters["duration"]
-        self.sampling = parameters["sampling"]
         # Create protocol based on JSON
         self.create_protocol(parameters)
 
@@ -172,7 +169,8 @@ class ZIPA_System:
                         self.sensors[parameters["sensor"]],
                         parameters["n"],
                         parameters["k"],
-                        self.timeout,
+                        parameters["timeout"],
+                        parameters["time_length"],
                         self.nfs,
                         self.id,
                     )
@@ -192,7 +190,8 @@ class ZIPA_System:
                         parameters["protocol"]["auth_thesh"],
                         parameters["protocol"]["success_thresh"],
                         parameters["protocol"]["max_iterations"],
-                        self.timeout,
+                        parameters["timeout"],
+                        parameters["time_length"]
                     )
                 )
             case _:

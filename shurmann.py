@@ -12,13 +12,13 @@ from network import *
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
 # TODO: Make it so window_len and bands are parameterized
 class Shurmann_Siggs_Protocol:
-    def __init__(self, sensor, n, k, timeout, nfs_server_dir, identifier):
+    def __init__(self, sensor, n, k, timeout, time_length, nfs_server_dir, identifier):
         self.sensor = sensor
         self.re = Fuzzy_Commitment(ReedSolomonObj(n ,k), 8)
         self.name = "shurmann-siggs"
         self.count = 0
         self.timeout = timeout
-
+        self.time_length = time_length
         self.n = n
         self.k = k
 
@@ -70,7 +70,7 @@ class Shurmann_Siggs_Protocol:
         return bitstring_to_bytes(bs)
 
     def extract_context(self):
-        signal = self.sensor.read(44100 * 10) # TODO replace later
+        signal = self.sensor.read(self.time_length * self.sensor.sample_rate) # TODO replace later
         bits = self.sigs_algo(signal)
         return bits, signal
 

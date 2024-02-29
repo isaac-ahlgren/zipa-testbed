@@ -4,7 +4,7 @@ from sensor_interface import SensorInterface
 class Test_Sensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size, signal_type='random'):
         SensorInterface.__init__(self)
-        self.sampling = sample_rate
+        self.sample_rate = sample_rate
         self.buffer_size = buffer_size
         self.chunk_size = chunk_size
         self.name = "test_sensor"
@@ -32,7 +32,7 @@ class Test_Sensor(SensorInterface):
                 output[i] = rng.random()
         elif self.signal_type == 'sine':
             for i in range(len(output)):
-                output[i] = np.sin(2*np.pi/self.sampling*i)
+                output[i] = np.sin(2*np.pi/self.sample_rate*i)
             self.time += len(output)
         return output
         
