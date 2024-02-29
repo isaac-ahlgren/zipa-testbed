@@ -2,9 +2,11 @@ import numpy as np
 from sensor_interface import SensorInterface
 
 class Test_Sensor(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, signal_type='random'):
+    def __init__(self, sample_rate, buffer_size, chunk_size, signal_type='random'):
+        SensorInterface.__init__(self)
         self.sampling = sample_rate
         self.buffer_size = buffer_size
+        self.chunk_size = chunk_size
         self.name = "test_sensor"
         self.time = 0
         self.buffer_ready = False
@@ -12,8 +14,9 @@ class Test_Sensor(SensorInterface):
         self.buffer = None
         self.data_type = np.float32()
         self.data_type_size = 4
-
         self.signal_type = signal_type
+        self.start_thread()
+
 
     def start(self):
         pass
@@ -22,7 +25,7 @@ class Test_Sensor(SensorInterface):
         pass
 
     def read(self):
-        output = np.zeros(self.buffer_size, dtype=self.data_type)
+        output = np.zeros(self.chunk_size, dtype=self.data_type)
         if self.signal_type == 'random':
             rng = np.random.default_rng()
             for i in range(len(output)):
