@@ -17,8 +17,7 @@ class Miettinen_Protocol:
         self,
         sensor,
         key_length,
-        n,
-        k,
+        parity_symbols,
         f,
         w,
         rel_thresh,
@@ -27,13 +26,10 @@ class Miettinen_Protocol:
         success_threshold,
         max_iterations,
         timeout,
-        time_length
     ):
         self.sensor = sensor
-        self.n = n
-        self.k = k
-        self.f = f*self.sensor.sensor.sample_rate
-        self.w = w*self.sensor.sensor.sample_rate
+        self.f = int(f*self.sensor.sensor.sample_rate)
+        self.w = int(w*self.sensor.sensor.sample_rate)
         self.rel_thresh = rel_thresh
         self.abs_thresh = abs_thresh
         self.auth_threshold = auth_threshold
@@ -41,14 +37,17 @@ class Miettinen_Protocol:
         self.max_iterations = max_iterations
 
         self.timeout = timeout
-        self.time_length = time_length
         self.name = "miettinen"
 
         self.key_length = key_length
-        self.re = Fuzzy_Commitment(ReedSolomonObj(n, k), key_length)
+        self.parity_symbols = parity_symbols
+        self.commitment_length = parity_symbols + key_length
+        self.re = Fuzzy_Commitment(ReedSolomonObj(self.commitment_length, key_length), key_length)
         self.hash_func = hashes.SHA256()
         self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
+
+        self.time_length = (w + f) * (self.commitment_length + 1)
 
         self.count = 0
 
@@ -86,8 +85,10 @@ class Miettinen_Protocol:
         return bitstring_to_bytes(key)
 
     def extract_context(self):
-        signal = self.sensor.read(self.time_length * self.sensor.sensor.sample_rate) # TODO replace later
+        signal = self.sensor.read(int(self.time_length * self.sensor.sensor.sample_rate)) # TODO replace later
         bits = self.miettinen_algo(signal)
+        print(len(bits))
+        print(len(self.time_length))
         return bits, signal
 
     # TODO: Throw all the Diffie-Helman stuff in its own function since it's called exactly the same pretty much by both device and host protocols, it'll make it easier to read

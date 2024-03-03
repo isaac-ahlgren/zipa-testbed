@@ -44,14 +44,14 @@ class Sensor_Reader:
                 
         self.mutex.release()
 
+        print("done filling buffer")
         # After buffer is full
         while True:
 
-            # TODO potential problem
             while self.semaphore.get_value() != self.MAX_SENSOR_CLIENTS:
                 pass
             
-            self.mutex.acquire() # Stuck here, can't acquire another "mutex"
+            self.mutex.acquire()
 
 
             data = self.sensor.extract()

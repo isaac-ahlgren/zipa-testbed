@@ -180,9 +180,8 @@ class ZIPA_System:
                 self.protocols.append(
                     Miettinen_Protocol(
                         self.sensors[parameters["sensor"]],
-                        8,  # TODO Rework once shurmann has parameterized key length
-                        parameters["n"],
-                        parameters["k"],
+                        parameters["key_length"],
+                        parameters["parity_symbols"],
                         parameters["protocol"]["f"],
                         parameters["protocol"]["w"],
                         parameters["protocol"]["rel_thresh"],
@@ -191,7 +190,6 @@ class ZIPA_System:
                         parameters["protocol"]["success_thresh"],
                         parameters["protocol"]["max_iterations"],
                         parameters["timeout"],
-                        parameters["time_length"]
                     )
                 )
             case _:

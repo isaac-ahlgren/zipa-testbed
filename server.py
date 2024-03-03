@@ -2,7 +2,7 @@ import json
 import socket
 
 HOST = "host    "
-IP_ADDR = "192.168.1.248"
+IP_ADDR = "192.168.1.116"
 TARGET_IP_ADDR = ("192.168.1.220", 5005)
 SHURMANN_JSON = {
     "protocol": {"name": "shurmann-siggs"},
@@ -27,11 +27,10 @@ MIETTINEN_JSON = {
         "success_thresh": 10,
         "max_iterations": 50,
     },
-    "n": 12,
-    "k": 8,
+    "key_length": 8,
+    "parity_symbols": 4,
     "sensor": "microphone",
     "timeout": 10,
-    "time_length": 15 
 }
 
 json_string = json.dumps(MIETTINEN_JSON)
