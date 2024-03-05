@@ -16,6 +16,7 @@ from sensor_reader import Sensor_Reader
 from shurmann import Shurmann_Siggs_Protocol
 from test_sensor import Test_Sensor
 from VEML7700 import LightSensor
+from nfs import NFSLogger 
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -24,9 +25,18 @@ STRT = "start   "
 
 class ZIPA_System:
     def __init__(self, identity, ip, port, service, nfs):
-        # Object is created and filled with identifying info as well as setup information
+
+        # Set up Logger
         self.id = identity
         self.nfs = nfs
+        self.logger = NFSLogger(
+                      user='luke',
+                      password='lucor011&',
+                      host='10.17.29.18',
+                      database='file_log',
+                      nfs_server_dir='/mnt/data',  # Make sure this directory exists and is writable
+                      identifier='192.168.1.220'  # Could be IP address or any unique identifier
+                    )
 
         time_to_collect, sample_rates, chunk_sizes = self.get_sensor_configs(
             os.getcwd() + "/sensor_config.yaml"
@@ -190,6 +200,7 @@ class ZIPA_System:
                         parameters["protocol"]["success_thresh"],
                         parameters["protocol"]["max_iterations"],
                         parameters["timeout"],
+                        self.logger,
                     )
                 )
             case _:

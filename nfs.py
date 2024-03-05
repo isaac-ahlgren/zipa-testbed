@@ -11,13 +11,15 @@ class NFSLogger:
         self.nfs_server_dir = nfs_server_dir
         self.identifier = identifier
 
-    def log(self, data_tuples, file_extension="txt", count=None):
+    def log(self, data_tuples, count=None, ip_addr=None):
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
-        for file_name, data in data_tuples:
+        for file_name, file_extension, data in data_tuples:
             full_file_name = f"{self.nfs_server_dir}/{file_name}_id{self.identifier}_{timestamp}"
             if count is not None:
                 full_file_name += f"_count{count}"
+            if ip_addr is not None:
+                full_file_name += f"_ipaddr{ip_addr}"
             full_file_name += f".{file_extension}"
 
             # Determine mode based on whether data is bytes or str
