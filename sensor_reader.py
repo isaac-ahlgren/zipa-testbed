@@ -41,10 +41,10 @@ class Sensor_Reader:
 
             if self.pointer.value + len(data) >= self.sensor.buffer_size:
                 full_buffer = True
-                
+
         self.mutex.release()
 
-        print("done filling buffer")
+        
         # After buffer is full
         while True:
 
@@ -63,7 +63,10 @@ class Sensor_Reader:
             self.mutex.release()
 
     def read(self, sample_num):
-        data = np.empty((self.sensor.buffer_size,), dtype=self.sensor.data_type)
+        if sample_num > self.sensor.buffer_size:
+            raise Exception("Sensor_Reader.read: Cannot request more data than the buffer size")
+
+        data = np.empty((sample_num,), dtype=self.sensor.data_type)
         
         while self.mutex.get_value() != 1:
             pass

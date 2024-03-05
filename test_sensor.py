@@ -2,7 +2,7 @@ import numpy as np
 from sensor_interface import SensorInterface
 
 class Test_Sensor(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, chunk_size, signal_type='random'):
+    def __init__(self, sample_rate, buffer_size, chunk_size, signal_type='sine'):
         SensorInterface.__init__(self)
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size

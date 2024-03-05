@@ -6,7 +6,7 @@ class SensorInterface():
         self.process = mp.Process(target=self.poll)
 
 
-    # TODO start, stop, read, must be implemented on a sensor basis
+    # start, stop, read, must be implemented on a sensor basis
     def start(self):
         raise NotImplementedError
     

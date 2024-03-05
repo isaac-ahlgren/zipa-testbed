@@ -47,7 +47,8 @@ class Miettinen_Protocol:
         self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
 
-        self.time_length = (w + f) * (self.commitment_length + 1)
+        
+        self.time_length = (w + f) * (self.commitment_length*8 + 1)
 
         self.count = 0
 
@@ -57,9 +58,7 @@ class Miettinen_Protocol:
         for i in range(block_num):
             c[i] = np.mean(
                 signal[
-                    i
-                    * (no_snap_shot_width + snap_shot_width) : (i + 1)
-                    * snap_shot_width
+                    i * (no_snap_shot_width + snap_shot_width) : i * (no_snap_shot_width + snap_shot_width) + snap_shot_width
                 ]
             )
         return c
@@ -69,6 +68,7 @@ class Miettinen_Protocol:
         for i in range(len(c) - 1):
             feature1 = np.abs(c[i] / (c[i - 1]) - 1)
             feature2 = np.abs(c[i] - c[i - 1])
+            print(str(feature1) + " > " + str(rel_thresh) + " and " + str(feature2) + " > " + str(abs_thresh))
             if feature1 > rel_thresh and feature2 > abs_thresh:
                 bits += "1"
             else:
@@ -85,10 +85,8 @@ class Miettinen_Protocol:
         return bitstring_to_bytes(key)
 
     def extract_context(self):
-        signal = self.sensor.read(int(self.time_length * self.sensor.sensor.sample_rate)) # TODO replace later
+        signal = self.sensor.read(int(self.time_length * self.sensor.sensor.sample_rate))
         bits = self.miettinen_algo(signal)
-        print(len(bits))
-        print(len(self.time_length))
         return bits, signal
 
     # TODO: Throw all the Diffie-Helman stuff in its own function since it's called exactly the same pretty much by both device and host protocols, it'll make it easier to read
@@ -453,7 +451,6 @@ class Miettinen_Protocol:
         return success
 
 
-"""
 ###TESTING CODE###
 import socket
 def device(prot):
@@ -477,10 +474,20 @@ def host(prot):
 
 if __name__ == "__main__":
     import multiprocessing as mp
-    import random
-    random.seed(0)
-    prot = Miettinen_Protocol(8, 12, 8, 5*48000, 6*48000, 0.5, 0.5, 0.9, 5, 20, "", 0, 30)
+    from test_sensor import Test_Sensor
+    from sensor_reader import Sensor_Reader
+    prot = Miettinen_Protocol(Sensor_Reader(Test_Sensor(44100, 44100*400, 1024)),
+        8,
+        4,
+        1,
+        1,
+        0.003,
+        2.97e-05,
+        0.9,
+        5,
+        20,
+        10)
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
-    d.start()"""
+    d.start()
