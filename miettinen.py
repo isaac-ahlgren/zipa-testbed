@@ -278,7 +278,7 @@ class Miettinen_Protocol:
 
     def host_protocol(self, device_sockets):
         # Log current paramters to the NFS server
-        self.logger("parameters", "txt", self.parameters(True))
+        self.logger.log([("parameters", "txt", self.parameters(True))])
 
         if self.verbose:
             print("Iteration " + str(self.count) + "\n")

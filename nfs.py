@@ -47,7 +47,7 @@ class NFSLogger:
                     file.write(data[2])  # Data should already be bytes
                 else:
                     file.write(
-                        data[2]
+                        str(data[2])
                     )  # Data is a string, no encoding needed in text mode
             # log file path to mysql database
             self._log_to_mysql([filename])
