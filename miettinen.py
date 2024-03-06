@@ -126,7 +126,7 @@ class Miettinen_Protocol:
             print("Iteration " + str(self.count))
 
         # Log current paramters to the NFS server
-        self.logger("parameters", "txt", self.parameters(False))
+        self.logger.log([("parameters", "txt", self.parameters(False))])
 
         # Sending ack that they are ready to begin
         if self.verbose:
