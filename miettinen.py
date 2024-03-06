@@ -30,8 +30,8 @@ class Miettinen_Protocol:
         verbose=True,
     ):
         self.sensor = sensor
-        self.f = int(f*self.sensor.sensor.sample_rate)
-        self.w = int(w*self.sensor.sensor.sample_rate)
+        self.f = int(f * self.sensor.sensor.sample_rate)
+        self.w = int(w * self.sensor.sensor.sample_rate)
         self.rel_thresh = rel_thresh
         self.abs_thresh = abs_thresh
         self.auth_threshold = auth_threshold
@@ -44,13 +44,14 @@ class Miettinen_Protocol:
         self.key_length = key_length
         self.parity_symbols = parity_symbols
         self.commitment_length = parity_symbols + key_length
-        self.re = Fuzzy_Commitment(ReedSolomonObj(self.commitment_length, key_length), key_length)
+        self.re = Fuzzy_Commitment(
+            ReedSolomonObj(self.commitment_length, key_length), key_length
+        )
         self.hash_func = hashes.SHA256()
         self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
 
-        
-        self.time_length = (w + f) * (self.commitment_length*8 + 1)
+        self.time_length = (w + f) * (self.commitment_length * 8 + 1)
 
         self.logger = logger
 
@@ -64,7 +65,10 @@ class Miettinen_Protocol:
         for i in range(block_num):
             c[i] = np.mean(
                 signal[
-                    i * (no_snap_shot_width + snap_shot_width) : i * (no_snap_shot_width + snap_shot_width) + snap_shot_width
+                    i
+                    * (no_snap_shot_width + snap_shot_width) : i
+                    * (no_snap_shot_width + snap_shot_width)
+                    + snap_shot_width
                 ]
             )
         return c
@@ -90,15 +94,19 @@ class Miettinen_Protocol:
         return bitstring_to_bytes(key)
 
     def extract_context(self):
-        signal = self.sensor.read(int(self.time_length * self.sensor.sensor.sample_rate))
+        signal = self.sensor.read(
+            int(self.time_length * self.sensor.sensor.sample_rate)
+        )
         bits = self.miettinen_algo(signal)
         return bits, signal
-    
+
     def parameters(self, is_host):
         parameters = ""
         parameters += "protocol: " + self.name
         parameters += "is_host: " + str(is_host)
-        parameters += "\nsensor: " + self.sensor.name
+        parameters += (
+            "\nsensor: " + self.sensor.sensor.name
+        )  # Name's in physical sensor.
         parameters += "\nkey_length: " + str(self.key_length)
         parameters += "\nparity_symbols: " + str(self.parity_symbols)
         parameters += "\nf: " + str(self.f)
@@ -177,7 +185,7 @@ class Miettinen_Protocol:
                 print("witness: " + str(witness))
 
             # Decommit
-                
+
             if self.verbose:
                 print("Decommiting")
             prederived_key = self.re.decommit_witness(commitment, witness)
@@ -218,20 +226,23 @@ class Miettinen_Protocol:
             if self.verbose:
                 print("Produced Key: " + str(derived_key))
                 print(
-                "success: "
-                + str(success)
-                + ", Number of successes: "
-                + str(successes)
-                + ", Total number of iterations: "
-                + str(total_iterations)
+                    "success: "
+                    + str(success)
+                    + ", Number of successes: "
+                    + str(successes)
+                    + ", Total number of iterations: "
+                    + str(total_iterations)
                 )
 
-            self.logger.log([
-                ("witness", "txt", witness)
-                ("commitment", "txt", commitment)
-                ("success", "txt", str(success))
-                ("signal", "csv", signal),
-            ], count=total_iterations)
+            self.logger.log(
+                [
+                    ("witness", "txt", witness),
+                    ("commitment", "txt", commitment),
+                    ("success", "txt", str(success)),
+                    ("signal", "csv", signal),
+                ],
+                count=total_iterations,
+            )
 
             # Increment total number of iterations key evolution has occured
             total_iterations += 1
@@ -239,18 +250,29 @@ class Miettinen_Protocol:
         if self.verbose:
             if successes / total_iterations >= self.auth_threshold:
                 print(
-                    "Total Key Pairing Success: auth - " + str(successes / total_iterations)
+                    "Total Key Pairing Success: auth - "
+                    + str(successes / total_iterations)
                 )
             else:
                 print(
-                    "Total Key Pairing Failure: auth - " + str(successes / total_iterations)
+                    "Total Key Pairing Failure: auth - "
+                    + str(successes / total_iterations)
                 )
-        
-        self.logger.log([("pairing_statistics", "txt", 
-                          "successes: " + str(successes) + 
-                          " total_iterations: " + 
-                          str(total_iterations) + 
-                          " succeeded: " + str(successes / total_iterations >= self.auth_threshold))])
+
+        self.logger.log(
+            [
+                (
+                    "pairing_statistics",
+                    "txt",
+                    "successes: "
+                    + str(successes)
+                    + " total_iterations: "
+                    + str(total_iterations)
+                    + " succeeded: "
+                    + str(successes / total_iterations >= self.auth_threshold),
+                )
+            ]
+        )
 
         self.count += 1
 
@@ -354,43 +376,58 @@ class Miettinen_Protocol:
                 device_socket, recieved_nonce_msg, derived_key, pd_key_hash
             )
 
-            self.logger.log([
-                ("witness", "txt", witness)
-                ("commitment", "txt", commitment)
-                ("success", "txt", str(success))
-                ("signal", "csv", signal),
-            ], count=total_iterations, ip_addr=device_ip_addr)
-
+            self.logger.log(
+                [
+                    ("witness", "txt", witness),
+                    ("commitment", "txt", commitment),
+                    ("success", "txt", str(success)),
+                    ("signal", "csv", signal),
+                ],
+                count=total_iterations,
+                ip_addr=device_ip_addr,
+            )
 
             # Increment total times key evolution has occured
             total_iterations += 1
 
             if self.verbose:
                 print(
-                "success: "
-                + str(success)
-                + ", Number of successes: "
-                + str(successes)
-                + ", Total number of iterations: "
-                + str(total_iterations)
+                    "success: "
+                    + str(success)
+                    + ", Number of successes: "
+                    + str(successes)
+                    + ", Total number of iterations: "
+                    + str(total_iterations)
                 )
                 print()
-    
+
         if self.verbose:
             if successes / total_iterations >= self.auth_threshold:
                 print(
-                "Total Key Pairing Success: auth - " + str(successes / total_iterations)
+                    "Total Key Pairing Success: auth - "
+                    + str(successes / total_iterations)
                 )
             else:
                 print(
-                    "Total Key Pairing Failure: auth - " + str(successes / total_iterations)
+                    "Total Key Pairing Failure: auth - "
+                    + str(successes / total_iterations)
                 )
 
-        self.logger.log([("pairing_statistics", "txt", 
-                          "successes: " + str(successes) + 
-                          " total_iterations: " + 
-                          str(total_iterations) + 
-                          " succeeded: " + str(successes / total_iterations >= self.auth_threshold))], ip_addr=device_ip_addr)
+        self.logger.log(
+            [
+                (
+                    "pairing_statistics",
+                    "txt",
+                    "successes: "
+                    + str(successes)
+                    + " total_iterations: "
+                    + str(total_iterations)
+                    + " succeeded: "
+                    + str(successes / total_iterations >= self.auth_threshold),
+                )
+            ],
+            ip_addr=device_ip_addr,
+        )
 
         self.count += 1
 
@@ -510,7 +547,7 @@ class Miettinen_Protocol:
         return success
 
 
-'''###TESTING CODE###
+"""###TESTING CODE###
 import socket
 def device(prot):
     print("device")
@@ -549,4 +586,4 @@ if __name__ == "__main__":
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
-    d.start()'''
+    d.start()"""
