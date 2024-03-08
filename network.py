@@ -34,23 +34,31 @@ def ack_standby(connection, timeout):
 
 #TODO: make it so that the size of the hash can be variable
 def send_commit(commitment, hash, device):
-    length = len(commitment).to_bytes(4, byteorder='big')
-    message = (COMM.encode() + hash + length + commitment)
+    com_length = len(commitment).to_bytes(4, byteorder='big')
+    hash_length = len(hash).to_bytes(4, byteorder='big')
+    message = (COMM.encode() + hash_length + hash + com_length + commitment)
     device.send(message)
 
 def commit_standby(connection, timeout):
     reference = time.time()
     timestamp = reference
+    commitment = None
+    hash = None
 
     while (timestamp - reference) < timeout:
         timestamp = time.time()
         # 8 byte command, 64 byte hash, 4 byte length
-        message = connection.recv(76)
+        message = connection.recv(8)
 
         if message[:8] == COMM.encode():
-            # Unpack and return commitment and its hex
-            hash = message[8:72]
-            length = int.from_bytes(message[72:76], 'big')
+            # Recieve and unpack the hash
+            message = connection.recv(4)
+            hash_length = int.from_bytes(message, 'big')
+            hash = connection.recv(hash_length)
+
+            # Recieve and unpack the commitment
+            message = connection.recv(4)
+            length = int.from_bytes(message, 'big')
             message = connection.recv(length)
             commitment = message
             break
