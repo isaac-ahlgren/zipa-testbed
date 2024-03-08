@@ -177,12 +177,12 @@ class ZIPA_System:
                 self.protocols.append(
                     Shurmann_Siggs_Protocol(
                         self.sensors[parameters["sensor"]],
-                        parameters["n"],
-                        parameters["k"],
-                        parameters["timeout"],
-                        parameters["time_length"],
-                        self.nfs,
-                        self.id,
+                        parameters["key_length"], 
+                        parameters["parity_symbols"], 
+                        parameters["protocol"]["window_len"], 
+                        parameters["protocol"]["band_len"], 
+                        parameters["timeout"], 
+                        self.logger,
                     )
                 )
 

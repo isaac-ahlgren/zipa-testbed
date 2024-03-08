@@ -5,15 +5,11 @@ HOST = "host    "
 IP_ADDR = "192.168.1.116"
 TARGET_IP_ADDR = ("192.168.1.220", 5005)
 SHURMANN_JSON = {
-    "protocol": {"name": "shurmann-siggs"},
-    "n": 12,
-    "k": 8,
+    "protocol": {"name": "shurmann-siggs", "window_len": 10000, "band_len": 1000},
+    "key_length": 8,
+    "parity_symbols": 4,
     "sensor": "microphone",
     "timeout": 10,
-    "time_length": 15,
-    "sampling": 44100,
-    "maximum": 100,
-    "iterations": 0,
 }
 
 MIETTINEN_JSON = {

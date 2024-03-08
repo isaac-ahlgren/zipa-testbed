@@ -9,6 +9,7 @@ from corrector import Fuzzy_Commitment
 from network import *
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
+# TODO: IMPLEMENT THE NFS LOGGING STUFF
 class Shurmann_Siggs_Protocol:
     def __init__(self, sensor, key_length, parity_symbols, window_len, band_len, timeout, logger, verbose=True):
         self.sensor = sensor
@@ -185,7 +186,7 @@ class Shurmann_Siggs_Protocol:
         return hash_func.finalize()
 
 
-###TESTING CODE###
+'''###TESTING CODE###
 import socket
 def device(prot):
     print("device")
@@ -221,4 +222,4 @@ if __name__ == "__main__":
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
-    d.start()
+    d.start()'''
