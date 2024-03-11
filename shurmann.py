@@ -1,17 +1,29 @@
-import time
 import math
 import multiprocessing as mp
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import constant_time
+import time
+
 import numpy as np
-from reed_solomon import ReedSolomonObj
+from cryptography.hazmat.primitives import constant_time, hashes
+
 from corrector import Fuzzy_Commitment
 from network import *
+from reed_solomon import ReedSolomonObj
+
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
 # TODO: IMPLEMENT THE NFS LOGGING STUFF
 class Shurmann_Siggs_Protocol:
-    def __init__(self, sensor, key_length, parity_symbols, window_len, band_len, timeout, logger, verbose=True):
+    def __init__(
+        self,
+        sensor,
+        key_length,
+        parity_symbols,
+        window_len,
+        band_len,
+        timeout,
+        logger,
+        verbose=True,
+    ):
         self.sensor = sensor
         self.window_len = window_len
         self.band_len = band_len
@@ -22,11 +34,19 @@ class Shurmann_Siggs_Protocol:
         self.key_length = key_length
         self.parity_symbols = parity_symbols
         self.commitment_length = parity_symbols + key_length
-        self.re = Fuzzy_Commitment(ReedSolomonObj(self.commitment_length, key_length), key_length)
+        self.re = Fuzzy_Commitment(
+            ReedSolomonObj(self.commitment_length, key_length), key_length
+        )
         self.hash_func = hashes.SHA256()
 
         # Conversion from how many requested bits you need to how much sample data you will need for that
-        self.time_length = math.ceil(((self.commitment_length*8 ) / int((window_len/2 + 1) / band_len)) + 1)*window_len
+        self.time_length = (
+            math.ceil(
+                ((self.commitment_length * 8) / int((window_len / 2 + 1) / band_len))
+                + 1
+            )
+            * window_len
+        )
 
         self.logger = logger
 
@@ -36,8 +56,8 @@ class Shurmann_Siggs_Protocol:
 
     def sigs_algo(self, x1, window_len=10000, bands=1000):
         def bitstring_to_bytes(s):
-            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder='big')
-        
+            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
+
         FFTs = []
         from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
@@ -81,10 +101,22 @@ class Shurmann_Siggs_Protocol:
         bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
 
+    def parameters(self, is_host):
+        parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
+        parameters += f"sensor: {self.sensor.sensor.name}\n"
+        parameters += f"key_length: {self.key_length}\n"
+        parameters += f"parity_symbols: {self.parity_symbols}\n"
+        parameters += f"window_length: {self.window_len}\n"
+        parameters += f"band_length: {self.band_len}\n"
+        parameters += f"time_length: {self.time_length}\n"
+
     def device_protocol(self, host):
         host.setblocking(1)
         if self.verbose:
             print(f"Iteration {str(self.count)}.\n")
+
+        # Log parameters to NFS server
+        self.logger.log([("parameters", "txt", self.parameters(False))])
 
         # Sending ack that they are ready to begin
         if self.verbose:
@@ -124,7 +156,7 @@ class Shurmann_Siggs_Protocol:
         key = self.re.decommit_witness(commitment, witness)
 
         generated_hash = self.hash_function(key)
- 
+
         success = False
         if constant_time.bytes_eq(generated_hash, recieved_hash):
             success = True
@@ -132,9 +164,21 @@ class Shurmann_Siggs_Protocol:
         if self.verbose:
             print(f"key: {str(key)}\n success: {str(success)}\n")
 
+        self.logger.log(
+            [
+                ("witness", "txt", witness),
+                ("commitment", "txt", commitment),
+                ("success", "txt", str(success)),
+                ("signal", "csv", ", ".join(str(num) for num in signal)),
+            ]
+        )
+
         self.count += 1
 
     def host_protocol(self, device_sockets):
+        # Log parameters to the NFS server
+        self.logger.log([("parameters", "txt", self.parameters(True))])
+
         if self.verbose:
             print("Iteration " + str(self.count))
             print()
@@ -178,6 +222,14 @@ class Shurmann_Siggs_Protocol:
             print()
         send_commit(commitment, hash, device_socket)
 
+        self.logger.log(
+            [
+                ("witness", "txt", str(witness)),
+                ("commitment", "txt", commitment),
+                ("signal", "csv", ", ".join(str(num) for num in signal)),
+            ]
+        )
+
         self.count += 1
 
     def hash_function(self, bytes):
@@ -186,7 +238,7 @@ class Shurmann_Siggs_Protocol:
         return hash_func.finalize()
 
 
-'''###TESTING CODE###
+"""###TESTING CODE###
 import socket
 def device(prot):
     print("device")
@@ -222,4 +274,4 @@ if __name__ == "__main__":
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
-    d.start()'''
+    d.start()"""
