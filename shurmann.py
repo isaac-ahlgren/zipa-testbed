@@ -142,7 +142,10 @@ class Shurmann_Siggs_Protocol:
         # Wait for Commitment
         if self.verbose:
             print("Waiting for commitment from host")
-        commitment, recieved_hash = commit_standby(host, self.timeout)
+        commitments, recieved_hashes = commit_standby(host, self.timeout)
+
+        commitment = commitments[0]
+        recieved_hash = recieved_hashes[0]
 
         # Early exist if no commitment recieved in time
         if not commitment:
@@ -220,7 +223,7 @@ class Shurmann_Siggs_Protocol:
         if self.verbose:
             print("Sending commitment")
             print()
-        send_commit(commitment, hash, device_socket)
+        send_commit([commitment], [hash], device_socket)
 
         self.logger.log(
             [
