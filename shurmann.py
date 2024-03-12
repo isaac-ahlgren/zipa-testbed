@@ -11,7 +11,6 @@ from reed_solomon import ReedSolomonObj
 
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
-# TODO: IMPLEMENT THE NFS LOGGING STUFF
 class Shurmann_Siggs_Protocol:
     def __init__(
         self,

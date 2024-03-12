@@ -9,6 +9,35 @@ ACKN = "ack     "
 COMM = "comm    "
 DHKY = "dhkey   "
 NONC = "nonce   "
+SUCC = "success "
+FAIL = "failed  "
+
+def send_status(connection, status):
+    if status:
+        msg = SUCC
+    else:
+        msg = FAIL
+    connection.send(msg.encode())
+
+def status_standby(connection, timeout):
+    status = None
+    reference = time.time()
+    timestamp = reference
+
+    # While process hasn't timed out
+    while (timestamp - reference) < timeout:
+        # Check for acknowledgement
+        timestamp = time.time()
+        command = connection.recv(8)
+
+        if command == None:
+            continue
+        elif command == SUCC.encode():
+            status = True
+            break
+        elif command == FAIL.encode():
+            status = False
+    return status
 
 def ack(connection):
     connection.send(ACKN.encode())
@@ -31,7 +60,6 @@ def ack_standby(connection, timeout):
             break
 
     return acknowledged
-
 
 def send_commit(commitments, hashes, device):
     number_of_commitments = len(commitments).to_bytes(4, byteorder='big')
