@@ -1,5 +1,4 @@
-import pickle
-import select
+import json
 import time
 
 # Commands
@@ -9,6 +8,7 @@ ACKN = "ack     "
 COMM = "comm    "
 DHKY = "dhkey   "
 NONC = "nonce   "
+PRAM = "preamble"
 
 def ack(connection):
     connection.send(ACKN.encode())
@@ -117,3 +117,36 @@ def get_nonce_msg_standby(connection, timeout):
                 break
 
     return nonce
+
+def send_preamble(connenction, preamble):
+    """
+    Used in VoltKey protocol. Client device sends first
+    sinusoidal period to the host for synchronization.
+    """
+    payload = json.dumps(preamble)
+    payload_size = len(payload).to_bytes(4, byteorder="big")
+    message = PRAM.encode() + payload_size + payload
+
+    connenction.send(message)
+
+def get_preamble(connection, timeout):
+    """
+    Used in VoltKey protocol. Host device recieves preamble
+    from client to synchronize dataset.
+    """
+    reference = timestamp = time.time()
+    preamble = None
+
+    while (timestamp - reference) < timeout:
+        timestamp = time.time()
+        message = connection.recv(12) # 8 byte command + 4 byte payload size
+
+        if message == None:
+            continue
+        else:
+            command = message[: 8]
+            if command == PRAM.encode():
+                message_size = int.from_bytes(message[8:], byteorder="big")
+                preamble = json.loads(connection.recv(message_size))
+
+    return preamble
