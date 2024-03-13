@@ -60,8 +60,10 @@ class Perceptio_Protocol:
 
     def extract_context(self):
         signal = self.sensor.read(self.time_length)
+        print(signal)
         fps = self.perceptio(signal, self.commitment_length, self.sensor.sensor.sample_rate,
                                self.a, self.cluster_sizes_to_check, self.cluster_th, self.bottom_th, self.top_th, self.lump_th)
+        print(fps)
         return fps, signal
 
     def parameters(self, is_host):
@@ -486,6 +488,7 @@ class Perceptio_Protocol:
 
         signal = self.ewma(np.abs(signal), a)
 
+        print(signal)
         # Get events that are within the threshold
         events = []
         found_event = False
@@ -524,7 +527,8 @@ class Perceptio_Protocol:
     def kmeans_w_elbow_method(self, event_features, cluster_sizes_to_check, cluster_th):
         if len(event_features) < cluster_sizes_to_check:
             # Handle the case where the number of samples is less than the desired number of clusters
-            print("Warning: Insufficient samples for clustering. Returning default label and k=1.")
+            if self.verbose:
+                print("Warning: Insufficient samples for clustering. Returning default label and k=1.")
             return np.zeros(len(event_features), dtype=int), 1
 
         km = KMeans(1, n_init='auto', random_state=0).fit(event_features)
@@ -586,7 +590,8 @@ class Perceptio_Protocol:
     def perceptio(self, signal, key_size, Fs, a, cluster_sizes_to_check, cluster_th, bottom_th, top_th, lump_th):
         events = self.get_events(signal, a, bottom_th, top_th, lump_th)
         if len(events) < 2:
-            #print("Warning: Insufficient samples for clustering. Skipping attempt.")
+            if self.verbose:
+                print("Warning: Insufficient samples for clustering. Skipping attempt.")
             return [], []
         event_features = self.get_event_features(events, signal)
 
@@ -718,12 +723,12 @@ if __name__ == "__main__":
                                     0.3,
                                     3,
                                     0.08,
-                                    3,
+                                    0.75,
                                     0.5,
                                     9500,
                                     5,
                                     10,
-                                    NFSLogger(None, None, None, None, None, 1, "."),
+                                    NFSLogger(None, None, None, None, None, 1, "./data"),
     )
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
