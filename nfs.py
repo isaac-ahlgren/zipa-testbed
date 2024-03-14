@@ -62,6 +62,7 @@ class NFSLogger:
                     else:
                         file.write(data)  # Data should already be bytes
                 else:
+                    print(data)
                     file.write(
                         str(data)
                     )  # Data is a string, no encoding needed in text mode
