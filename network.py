@@ -29,7 +29,7 @@ def status_standby(connection, timeout):
         # Check for acknowledgement
         timestamp = time.time()
         command = connection.recv(8)
-
+        
         if command == None:
             continue
         elif command == SUCC.encode():
@@ -37,6 +37,8 @@ def status_standby(connection, timeout):
             break
         elif command == FAIL.encode():
             status = False
+            break
+
     return status
 
 def ack(connection):
@@ -71,7 +73,7 @@ def send_commit(commitments, hashes, device):
         hash_length = 0
 
     message = COMM.encode() + number_of_commitments + hash_length + com_length
-    for i in range(number_of_commitments):
+    for i in range(len(commitments)):
         message += hashes[i] + commitments[i]
     device.send(message)
 
@@ -91,9 +93,9 @@ def commit_standby(connection, timeout):
             message = connection.recv(12)
 
             # Unpack all variable lengths
-            number_of_commits = int.from_bytes(message[0:4])
-            hash_length = int.from_bytes(message[4:8])
-            com_length = int.from_bytes(message[8:12])
+            number_of_commits = int.from_bytes(message[0:4], byteorder='big')
+            hash_length = int.from_bytes(message[4:8], byteorder='big')
+            com_length = int.from_bytes(message[8:12], byteorder='big')
 
             commits = connection.recv(number_of_commits*(hash_length + com_length))
             commitments = []

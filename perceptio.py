@@ -1,7 +1,6 @@
 import numpy as np
 from sklearn.cluster import KMeans
 import struct
-import os
 
 import multiprocessing as mp
 from cryptography.hazmat.primitives import constant_time, hashes, hmac
@@ -10,6 +9,7 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from corrector import Fuzzy_Commitment
 from network import *
 from reed_solomon import ReedSolomonObj
+from common_protocols import *
 
 class Perceptio_Protocol:
     def __init__(
@@ -54,6 +54,7 @@ class Perceptio_Protocol:
             ReedSolomonObj(self.commitment_length, key_length), key_length
         )
         self.hash_func = hashes.SHA256()
+        self.nonce_byte_size = 16
 
         self.logger = logger
 
@@ -64,16 +65,40 @@ class Perceptio_Protocol:
         self.verbose = verbose
 
 
-    def extract_context(self):
+    def extract_context(self, socket):
         events_detected = False
         for i in range(self.max_no_events_detected):
             signal = self.sensor.read(self.time_length)
             fps, events = self.perceptio(signal, self.commitment_length, self.sensor.sensor.sample_rate,
                                self.a, self.cluster_sizes_to_check, self.cluster_th, self.bottom_th, self.top_th, self.lump_th)
+            
+            print(len(events))
+
+            # Check if fingerprints were generated
+            if len(fps) > 0:
+                events_detected = True
+
+            # Send current status
+            send_status(socket, events_detected)
+
+            # Check if other device also succeeded
+            status = status_standby(socket, self.timeout)
+            
+            if status == None:
+                events_detected = status
+            else:
+                events_detected = (events_detected and status)
+
+
+            # Break out of the loop if event was detected
+            if events_detected:
+                break
+
             time.sleep(self.sleep_time)
 
-        return fps, signal
+        return fps, signal, events_detected
 
+    #  TODO: Fix why this does not save correctly to drive
     def parameters(self, is_host):
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
         parameters += f"sensor: {self.sensor.sensor.name}\n"
@@ -102,7 +127,6 @@ class Perceptio_Protocol:
         
         successes = 0
         iterations = 0
-        current_key = bytes([0 for i in range(64)])
         while successes < self.conf_threshold and iterations < self.max_iterations:
             success = False
 
@@ -118,37 +142,23 @@ class Perceptio_Protocol:
                 print("Extracting context\n")
             
             # Extract bits from sensor
-            witnesses, signal = self.extract_context()
+            witnesses, signal, status = self.extract_context(host_socket)
 
-            # If no witnesses were generated, alert other device and wait to try again
-            if len(witnesses) == 0:
+            if status == None:
                 if self.verbose:
-                    print("Not enough events detected: moving to next iteration")                
-
-            if self.verbose:
-                print("Commiting all the witnesses\n")
-
-            # Create all commitments
-            commitments = []
-            keys = []
-            hs = []
-            for i in range(len(witnesses)):
-                key, commitment = self.re.commit_witness(witnesses[i])
-                commitments.append(commitment)
-                keys.append(key)
-                hs.append(self.hash_function(key))
-            
-            if self.verbose:
-                print("Sending commitments\n")
-            # Send all commitments
-            send_commit(commitments, hs, host_socket)
+                    print("Other device did not respond during extraction - early exit\n")
+                return
+            elif not status:
+                if self.verbose:
+                    print("Not enough events detected: moving to next iteration")
+                continue      
 
             if self.verbose:
                 print("Waiting for commitment from host\n")
             commitments, hs = commit_standby(host_socket, self.timeout)
         
             # Early exist if no commitment recieved in time
-            if not commitment:
+            if not commitments:
                 if self.verbose:
                     print("No commitment recieved within time limit - early exit\n")
                 return
@@ -166,22 +176,6 @@ class Perceptio_Protocol:
                 send_status(host_socket, success) # alert other device to status
                 self.checkpoint_log(witnesses, commitments, success, signal, iterations)
                 iterations += 1
-
-                continue
-
-            if self.verbose:
-                print("Witnesses succeeded in uncommiting a commitment - alerting other device to the success")
-
-            # Check up on other devices status
-            status = status_standby(host_socket, self.timeout)
-            if status == None:
-                if self.verbose:
-                    print("No status recieved within time limit - early exit.\n\n")
-                return
-            elif status == False:
-                success = False
-                self.checkpoint_log(witnesses, commitments, success, signal, iterations)
-                iterations += 1
                 continue
 
             # Key Confirmation Phase
@@ -193,14 +187,14 @@ class Perceptio_Protocol:
             kdf = HKDF(
                 algorithm=self.hash_func, length=self.key_length, salt=None, info=None
             )
-            derived_key = kdf.derive(key + current_key)
+            derived_key = kdf.derive(key)
 
             # Hash prederived key
             pd_key_hash = self.hash_function(key)
 
             # Send nonce message to host
-            generated_nonce = self.send_nonce_msg_to_host(
-                host_socket, pd_key_hash, derived_key
+            generated_nonce = send_nonce_msg_to_host(
+                host_socket, pd_key_hash, derived_key, self.nonce_byte_size, self.hash_func
             )
 
             # Recieve nonce message
@@ -213,59 +207,28 @@ class Perceptio_Protocol:
                 return
 
             # If hashes are equal, then it was successful
-            if self.verify_mac_from_host(
-                recieved_nonce_msg, generated_nonce, derived_key
+            if verify_mac_from_host(
+                recieved_nonce_msg, generated_nonce, derived_key, self.nonce_byte_size, self.hash_func
             ):
                 success = True
                 successes += 1
-                current_key = derived_key
 
             if self.verbose:
-                print("Produced Key: " + str(derived_key))
-                print(
-                    "success: "
-                    + str(success)
-                    + ", Number of successes: "
-                    + str(successes)
-                    + ", Total number of iterations: "
-                    + str(iterations)
-                )
+                print(f"Produced Key: {derived_key}\n")
+                print(f"success: {success}, Number of successes {successes}, Total number of iteration {iterations}\n")
 
-            self.logger.log(
-                [
-                    ("witness", "txt", witnesses),
-                    ("commitment", "txt", commitment),
-                    ("success", "txt", str(success)),
-                    ("signal", "csv", signal),
-                ],
-                count=iterations,
-            )
-
+            self.checkpoint_log(witnesses, commitments, success, signal, iterations)
             iterations += 1
 
         if self.verbose:
-            if successes / iterations >= self.auth_threshold:
-                print(
-                    "Total Key Pairing Success: auth - "
-                    + str(successes / iterations)
-                )
-            else:
-                print(
-                    "Total Key Pairing Failure: auth - "
-                    + str(successes / iterations)
-                )
+            print(f"Total Key Pairing Result: success - {successes >= self.conf_threshold}\n")
 
         self.logger.log(
             [
                 (
                     "pairing_statistics",
                     "txt",
-                    "successes: "
-                    + str(successes)
-                    + " total_iterations: "
-                    + str(iterations)
-                    + " succeeded: "
-                    + str(successes >= self.conf_threshold),
+                    f"successes: {successes} total_iterations: {iterations} succeeded: {successes >= self.conf_threshold})",
                 )
             ]
         )
@@ -295,7 +258,6 @@ class Perceptio_Protocol:
         
         successes = 0
         iterations = 0
-        current_key = bytes([0 for i in range(64)])
         while successes < self.conf_threshold and iterations < self.max_iterations:
             success = False
 
@@ -306,15 +268,16 @@ class Perceptio_Protocol:
             if self.verbose:
                 print("Extracting context\n")
             # Extract bits from sensor
-            witnesses, signal = self.extract_context()
+            witnesses, signal, status = self.extract_context(device_socket)
 
-            if len(witnesses) == 0:
+            if status == None:
                 if self.verbose:
-                    print("Not enough events detected: alerting other device")
-                send_status(device_socket, success) # alert other device to status
-                time.sleep(self.sleep_time)
-                iterations += 1
-                continue
+                    print("Other device did not respond during extraction - early exit\n")
+                return
+            elif not status:
+                if self.verbose:
+                    print("Not enough events detected: moving to next iteration")
+                continue      
 
             if self.verbose:
                 print("Commiting all the witnesses\n")
@@ -324,36 +287,8 @@ class Perceptio_Protocol:
             if self.verbose:
                 print("Sending commitments\n")
             # Send all commitments
+
             send_commit(commitments, hs, device_socket)
-
-            if self.verbose:
-                print("Waiting for commitment from host\n")
-            recieved_commitments, recieved_hs = commit_standby(device_socket, self.timeout)
-
-            # Early exist if no commitment recieved in time
-            if not recieved_commitments:
-                if self.verbose:
-                    print("No commitment recieved within time limit - early exit\n")
-                return
-            
-            if self.verbose:
-                print("Commitments recieved\n")
-                print("Uncommiting with witnesses\n")
-
-            key = self.find_commitment(recieved_commitments, recieved_hs, witnesses)
-
-            # Commitment failed, try again
-            if key == None:
-                if self.verbose:
-                    print("Witnesses failed to uncommit any commitment - alerting other device for a retry\n")
-                success = False
-                send_status(device_socket, success) # alert other device to status
-                self.checkpoint_log(witnesses, commitments, success, signal, iterations)
-                iterations += 1
-                continue
-
-            if self.verbose:
-                print("Witnesses succeeded in uncommiting a commitment - alerting other device to the success")
 
             # Check up on other devices status
             status = status_standby(device_socket, self.timeout)
@@ -369,8 +304,7 @@ class Perceptio_Protocol:
 
             # Key Confirmation Phase
 
-            # Hash prederived key
-            pd_key_hash = self.hash_function(key)
+            # TODO: Key confirmation phase is broken
 
             # Recieve nonce message
             recieved_nonce_msg = get_nonce_msg_standby(device_socket, self.timeout)
@@ -382,71 +316,33 @@ class Perceptio_Protocol:
                     print()
                 return
 
-            # Derive new key using previous key and new prederived key from fuzzy commitment
-            kdf = HKDF(
-                algorithm=self.hash_func, length=self.key_length, salt=None, info=None
-            )
-            derived_key = kdf.derive(key + current_key)
+            derived_key = self.host_verify_mac(keys, recieved_nonce_msg)
 
-            if self.verify_mac_from_device(
-                recieved_nonce_msg, derived_key, pd_key_hash
-            ):
+            if derived_key:
                 success = True
                 successes += 1
-                current_key = derived_key
 
-            # Create and send key confirmation value
-            self.send_nonce_msg_to_device(
-                device_socket, recieved_nonce_msg, derived_key, pd_key_hash
-            )
+                # Create and send key confirmation value
+                send_nonce_msg_to_device(
+                    device_socket, recieved_nonce_msg, derived_key, hs[0], self.nonce_byte_size, self.hash_func
+                )
 
-            self.logger.log(
-                [
-                    ("witness", "txt", witnesses),
-                    ("commitments", "txt", commitments),
-                    ("success", "txt", str(success)),
-                    ("signal", "csv", signal),
-                ],
-                count=iterations,
-                ip_addr=device_ip_addr,
-            )
+                self.checkpoint_log(witnesses, commitments, success, signal, iterations, ip_addr=device_ip_addr)
+            
 
             if self.verbose:
-                print(
-                    "success: "
-                    + str(success)
-                    + ", Number of successes: "
-                    + str(successes)
-                    + ", Total number of iterations: "
-                    + str(iterations)
-                )
-                print()
+                print(f"success: {success}, Number of successes {successes}, Total number of iterations {iterations}\n")
 
             iterations += 1
 
         if self.verbose:
-            if successes / iterations >= self.auth_threshold:
-                print(
-                    "Total Key Pairing Success: auth - "
-                    + str(successes / iterations)
-                )
-            else:
-                print(
-                    "Total Key Pairing Failure: auth - "
-                    + str(successes / iterations)
-                )
-
+            print(f"Total Key Pairing Result: success - {successes >= self.conf_threshold}\n")
         self.logger.log(
             [
                 (
                     "pairing_statistics",
                     "txt",
-                    "successes: "
-                    + str(successes)
-                    + " total_iterations: "
-                    + str(iterations)
-                    + " succeeded: "
-                    + str(successes >= self.conf_threshold),
+                    f"successes: {successes} total_iterations: {iterations} succeeded: {successes >= self.conf_threshold})"
                 )
             ]
         )
@@ -552,13 +448,13 @@ class Perceptio_Protocol:
         fp = []
         for i in range(k):
             event_list = grouped_events[i]
-            key = ''
+            key = bytearray()
             for i in range(len(event_list)):
                 interval = (event_list[i][1] - event_list[i][0])/Fs
-                key += struct.pack('>f', interval)
+                key += bytearray(struct.pack('>f', interval))
         
             if len(key) >= key_size:
-                key = key[:key_size]
+                key = bytes(key[:key_size])
                 fp.append(key)
         return fp
 
@@ -568,7 +464,7 @@ class Perceptio_Protocol:
             # Needs two events in order to calculate interevent timings
             if self.verbose:
                 print("Error: Less than two events detected")
-            return (None, None)
+            return ([], events)
 
         event_features = self.get_event_features(events, signal)
 
@@ -580,12 +476,27 @@ class Perceptio_Protocol:
 
         return fps, grouped_events
 
+    def host_verify_mac(self, keys, recieved_nonce_msg):
+        key_found = None
+        for i in range(len(keys)):
+            kdf = HKDF(
+                algorithm=self.hash_func, length=self.key_length, salt=None, info=None
+            )
+            derived_key = kdf.derive(keys[i])
+            key_hash = self.hash_function(keys[i])
+
+            if verify_mac_from_device(
+                recieved_nonce_msg, derived_key, key_hash, self.nonce_byte_size, self.hash_func):
+                key_found = derived_key
+                break
+        return key_found
+
     def find_commitment(self, commitments, hashes, fingerprints):
         key = None
         for i in range(len(fingerprints)):
             for j in range(len(commitments)):
                 potential_key = self.re.decommit_witness(commitments[j], fingerprints[i])
-                potential_key_hash = self.hash_func(potential_key)
+                potential_key_hash = self.hash_function(potential_key)
                 if constant_time.bytes_eq(potential_key_hash, hashes[j]):
                     key = potential_key
                     break
@@ -599,87 +510,10 @@ class Perceptio_Protocol:
             key, commitment = self.re.commit_witness(witnesses[i])
             commitments.append(commitment)
             keys.append(key)
-            hs.append(self.hash_func(key))
+            hs.append(self.hash_function(key))
         return commitments, keys, hs
-
-    def send_nonce_msg_to_device(
-        self, connection, recieved_nonce_msg, derived_key, prederived_key_hash
-    ):
-        nonce = os.urandom(self.nonce_byte_size)
-
-        # Concatenate nonces together
-        pd_hash_len = len(prederived_key_hash)
-        recieved_nonce = recieved_nonce_msg[
-            pd_hash_len : pd_hash_len + self.nonce_byte_size
-        ]
-        concat_nonce = nonce + recieved_nonce
-
-        # Create tag of Nonce
-        mac = hmac.HMAC(derived_key, self.hash_func)
-        mac.update(concat_nonce)
-        tag = mac.finalize()
-
-        # Construct nonce message
-        nonce_msg = nonce + tag
-
-        send_nonce_msg(connection, nonce_msg)
-
-        return nonce
-
-    def send_nonce_msg_to_host(self, connection, prederived_key_hash, derived_key):
-        # Generate Nonce
-        nonce = os.urandom(self.nonce_byte_size)
-
-        # Create tag of Nonce
-        mac = hmac.HMAC(derived_key, self.hash_func)
-        mac.update(nonce)
-        tag = mac.finalize()
-
-        # Create key confirmation message
-        nonce_msg = prederived_key_hash + nonce + tag
-
-        send_nonce_msg(connection, nonce_msg)
-
-        return nonce
-
-    def verify_mac_from_host(self, recieved_nonce_msg, generated_nonce, derived_key):
-        success = False
-
-        recieved_nonce = recieved_nonce_msg[0 : self.nonce_byte_size]
-
-        # Create tag of Nonce
-        mac = hmac.HMAC(derived_key, self.hash_func)
-        mac.update(recieved_nonce + generated_nonce)
-        generated_tag = mac.finalize()
-
-        recieved_tag = recieved_nonce_msg[self.nonce_byte_size :]
-        if constant_time.bytes_eq(generated_tag, recieved_tag):
-            success = True
-        return success
-
-    def verify_mac_from_device(
-        self, recieved_nonce_msg, derived_key, prederived_key_hash
-    ):
-        success = False
-
-        # Retrieve nonce used by device
-        pd_hash_len = len(prederived_key_hash)
-        recieved_nonce = recieved_nonce_msg[
-            pd_hash_len : pd_hash_len + self.nonce_byte_size
-        ]
-
-        # Generate new MAC tag for the nonce with respect to the derived key
-        mac = hmac.HMAC(derived_key, self.hash_func)
-        mac.update(recieved_nonce)
-        generated_tag = mac.finalize()
-
-        recieved_tag = recieved_nonce_msg[pd_hash_len + self.nonce_byte_size :]
-        if constant_time.bytes_eq(generated_tag, recieved_tag):
-            success = True
-        return success
-
     
-    def checkpoint_log(self, witnesses, commitments, success, signal, iterations):
+    def checkpoint_log(self, witnesses, commitments, success, signal, iterations, ip_addr=None):
         self.logger.log(
                 [
                     ("witness", "txt", witnesses),
@@ -688,6 +522,7 @@ class Perceptio_Protocol:
                     ("signal", "csv", signal),
                 ],
                 count=iterations,
+                ip_addr=ip_addr
                 )
 
 ###TESTING CODE###
@@ -725,8 +560,11 @@ if __name__ == "__main__":
                                     0.08,
                                     0.75,
                                     0.5,
-                                    9500,
                                     5,
+                                    5,
+                                    20,
+                                    5,
+                                    10,
                                     10,
                                     NFSLogger(None, None, None, None, None, 1, "./data"),
     )
