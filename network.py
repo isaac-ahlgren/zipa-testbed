@@ -123,7 +123,8 @@ def send_preamble(connenction, preamble):
     Used in VoltKey protocol. Client device sends first
     sinusoidal period to the host for synchronization.
     """
-    payload = json.dumps(preamble)
+    message = {"preamble": preamble.tolist()}
+    payload = json.dumps(message).encode("utf8")
     payload_size = len(payload).to_bytes(4, byteorder="big")
     message = PRAM.encode() + payload_size + payload
 
@@ -147,6 +148,8 @@ def get_preamble(connection, timeout):
             command = message[: 8]
             if command == PRAM.encode():
                 message_size = int.from_bytes(message[8:], byteorder="big")
-                preamble = json.loads(connection.recv(message_size))
+                message = json.loads(connection.recv(message_size))
+                preamble = message["preamble"]
+                break
 
     return preamble

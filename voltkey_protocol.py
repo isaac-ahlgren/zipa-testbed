@@ -39,14 +39,16 @@ class VoltKeyProtocol:
         self.periods = periods + 1  # + 1 Compensating for dropped frames
         self.bins = bins
         self.host = False
-        self.time_length = int((1 / OUTLET_FREQ) * periods * 8)
+        self.time_length = int((1 / OUTLET_FREQ) * periods * 8) * 100
         self.period_length = None
         self.re = Fuzzy_Commitment(
             ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
 
     def extract_signal(self):
-        return self.sensor.read(self.time_length)
+        signal = self.sensor.read(self.time_length)
+        # print(f"From extract_signal(). Host? {self.host}: {signal}")
+        return signal
 
     def extract_context(self, filtered_signal):
         """
@@ -83,7 +85,7 @@ class VoltKeyProtocol:
 
         return synced_frames
 
-    def signal_processing(self, signal, period_length):
+    def signal_processing(self, signal):
         """
         Assuming the length of a sinusoid period
 
@@ -91,16 +93,22 @@ class VoltKeyProtocol:
         """
         filtered_frames = []
         # Iterate through each period; preamble is skipped due to public knowledge
-        for period in range(period_length, len(signal) - period_length, period_length):
-            current = signal[period : period + period_length]
-            next = signal[period + period_length : period + 2 * period_length]
+        for period in range(self.period_length, len(signal) - self.period_length, self.period_length):
+            # print(f"Host? {self.host} // {len(signal)} // {period}")
+            current = signal[period : period + self.period_length]
+            next = signal[period + self.period_length : period + 2 * self.period_length]
+            # print(f"In signal processing. Host? {self.host}\nNext: {next}")
             result = []
-
+            # TODO add conditional that will handle if last cycle isn't filled up. Skip out on it
             # Substracts sinusoid wave, leaving any existing noise
-            for point in range(len(current)):
-                result[point] = current[point] - next[point]
+            if len(current) == len(next):
+                for point in range(len(current)):
+                    noise = current[point] - next[point]
+                    result.append(noise)
+                    # print(f"Result. Host? {self.host}\n{result}")
 
-            filtered_frames.append(result)
+                filtered_frames.extend(result)
+            
 
         return filtered_frames
 
@@ -110,6 +118,7 @@ class VoltKeyProtocol:
         step = len(signal) // (
             (self.periods - 1) * self.bins
         )  # - 1 as preamble's nuked
+        # print(f"Host? {self.host}. Step: {step}. Signal: {len(signal)}\nPeriods: {self.periods}. Bins: {self.bins}")
 
         for i in range(0, len(signal), step):
             # Working in bins, average value of each bin will act as baseline
@@ -127,29 +136,32 @@ class VoltKeyProtocol:
             bits += "1" if deviation > average else "0"
 
         return bits
-
+    
     def find_period_length(self, signal):
         """
-        TODO Consult volkey code to improve this
+        TODO Consult voltkey code to improve this
 
         To be used on both devices. Client must use first to be able to share preamble period
         for frame synchronization. Host may use after shaving
         frames.
         """
-        length = start = None
-
-        for i in signal:
-            # Begin counting frames in period
-            if start == None and length == None:  # TODO improve naive approach
-                start = i
-                length = 0
-            # Still within sin period
-            elif signal[i] != i and length >= 0:
+        length = 0
+        start = signal[0]
+        # Next cycle will follow same direction; that's when we're in a new period
+        next = signal[1]
+        #print(f"Sample of signal in find period length. Host? {self.host}: \n{signal[0:10]}")
+        # print(f"start: {start}, next: {next}\nLength of signal: {len(signal)}")
+        
+        for point in range(len(signal) - 1):
+            # print(signal[point])
+            # Still within cycle
+            if signal[point] != start and signal[point + 1] != next:
                 length += 1
-            # Reached the end of a sin period
-            elif signal[i] == i and length >= 0:
+            # Reached the end of a sin cycle
+            elif signal[point] == start and signal[point + 1] == next and point != 0:
                 break
 
+        print(f"Length approximately: {length}")
         return length
 
     def voltkey_algo(self, signal):
@@ -159,6 +171,7 @@ class VoltKeyProtocol:
         # Assumes that host has synced frames from client preamble
         filtered = self.signal_processing(signal)
         # Once processed, make further chunks to be used to create bits
+        # print(f"Host? {self.host} Filtered frames: {filtered}\n")
         key = self.gen_key(filtered)
 
         return bitstring_to_bytes(key)
@@ -188,11 +201,12 @@ class VoltKeyProtocol:
         if self.verbose:
             print("Extracting context.\n")
         signal = self.extract_signal()
-        print(f"Signal collected from Device. Sample: {signal}")
-        self.period_length = self.find_period_length(signal)
-
+        # print(f"Signal collected from Device. Sample: {signal}")
+        self.period_length = self.find_period_length(signal) # Won't ever see a 0 need to adjust
+        time.sleep(5)
         # Get first period, send to host for data synchronization
-        preamble = signal[: self.period_length]
+        preamble = signal[:self.period_length]
+        # print(f"In client. Sending preamble: {preamble}")
         send_preamble(host, preamble)
 
         # Bit extraction sequence
@@ -215,7 +229,7 @@ class VoltKeyProtocol:
         if self.verbose:
             print("Decommitting.\n")
         key = self.re.decommit_witness(commitment, witness)
-        generated_hash = self.hash(key)
+        generated_hash = self.hash_function(key)
 
         success = (
             True if constant_time.bytes_eq(recieved_hash, generated_hash) else False
@@ -264,20 +278,24 @@ class VoltKeyProtocol:
         if self.verbose:
             print("Extracting context.\n")
         signal = self.extract_signal()
-        print(f"Signal collected from Host. Sample: {signal}")
+        # print(f"Signal collected from Host. Sample: {signal}")
 
         # Synchronize frames with client's preamble
         if self.verbose:
             print("Waiting for client preamble.\n")
         preamble = get_preamble(device, self.timeout)
+        # print(f"In host protocol. Preamble: {preamble}")
 
         if not preamble:
             if self.verbose:
                 print("Timed out: Client preamble not recieved.\n")
+            
+            return
 
         # Deriving period length from preamble
         # OPTION: Host gets period length from preamble, or can figure out its own
         self.period_length = len(preamble)
+        print(f"Host has preamble length of {len(preamble)}")
 
         # Drop frames according to preamble
         synced_frames = self.sync(signal, preamble)
@@ -290,7 +308,7 @@ class VoltKeyProtocol:
         if self.verbose:
             print("Committing witness.\n")
         secret_key, commitment = self.re.commit_witness(witness)
-        generated_hash = self.hash(secret_key)
+        generated_hash = self.hash_function(secret_key)
 
         if self.verbose:
             print("Sending commitment.\n")
@@ -319,6 +337,12 @@ class VoltKeyProtocol:
         parameters += f"window_length: {self.periods - 1}\n"
         parameters += f"band_length: {self.bins}\n"
         parameters += f"time_length: {self.time_length}\n"
+
+    def hash_function(self, bytes):
+        hash_func = hashes.Hash(self.hash)
+        hash_func.update(bytes)
+
+        return hash_func.finalize()
 
 
 # Test code
@@ -356,13 +380,13 @@ if __name__ == "__main__":
 
     print("Testing VoltKey protocol.\n")
 
-    sample_rate = 204
-    ts = Test_Sensor(sample_rate, sample_rate * 17, 32)
+    sample_rate = 25
+    ts = Test_Sensor(sample_rate, sample_rate * 17, sample_rate * 4)
     sr = Sensor_Reader(ts)
-    protocol = VoltKeyProtocol(sr, 8, 4, 16, 8, 30, None, True)
-
+    protocol = VoltKeyProtocol(sr, 8, 4, 16, 8, 10, None, True)
+    time.sleep(3)
     host_process = mp.Process(target=host, args=[protocol])
     device_process = mp.Process(target=device, args=[protocol])
-
+    # time.sleep(3)
     host_process.start()
     device_process.start()
