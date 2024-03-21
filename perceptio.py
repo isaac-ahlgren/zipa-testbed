@@ -168,12 +168,14 @@ class Perceptio_Protocol:
                 print("Uncommiting with witnesses\n")
             key = self.find_commitment(commitments, hs, witnesses)
 
+            success = key != None
+            send_status(host_socket, success)
+
+            # TODO: Fails to uncommit only sometimes which is weird
             # Commitment failed, try again
             if key == None:
                 if self.verbose:
                     print("Witnesses failed to uncommit any commitment - alerting other device for a retry\n")
-                success = False
-                send_status(host_socket, success) # alert other device to status
                 self.checkpoint_log(witnesses, commitments, success, signal, iterations)
                 iterations += 1
                 continue
@@ -297,6 +299,8 @@ class Perceptio_Protocol:
                     print("No status recieved within time limit - early exit.\n\n")
                 return
             elif status == False:
+                if self.verbose:
+                    print("Other device did not uncommit with witnesses - trying again\n")
                 success = False
                 self.checkpoint_log(witnesses, commitments, success, signal, iterations)
                 iterations += 1
@@ -306,6 +310,7 @@ class Perceptio_Protocol:
 
             # TODO: Key confirmation phase is broken
 
+            print("here")
             # Recieve nonce message
             recieved_nonce_msg = get_nonce_msg_standby(device_socket, self.timeout)
 
