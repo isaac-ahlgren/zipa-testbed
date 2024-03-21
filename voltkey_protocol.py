@@ -63,11 +63,11 @@ class VoltKeyProtocol:
         return bitstring_to_bytes(bits)
 
     def sync(self, signal, preamble):
-        synced_frames = None
+        synced_frames = signal
 
         # Focusing on one period with buffer space
         for i in range(
-            self.period_length + self.period_length // 2
+            self.period_length * 2
         ):
             synced = True
 
@@ -340,7 +340,7 @@ if __name__ == "__main__":
 
     print("Testing VoltKey protocol.\n")
 
-    sample_rate = 4000
+    sample_rate = 2_000
     print(f"Sample rate: {sample_rate}.\n")
     ts = Test_Sensor(sample_rate, sample_rate * 17, sample_rate * 4)
     sr = Sensor_Reader(ts)
