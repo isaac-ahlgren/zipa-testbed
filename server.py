@@ -4,7 +4,8 @@ import socket
 HOST = "host    "
 IP_ADDR = "192.168.1.116"
 TARGET_IP_ADDR = ("192.168.1.220", 5005)
-SHURMANN_JSON = {
+
+SHURMANN = {
     "protocol": {"name": "shurmann-siggs", "window_len": 10000, "band_len": 1000},
     "key_length": 8,
     "parity_symbols": 4,
@@ -12,7 +13,7 @@ SHURMANN_JSON = {
     "timeout": 10,
 }
 
-MIETTINEN_JSON = {
+MIETTINEN = {
     "protocol": {
         "name": "miettinen",
         "f": 5,
@@ -29,11 +30,21 @@ MIETTINEN_JSON = {
     "timeout": 10,
 }
 
-json_string = json.dumps(MIETTINEN_JSON)
+VOLTKEY = {
+    "protocol": {
+        "name": "voltkey",
+        "periods": 16,
+        "bins": 8,
+    },
+    "key_length": 8,
+    "parity_symbols": 4,
+    "timeout": 10,
+    "sensor": "test_sensor" # TODO change to VoltKey when ready
+}
 
 if __name__ == "__main__":
     # Pack up message
-    bytestream = json.dumps(MIETTINEN_JSON).encode("utf8")
+    bytestream = json.dumps(MIETTINEN).encode("utf8")
     length = len(bytestream).to_bytes(4, byteorder="big")
     message = HOST.encode() + length + bytestream
     # print(f"JSON: {JSON}\nLength of JSON's bytestream: {length}\nMessage: {message}")
