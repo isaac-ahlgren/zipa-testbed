@@ -15,28 +15,34 @@ class NFSLogger:
         self.identifier = identifier
 
     def log(self, data_tuples, count=None, ip_addr=None):
+        # Ditching timestamp, else new files will get written all the time
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         # Using indexing instead
         for data in data_tuples:
-            # TODO Create directory for data in testbed
-            filename = f"{os.getcwd()}/{data[0]}_id{self.identifier}_{timestamp}"
+            # TODO Ensure that file gets written to NFS mounted on pi
+            filename = f"/mnt/data/{data[0]}_id{self.identifier}"  # File creation time will be recorded by NFS's linux box
             if count is not None:
                 filename += f"_count{count}"
             if ip_addr is not None:
                 filename += f"_ipaddr{ip_addr}"
             filename += f".{data[1]}"
 
-            # Determine mode based on whether data is bytes or str
-            mode = "wb" if isinstance(data, bytes) else "w"
+        mode = "ab" if isinstance(data[2], bytes) else "a"
+
+        if os.path.exists(filename):
             with open(filename, mode) as file:
-                # Write header
+                file.write(data[2])
+        else:
+            with open(filename, mode) as file:
                 header = f"Timestamp: {timestamp}\n"
+
                 if count is not None:
                     header += f"Count: {count}\n"
-                if mode == "w":
-                    file.write(header)  # No need to encode for text mode
+
+                if mode == "a":
+                    file.write(header)
                 else:
-                    file.write(header.encode("utf-8"))  # Encode header for binary mode
+                    file.write(header.encode("utf-8"))
 
                 # If the file is CSV and data is not a string, use numpy to save
                 if data[1] == "csv" and not isinstance(data[2], str):
@@ -49,8 +55,8 @@ class NFSLogger:
                     file.write(
                         str(data[2])
                     )  # Data is a string, no encoding needed in text mode
-            # log file path to mysql database
-            self._log_to_mysql([filename])
+        # log file path to mysql database
+        self._log_to_mysql([filename])
 
     def _log_to_mysql(self, file_paths):
         try:
