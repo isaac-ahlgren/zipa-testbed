@@ -30,7 +30,7 @@ class NFSLogger:
             if count is not None:
                 filename += f"_count{count}"
             if ip_addr is not None:
-                filename += f"_ipaddr{ip_addr}"
+                filename += f"_toipaddr{ip_addr}"
             filename += f".{file_ext}"
 
             # Determine mode based on whether data is bytes or str (it can be a list of bytes too)
@@ -41,19 +41,10 @@ class NFSLogger:
 
             # Open File and perform operation
             with open(filename, mode) as file:
-                # Write header
-                header = f"Timestamp: {timestamp}\n"
-                if count is not None:
-                    header += f"Count: {count}\n"
-                if mode == "w":
-                    file.write(header)  # No need to encode for text mode
-                else:
-                    file.write(header.encode("utf-8"))  # Encode header for binary mode
-
                 # If the file is CSV and data is not a string, use numpy to save
                 if file_ext == "csv" and not isinstance(data, str):
                     np.savetxt(
-                        file, data, header=header.strip(), comments="", fmt="%s"
+                        file, data, comments="", fmt="%s"
                     )
                 elif mode == "wb":
                     if isinstance(data, list) and isinstance(data, bytes):
@@ -62,7 +53,6 @@ class NFSLogger:
                     else:
                         file.write(data)  # Data should already be bytes
                 else:
-                    #print(data)
                     file.write(
                         str(data)
                     )  # Data is a string, no encoding needed in text mode

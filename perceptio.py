@@ -72,8 +72,6 @@ class Perceptio_Protocol:
             fps, events = self.perceptio(signal, self.commitment_length, self.sensor.sensor.sample_rate,
                                self.a, self.cluster_sizes_to_check, self.cluster_th, self.bottom_th, self.top_th, self.lump_th)
             
-            print(len(events))
-
             # Check if fingerprints were generated
             if len(fps) > 0:
                 events_detected = True
@@ -290,6 +288,8 @@ class Perceptio_Protocol:
                 print("Sending commitments\n")
             # Send all commitments
 
+            print(witnesses)
+
             send_commit(commitments, hs, device_socket)
 
             # Check up on other devices status
@@ -302,15 +302,12 @@ class Perceptio_Protocol:
                 if self.verbose:
                     print("Other device did not uncommit with witnesses - trying again\n")
                 success = False
-                self.checkpoint_log(witnesses, commitments, success, signal, iterations)
+                self.checkpoint_log(witnesses, commitments, success, signal, iterations, ip_addr=device_ip_addr)
                 iterations += 1
                 continue
 
             # Key Confirmation Phase
 
-            # TODO: Key confirmation phase is broken
-
-            print("here")
             # Recieve nonce message
             recieved_nonce_msg = get_nonce_msg_standby(device_socket, self.timeout)
 
@@ -349,7 +346,8 @@ class Perceptio_Protocol:
                     "txt",
                     f"successes: {successes} total_iterations: {iterations} succeeded: {successes >= self.conf_threshold})"
                 )
-            ]
+            ],
+            ip_addr=device_ip_addr
         )
 
     def hash_function(self, bytes):
@@ -556,7 +554,7 @@ if __name__ == "__main__":
     from test_sensor import Test_Sensor
     from sensor_reader import Sensor_Reader
     from nfs import NFSLogger
-    prot = Perceptio_Protocol(Sensor_Reader(Test_Sensor(44100, 44100*400, 1024, signal_type='random')),
+    prot = Perceptio_Protocol(Sensor_Reader(Test_Sensor(44100, 44100*50, 1024, signal_type='random')),
                                     8,
                                     4,
                                     44100*20,

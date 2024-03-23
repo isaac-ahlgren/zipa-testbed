@@ -1,5 +1,6 @@
 import numpy as np
 from sensor_interface import SensorInterface
+import time
 
 class Test_Sensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size, signal_type='sine'):
@@ -25,6 +26,7 @@ class Test_Sensor(SensorInterface):
         pass
 
     def read(self):
+        time.sleep(self.chunk_size/self.sample_rate)
         output = np.zeros(self.chunk_size, dtype=self.data_type)
         if self.signal_type == 'random':
             rng = np.random.default_rng()

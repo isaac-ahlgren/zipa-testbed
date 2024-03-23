@@ -29,6 +29,7 @@ class Sensor_Reader:
         self.poll_process.start()
 
     def poll(self):
+
         full_buffer = False
         self.mutex.acquire()
         # First pass when buffer isn't populated with sensor data
@@ -57,7 +58,7 @@ class Sensor_Reader:
             for d in data:
                 self.addressable_buffer[self.pointer.value] = d
                 self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
-                
+
             self.mutex.release()
 
     def read(self, sample_num):
