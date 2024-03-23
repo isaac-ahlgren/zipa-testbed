@@ -29,22 +29,22 @@ class Sensor_Reader:
         self.poll_process.start()
 
     def poll(self):
+
         full_buffer = False
         self.mutex.acquire()
         # First pass when buffer isn't populated with sensor data
         while not full_buffer:
             data = self.sensor.extract()
             
+            if self.pointer.value + len(data) >= self.sensor.buffer_size:
+                full_buffer = True
+
             for d in data:
                 self.addressable_buffer[self.pointer.value] = d
                 self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
 
-            if self.pointer.value + len(data) >= self.sensor.buffer_size:
-                full_buffer = True
-
         self.mutex.release()
 
-        
         # After buffer is full
         while True:
 
@@ -53,13 +53,12 @@ class Sensor_Reader:
             
             self.mutex.acquire()
 
-
             data = self.sensor.extract()
             
             for d in data:
                 self.addressable_buffer[self.pointer.value] = d
                 self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
-                
+
             self.mutex.release()
 
     def read(self, sample_num):
@@ -73,11 +72,10 @@ class Sensor_Reader:
 
         self.semaphore.acquire()
 
-        for d in range(sample_num):
-            data[d] = self.addressable_buffer[
-                (self.pointer.value + d) % self.sensor.buffer_size
+        for i in range(sample_num):
+            data[i] = self.addressable_buffer[
+                (self.pointer.value + i) % self.sensor.buffer_size
             ]
-
         self.semaphore.release()
 
         return data

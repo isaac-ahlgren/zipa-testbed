@@ -173,7 +173,9 @@ class Miettinen_Protocol:
             # Wait for Commitment
             if self.verbose:
                 print("Waiting for commitment from host\n")
-            commitment, h = commit_standby(host_socket, self.timeout)
+            commitments, hs = commit_standby(host_socket, self.timeout)
+
+            commitment = commitments[0]
 
             # Early exist if no commitment recieved in time
             if not commitment:
@@ -338,10 +340,8 @@ class Miettinen_Protocol:
             if self.verbose:
                 print("Sending commitment")
                 print()
-            h = bytes(
-                [0 for i in range(64)]
-            )  # Scheme does not send hash but function expects 64 byte hash (this is gonna change in the future)
-            send_commit(commitment, h, device_socket)
+            
+            send_commit([commitment], None, device_socket)
 
             # Key Confirmation Phase
 

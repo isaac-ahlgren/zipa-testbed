@@ -6,51 +6,61 @@ import numpy as np
 
 
 class NFSLogger:
-    def __init__(self, user, password, host, database, nfs_server_dir, identifier):
+    def __init__(self, user, password, host, database, nfs_server_dir, identifier, local_dir=None):
         self.user = user
         self.password = password
         self.host = host
         self.database = database
         self.nfs_server_dir = nfs_server_dir
         self.identifier = identifier
+        self.local_dir = local_dir
 
     def log(self, data_tuples, count=None, ip_addr=None):
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         # Using indexing instead
-        for data in data_tuples:
-            # TODO Create directory for data in testbed
-            filename = f"{os.getcwd()}/{data[0]}_id{self.identifier}_{timestamp}"
+        if self.local_dir:
+            directory = self.local_dir
+        else:
+            directory = self.nfs_server_dir
+
+        for name, file_ext, data in data_tuples:
+
+            # Create filename
+            filename = f"{directory}/{name}_id{self.identifier}_{timestamp}"
             if count is not None:
                 filename += f"_count{count}"
             if ip_addr is not None:
-                filename += f"_ipaddr{ip_addr}"
-            filename += f".{data[1]}"
+                filename += f"_toipaddr{ip_addr}"
+            filename += f".{file_ext}"
 
-            # Determine mode based on whether data is bytes or str
-            mode = "wb" if isinstance(data, bytes) else "w"
+            # Determine mode based on whether data is bytes or str (it can be a list of bytes too)
+            if isinstance(data, bytes) or (isinstance(data, list) and isinstance(data, bytes)):
+                mode = "wb" 
+            else:
+                mode = "w"
+
+            # Open File and perform operation
             with open(filename, mode) as file:
-                # Write header
-                header = f"Timestamp: {timestamp}\n"
-                if count is not None:
-                    header += f"Count: {count}\n"
-                if mode == "w":
-                    file.write(header)  # No need to encode for text mode
-                else:
-                    file.write(header.encode("utf-8"))  # Encode header for binary mode
-
                 # If the file is CSV and data is not a string, use numpy to save
-                if data[1] == "csv" and not isinstance(data[2], str):
+                if file_ext == "csv" and not isinstance(data, str):
                     np.savetxt(
-                        file, data[2], header=header.strip(), comments="", fmt="%s"
+                        file, data, comments="", fmt="%s"
                     )
                 elif mode == "wb":
-                    file.write(data[2])  # Data should already be bytes
+                    if isinstance(data, list) and isinstance(data, bytes):
+                        for byte_string in data:
+                            file.write(byte_string)
+                    else:
+                        file.write(data)  # Data should already be bytes
                 else:
                     file.write(
-                        str(data[2])
+                        str(data)
                     )  # Data is a string, no encoding needed in text mode
+
+            
             # log file path to mysql database
-            self._log_to_mysql([filename])
+            if not self.local_dir:
+                self._log_to_mysql([filename])
 
     def _log_to_mysql(self, file_paths):
         try:
