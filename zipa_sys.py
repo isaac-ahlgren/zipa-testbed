@@ -214,6 +214,7 @@ class ZIPA_System:
         chunk_sizes = config_params["chunk_sizes"]
         return time_to_collect, sensor_sample_rates, chunk_sizes
 
+    # TODO: make sht31d an option as a sensor
     def create_sensors(self, sample_rates, time_length, chunk_sizes):
         # ASSUME ORDER: Mic, BMP, PIR, VEML, TEST_SENSOR
         # Create instances of physical sensors

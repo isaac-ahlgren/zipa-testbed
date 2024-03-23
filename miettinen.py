@@ -431,6 +431,7 @@ class Miettinen_Protocol:
 
         self.count += 1
 
+    # TODO: Refactor by putting in common_protocols.py, then change all references to this version to the common_protocols.py version
     def diffie_hellman(self, socket):
         # Generate initial private key for Diffie-Helman
         initial_private_key = ec.generate_private_key(self.ec_curve)
@@ -470,6 +471,7 @@ class Miettinen_Protocol:
         hash_func.update(bytes)
         return hash_func.finalize()
 
+    # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
     def send_nonce_msg_to_device(
         self, connection, recieved_nonce_msg, derived_key, prederived_key_hash
     ):
@@ -494,6 +496,7 @@ class Miettinen_Protocol:
 
         return nonce
 
+    # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
     def send_nonce_msg_to_host(self, connection, prederived_key_hash, derived_key):
         # Generate Nonce
         nonce = os.urandom(self.nonce_byte_size)
@@ -509,7 +512,8 @@ class Miettinen_Protocol:
         send_nonce_msg(connection, nonce_msg)
 
         return nonce
-
+    
+    # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
     def verify_mac_from_host(self, recieved_nonce_msg, generated_nonce, derived_key):
         success = False
 
@@ -525,6 +529,7 @@ class Miettinen_Protocol:
             success = True
         return success
 
+    # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
     def verify_mac_from_device(
         self, recieved_nonce_msg, derived_key, prederived_key_hash
     ):
