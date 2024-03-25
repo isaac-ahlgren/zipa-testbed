@@ -11,12 +11,13 @@ from browser import ZIPA_Service_Browser
 from microphone import Microphone
 from miettinen import Miettinen_Protocol
 from network import *
+from nfs import NFSLogger
+from perceptio import Perceptio_Protocol
 from PIR import PIRSensor
 from sensor_reader import Sensor_Reader
 from shurmann import Shurmann_Siggs_Protocol
 from test_sensor import Test_Sensor
 from VEML7700 import LightSensor
-from nfs import NFSLogger 
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -201,6 +202,28 @@ class ZIPA_System:
                         parameters["protocol"]["max_iterations"],
                         parameters["timeout"],
                         self.logger,
+                    )
+                )
+
+            case "perceptio":
+                self.protocols.append(
+                    Perceptio_Protocol(
+                        self.sensors[parameters["sensor"]],
+                        parameters["key_length"],
+                        parameters["parity_symbols"],
+                        parameters["time_length"],
+                        parameters["protocol"]["a"],
+                        parameters["protocol"]["cluster_sizes_to_check"],
+                        parameters["protocol"]["cluster_th"],
+                        parameters["protocol"]["top_th"],
+                        parameters["protocol"]["bottom_th"],
+                        parameters["protocol"]["lump_th"],
+                        parameters["protocol"]["conf_thresh"],
+                        parameters["protocol"]["max_iterations"],
+                        parameters["protocol"]["sleep_time"],
+                        parameters["protocol"]["max_no_events_detected"],
+                        parameters["timeout"],
+                        self.logger                    
                     )
                 )
             case _:

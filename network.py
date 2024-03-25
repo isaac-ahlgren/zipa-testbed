@@ -68,13 +68,15 @@ def send_commit(commitments, hashes, device):
     com_length = len(commitments[0]).to_bytes(4, byteorder='big')
 
     if hashes != None:
-        hash_length = len(hashes[0]).to_bytes(4, byteorder='big')
+        hash_length = len(hashes[0])
     else:
         hash_length = 0
+    hash_length = hash_length.to_bytes(4, byteorder='big')
 
     message = COMM.encode() + number_of_commitments + hash_length + com_length
     for i in range(len(commitments)):
-        message += hashes[i] + commitments[i]
+        # message += hashes[i] + commitments[i]
+        message += commitments[i]
     device.send(message)
 
 def commit_standby(connection, timeout):

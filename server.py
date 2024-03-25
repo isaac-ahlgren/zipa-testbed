@@ -2,9 +2,10 @@ import json
 import socket
 
 HOST = "host    "
-IP_ADDR = "192.168.1.116"
-TARGET_IP_ADDR = ("192.168.1.220", 5005)
-SHURMANN_JSON = {
+IP_ADDR = "192.168.1.8"
+TARGET_IP_ADDR = ("192.168.1.106", 5005)
+
+SHURMANN = {
     "protocol": {"name": "shurmann-siggs", "window_len": 10000, "band_len": 1000},
     "key_length": 8,
     "parity_symbols": 4,
@@ -12,7 +13,7 @@ SHURMANN_JSON = {
     "timeout": 10,
 }
 
-MIETTINEN_JSON = {
+MIETTINEN = {
     "protocol": {
         "name": "miettinen",
         "f": 5,
@@ -21,7 +22,7 @@ MIETTINEN_JSON = {
         "abs_thresh": 0.5,
         "auth_thresh": 0.9,
         "success_thresh": 10,
-        "max_iterations": 50,
+        "max_iterations": 1,
     },
     "key_length": 8,
     "parity_symbols": 4,
@@ -29,11 +30,31 @@ MIETTINEN_JSON = {
     "timeout": 10,
 }
 
-json_string = json.dumps(MIETTINEN_JSON)
+PERCEPTIO = {
+    "protocol": {
+        "name": "perceptio",
+        "a": 0.3,
+        "cluster_sizes_to_check": 3,
+        "cluster_th": 0.08,
+        "top_th": 0.75,
+        "bottom_th": 0.5,
+        "lump_th": 5,
+        "conf_thresh": 5,
+        "max_iterations": 20,
+        "sleep_time": 5,
+        "max_no_events_detected": 10,
+        "timeout": 10,
+    },
+    "key_length": 8,
+    "parity_symbols": 4,
+    "sensor": "microphone",
+    "time_length": 44_100 * 20,
+    "timeout": 10,
+}
 
 if __name__ == "__main__":
     # Pack up message
-    bytestream = json.dumps(MIETTINEN_JSON).encode("utf8")
+    bytestream = json.dumps(PERCEPTIO).encode("utf8")
     length = len(bytestream).to_bytes(4, byteorder="big")
     message = HOST.encode() + length + bytestream
     # print(f"JSON: {JSON}\nLength of JSON's bytestream: {length}\nMessage: {message}")

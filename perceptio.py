@@ -1,15 +1,16 @@
-import numpy as np
-from sklearn.cluster import KMeans
+import multiprocessing as mp
 import struct
 
-import multiprocessing as mp
+import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes, hmac
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from sklearn.cluster import KMeans
 
+from common_protocols import *
 from corrector import Fuzzy_Commitment
 from network import *
 from reed_solomon import ReedSolomonObj
-from common_protocols import *
+
 
 class Perceptio_Protocol:
     def __init__(
@@ -64,14 +65,22 @@ class Perceptio_Protocol:
 
         self.verbose = verbose
 
-
     def extract_context(self, socket):
         events_detected = False
         for i in range(self.max_no_events_detected):
             signal = self.sensor.read(self.time_length)
-            fps, events = self.perceptio(signal, self.commitment_length, self.sensor.sensor.sample_rate,
-                               self.a, self.cluster_sizes_to_check, self.cluster_th, self.bottom_th, self.top_th, self.lump_th)
-            
+            fps, events = self.perceptio(
+                signal,
+                self.commitment_length,
+                self.sensor.sensor.sample_rate,
+                self.a,
+                self.cluster_sizes_to_check,
+                self.cluster_th,
+                self.bottom_th,
+                self.top_th,
+                self.lump_th,
+            )
+
             # Check if fingerprints were generated
             if len(fps) > 0:
                 events_detected = True
@@ -81,12 +90,11 @@ class Perceptio_Protocol:
 
             # Check if other device also succeeded
             status = status_standby(socket, self.timeout)
-            
+
             if status == None:
                 events_detected = status
             else:
-                events_detected = (events_detected and status)
-
+                events_detected = events_detected and status
 
             # Break out of the loop if event was detected
             if events_detected:
@@ -106,7 +114,7 @@ class Perceptio_Protocol:
         parameters += f"cluster_sizes_to_check: {self.cluster_sizes_to_check}\n"
         parameters += f"cluster_th: {self.cluster_th}\n"
         parameters += f"top_th: {self.cluster_th}\n"
-        parameters += f"bottom_th: {self.bottom_th}\n" 
+        parameters += f"bottom_th: {self.bottom_th}\n"
         parameters += f"time_length: {self.time_length}\n"
 
     def device_protocol(self, host_socket):
@@ -122,7 +130,7 @@ class Perceptio_Protocol:
         if self.verbose:
             print("\nSending ACK")
         ack(host_socket)
-        
+
         successes = 0
         iterations = 0
         while successes < self.conf_threshold and iterations < self.max_iterations:
@@ -135,32 +143,33 @@ class Perceptio_Protocol:
                     print("No ACK recieved within time limit - early exit.\n\n")
                 return
 
-
             if self.verbose:
                 print("Extracting context\n")
-            
+
             # Extract bits from sensor
             witnesses, signal, status = self.extract_context(host_socket)
 
             if status == None:
                 if self.verbose:
-                    print("Other device did not respond during extraction - early exit\n")
+                    print(
+                        "Other device did not respond during extraction - early exit\n"
+                    )
                 return
             elif not status:
                 if self.verbose:
                     print("Not enough events detected: moving to next iteration")
-                continue      
+                continue
 
             if self.verbose:
                 print("Waiting for commitment from host\n")
             commitments, hs = commit_standby(host_socket, self.timeout)
-        
+
             # Early exist if no commitment recieved in time
             if not commitments:
                 if self.verbose:
                     print("No commitment recieved within time limit - early exit\n")
                 return
-            
+
             if self.verbose:
                 print("Commitments recieved\n")
                 print("Uncommiting with witnesses\n")
@@ -173,7 +182,9 @@ class Perceptio_Protocol:
             # Commitment failed, try again
             if key == None:
                 if self.verbose:
-                    print("Witnesses failed to uncommit any commitment - alerting other device for a retry\n")
+                    print(
+                        "Witnesses failed to uncommit any commitment - alerting other device for a retry\n"
+                    )
                 self.checkpoint_log(witnesses, commitments, success, signal, iterations)
                 iterations += 1
                 continue
@@ -182,7 +193,7 @@ class Perceptio_Protocol:
 
             if self.verbose:
                 print("Performing key confirmation\n")
- 
+
             # Derive key
             kdf = HKDF(
                 algorithm=self.hash_func, length=self.key_length, salt=None, info=None
@@ -194,7 +205,11 @@ class Perceptio_Protocol:
 
             # Send nonce message to host
             generated_nonce = send_nonce_msg_to_host(
-                host_socket, pd_key_hash, derived_key, self.nonce_byte_size, self.hash_func
+                host_socket,
+                pd_key_hash,
+                derived_key,
+                self.nonce_byte_size,
+                self.hash_func,
             )
 
             # Recieve nonce message
@@ -208,20 +223,28 @@ class Perceptio_Protocol:
 
             # If hashes are equal, then it was successful
             if verify_mac_from_host(
-                recieved_nonce_msg, generated_nonce, derived_key, self.nonce_byte_size, self.hash_func
+                recieved_nonce_msg,
+                generated_nonce,
+                derived_key,
+                self.nonce_byte_size,
+                self.hash_func,
             ):
                 success = True
                 successes += 1
 
             if self.verbose:
                 print(f"Produced Key: {derived_key}\n")
-                print(f"success: {success}, Number of successes {successes}, Total number of iteration {iterations}\n")
+                print(
+                    f"success: {success}, Number of successes {successes}, Total number of iteration {iterations}\n"
+                )
 
             self.checkpoint_log(witnesses, commitments, success, signal, iterations)
             iterations += 1
 
         if self.verbose:
-            print(f"Total Key Pairing Result: success - {successes >= self.conf_threshold}\n")
+            print(
+                f"Total Key Pairing Result: success - {successes >= self.conf_threshold}\n"
+            )
 
         self.logger.log(
             [
@@ -232,7 +255,7 @@ class Perceptio_Protocol:
                 )
             ]
         )
-            
+
     def host_protocol(self, device_sockets):
         # Log parameters to the NFS server
         self.logger.log([("parameters", "txt", self.parameters(True))])
@@ -255,7 +278,7 @@ class Perceptio_Protocol:
         if self.verbose:
             print("Successfully ACKed participating device")
             print()
-        
+
         successes = 0
         iterations = 0
         while successes < self.conf_threshold and iterations < self.max_iterations:
@@ -272,18 +295,20 @@ class Perceptio_Protocol:
 
             if status == None:
                 if self.verbose:
-                    print("Other device did not respond during extraction - early exit\n")
+                    print(
+                        "Other device did not respond during extraction - early exit\n"
+                    )
                 return
             elif not status:
                 if self.verbose:
                     print("Not enough events detected: moving to next iteration")
-                continue      
+                continue
 
             if self.verbose:
                 print("Commiting all the witnesses\n")
             # Create all commitments
             commitments, keys, hs = self.generate_commitments(witnesses)
-            
+
             if self.verbose:
                 print("Sending commitments\n")
             # Send all commitments
@@ -300,9 +325,18 @@ class Perceptio_Protocol:
                 return
             elif status == False:
                 if self.verbose:
-                    print("Other device did not uncommit with witnesses - trying again\n")
+                    print(
+                        "Other device did not uncommit with witnesses - trying again\n"
+                    )
                 success = False
-                self.checkpoint_log(witnesses, commitments, success, signal, iterations, ip_addr=device_ip_addr)
+                self.checkpoint_log(
+                    witnesses,
+                    commitments,
+                    success,
+                    signal,
+                    iterations,
+                    ip_addr=device_ip_addr,
+                )
                 iterations += 1
                 continue
 
@@ -326,41 +360,56 @@ class Perceptio_Protocol:
 
                 # Create and send key confirmation value
                 send_nonce_msg_to_device(
-                    device_socket, recieved_nonce_msg, derived_key, hs[0], self.nonce_byte_size, self.hash_func
+                    device_socket,
+                    recieved_nonce_msg,
+                    derived_key,
+                    hs[0],
+                    self.nonce_byte_size,
+                    self.hash_func,
                 )
 
-                self.checkpoint_log(witnesses, commitments, success, signal, iterations, ip_addr=device_ip_addr)
-            
+                self.checkpoint_log(
+                    witnesses,
+                    commitments,
+                    success,
+                    signal,
+                    iterations,
+                    ip_addr=device_ip_addr,
+                )
 
             if self.verbose:
-                print(f"success: {success}, Number of successes {successes}, Total number of iterations {iterations}\n")
+                print(
+                    f"success: {success}, Number of successes {successes}, Total number of iterations {iterations}\n"
+                )
 
             iterations += 1
 
         if self.verbose:
-            print(f"Total Key Pairing Result: success - {successes >= self.conf_threshold}\n")
+            print(
+                f"Total Key Pairing Result: success - {successes >= self.conf_threshold}\n"
+            )
         self.logger.log(
             [
                 (
                     "pairing_statistics",
                     "txt",
-                    f"successes: {successes} total_iterations: {iterations} succeeded: {successes >= self.conf_threshold})"
+                    f"successes: {successes} total_iterations: {iterations} succeeded: {successes >= self.conf_threshold})",
                 )
             ],
-            ip_addr=device_ip_addr
+            ip_addr=device_ip_addr,
         )
 
     def hash_function(self, bytes):
         hash_func = hashes.Hash(self.hash_func)
         hash_func.update(bytes)
         return hash_func.finalize()
-    
+
     def ewma(self, signal, a):
         y = np.zeros(len(signal))
 
-        y[0] = a*signal[0]
-        for i in range(1,len(signal)):
-            y[i] = a*signal[i] + (1-a)*y[i-1]
+        y[0] = a * signal[0]
+        for i in range(1, len(signal)):
+            y[i] = a * signal[i] + (1 - a) * y[i - 1]
         return y
 
     def get_events(self, signal, a, bottom_th, top_th, lump_th):
@@ -383,9 +432,9 @@ class Perceptio_Protocol:
             events.append((beg_event_num, i))
 
         i = 0
-        while i < len(events)-1:
-            if events[i+1][0] - events[i][1] <= lump_th:
-                new_element = (events[i][0], events[i+1][1])
+        while i < len(events) - 1:
+            if events[i + 1][0] - events[i][1] <= lump_th:
+                new_element = (events[i][0], events[i + 1][1])
                 events.pop(i)
                 events.pop(i)
                 events.insert(i, new_element)
@@ -398,7 +447,7 @@ class Perceptio_Protocol:
         event_features = []
         for i in range(len(events)):
             length = events[i][1] - events[i][0]
-            max_amplitude = np.max(signal[events[i][0]:events[i][1]])
+            max_amplitude = np.max(signal[events[i][0] : events[i][1]])
             event_features.append((length, max_amplitude))
         return event_features
 
@@ -406,13 +455,15 @@ class Perceptio_Protocol:
         if len(event_features) < cluster_sizes_to_check:
             # Handle the case where the number of samples is less than the desired number of clusters
             if self.verbose:
-                print("Warning: Insufficient samples for clustering. Returning default label and k=1.")
+                print(
+                    "Warning: Insufficient samples for clustering. Returning default label and k=1."
+                )
             return np.zeros(len(event_features), dtype=int), 1
 
-        km = KMeans(1, n_init='auto', random_state=0).fit(event_features)
+        km = KMeans(1, n_init="auto", random_state=0).fit(event_features)
         x1 = km.inertia_
         rel_inert = x1
-    
+
         k = None
         labels = None
         inertias = [rel_inert]
@@ -420,14 +471,14 @@ class Perceptio_Protocol:
         for i in range(2, cluster_sizes_to_check):
             labels = km.labels_
 
-            km = KMeans(i, n_init='auto', random_state=0).fit(event_features)
+            km = KMeans(i, n_init="auto", random_state=0).fit(event_features)
             x2 = km.inertia_
 
-            inertias.append(x2) 
+            inertias.append(x2)
             perc = (x1 - x2) / rel_inert
 
             x1 = x2
-        
+
             # Break if reached elbow
             if perc <= cluster_th:
                 k = i - 1
@@ -453,15 +504,26 @@ class Perceptio_Protocol:
             event_list = grouped_events[i]
             key = bytearray()
             for i in range(len(event_list)):
-                interval = (event_list[i][1] - event_list[i][0])/Fs
-                key += bytearray(struct.pack('>f', interval))
-        
+                interval = (event_list[i][1] - event_list[i][0]) / Fs
+                key += bytearray(struct.pack(">f", interval))
+
             if len(key) >= key_size:
                 key = bytes(key[:key_size])
                 fp.append(key)
         return fp
 
-    def perceptio(self, signal, key_size, Fs, a, cluster_sizes_to_check, cluster_th, bottom_th, top_th, lump_th):
+    def perceptio(
+        self,
+        signal,
+        key_size,
+        Fs,
+        a,
+        cluster_sizes_to_check,
+        cluster_th,
+        bottom_th,
+        top_th,
+        lump_th,
+    ):
         events = self.get_events(signal, a, bottom_th, top_th, lump_th)
         if len(events) < 2:
             # Needs two events in order to calculate interevent timings
@@ -471,8 +533,10 @@ class Perceptio_Protocol:
 
         event_features = self.get_event_features(events, signal)
 
-        labels, k = self.kmeans_w_elbow_method(event_features, cluster_sizes_to_check, cluster_th)
- 
+        labels, k = self.kmeans_w_elbow_method(
+            event_features, cluster_sizes_to_check, cluster_th
+        )
+
         grouped_events = self.group_events(events, labels, k)
 
         fps = self.gen_fingerprints(grouped_events, k, key_size, Fs)
@@ -489,7 +553,12 @@ class Perceptio_Protocol:
             key_hash = self.hash_function(keys[i])
 
             if verify_mac_from_device(
-                recieved_nonce_msg, derived_key, key_hash, self.nonce_byte_size, self.hash_func):
+                recieved_nonce_msg,
+                derived_key,
+                key_hash,
+                self.nonce_byte_size,
+                self.hash_func,
+            ):
                 key_found = derived_key
                 break
         return key_found
@@ -498,13 +567,15 @@ class Perceptio_Protocol:
         key = None
         for i in range(len(fingerprints)):
             for j in range(len(commitments)):
-                potential_key = self.re.decommit_witness(commitments[j], fingerprints[i])
+                potential_key = self.re.decommit_witness(
+                    commitments[j], fingerprints[i]
+                )
                 potential_key_hash = self.hash_function(potential_key)
                 if constant_time.bytes_eq(potential_key_hash, hashes[j]):
                     key = potential_key
                     break
         return key
-    
+
     def generate_commitments(self, witnesses):
         commitments = []
         keys = []
@@ -515,21 +586,26 @@ class Perceptio_Protocol:
             keys.append(key)
             hs.append(self.hash_function(key))
         return commitments, keys, hs
-    
-    def checkpoint_log(self, witnesses, commitments, success, signal, iterations, ip_addr=None):
+
+    def checkpoint_log(
+        self, witnesses, commitments, success, signal, iterations, ip_addr=None
+    ):
         self.logger.log(
-                [
-                    ("witness", "txt", witnesses),
-                    ("commitments", "txt", commitments),
-                    ("success", "txt", str(success)),
-                    ("signal", "csv", signal),
-                ],
-                count=iterations,
-                ip_addr=ip_addr
-                )
+            [
+                ("witness", "txt", witnesses),
+                ("commitments", "txt", commitments),
+                ("success", "txt", str(success)),
+                ("signal", "csv", signal),
+            ],
+            count=iterations,
+            ip_addr=ip_addr,
+        )
+
 
 ###TESTING CODE###
 import socket
+
+
 def device(prot):
     print("device")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -537,6 +613,7 @@ def device(prot):
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.connect(("127.0.0.1", 2000))
     prot.device_protocol(s)
+
 
 def host(prot):
     print("host")
@@ -549,27 +626,31 @@ def host(prot):
     s.setblocking(0)
     prot.host_protocol([conn])
 
+
 if __name__ == "__main__":
     import multiprocessing as mp
-    from test_sensor import Test_Sensor
-    from sensor_reader import Sensor_Reader
+
     from nfs import NFSLogger
-    prot = Perceptio_Protocol(Sensor_Reader(Test_Sensor(44100, 44100*50, 1024, signal_type='random')),
-                                    8,
-                                    4,
-                                    44100*20,
-                                    0.3,
-                                    3,
-                                    0.08,
-                                    0.75,
-                                    0.5,
-                                    5,
-                                    5,
-                                    20,
-                                    5,
-                                    10,
-                                    10,
-                                    NFSLogger(None, None, None, None, None, 1, "./data"),
+    from sensor_reader import Sensor_Reader
+    from test_sensor import Test_Sensor
+
+    prot = Perceptio_Protocol(
+        Sensor_Reader(Test_Sensor(44100, 44100 * 50, 1024, signal_type="random")),
+        8,
+        4,
+        44100 * 20,
+        0.3,
+        3,
+        0.08,
+        0.75,
+        0.5,
+        5,
+        5,
+        20,
+        5,
+        10,
+        10,
+        NFSLogger(None, None, None, None, None, 1, "./data"),
     )
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
