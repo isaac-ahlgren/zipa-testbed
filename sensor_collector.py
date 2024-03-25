@@ -96,8 +96,7 @@ class SensorCollector:
         self.semaphore.release()
 
         csv = ", ".join(str(num) for num in data)
-        self.logger.log(str(self.sensor.name), "csv", csv)
-
+        self.logger.log((str(self.sensor.name), "csv", csv))
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
@@ -110,17 +109,24 @@ if __name__ == "__main__":
         length = 3 * 48000
         output = np.zeros(10 * length)
         for i in range(10):
-            data = sen.read()
-            for j in range(length):
-                output[j + i * length] = data[j]
-        plt.plot(output)
-        plt.show()
+            sen.collect(40_000)
+            # for j in range(length):
+            #     output[j + i * length] = data[j]
+        # plt.plot(output)
+        # plt.show()
         quit()
 
     from test_sensor import Test_Sensor
 
-    ts = Test_Sensor(48000, 3 * 48000, signal_type="random")
-    sen_reader = Sensor_Reader(ts)
+    ts = Test_Sensor(48000, 3 * 48000, 12_000, signal_type="random")
+    sen_reader = SensorCollector(ts, NFSLogger(
+                      user='luke',
+                      password='lucor011&',
+                      host='10.17.29.18',
+                      database='file_log',
+                      nfs_server_dir='/mnt/data',  # Make sure this directory exists and is writable
+                      identifier='192.168.1.220'  # Could be IP address or any unique identifier
+                    ))
     sen_thread(sen_reader)
     p = mp.Process(target=getter_thread, args=[sen_reader])
     p.start()
