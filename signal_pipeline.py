@@ -23,6 +23,12 @@ class FastZIP_Protocol:
         self.NORM_TYPES = ['energy', 'zscore', 'meansub', 'minmax']
         self.PEAK_HEIGHT = 0.25
         self.PEAK_DISTANCE = 0.25 * self.sample_rate
+        self.ACC_FS = 100
+        self.GYR_FS = 100
+        self.BAR_FS = 10
+        self.FP_ACC_CHUNK = 10
+        self.FP_GYR_CHUNK = 10
+        self.FP_BAR_CHUNK = 20
 
     def align_adv_data(self, signal):
         # Assuming alignment is based on pre-calculated offsets or experimental adjustments
@@ -222,18 +228,44 @@ class FastZIP_Protocol:
         bits = ''.join(['1' if s > threshold else '0' for s in signal])
         return bits
 
-    def signal_to_bits(self, signal, sensor_type='acc'):
+    def signal_to_bits(self, signal, sensor_type):
+        # Determine chunk and window sizes based on sensor_type
         if sensor_type == 'bar':
-            activity_detected = self.activity_filter(self.normalize_signal(signal, 'meansub'), sensor_type);
-        else:
-            activity_detected = self.activity_filter(signal, sensor_type);
+            fp_chunk = self.FP_BAR_CHUNK
+            fs = self.BAR_FS
+        elif sensor_type == 'acc':
+            fp_chunk = self.FP_ACC_CHUNK
+            fs = self.ACC_FS
+        elif sensor_type == 'gyrW':
+            fp_chunk = self.FP_GYR_CHUNK
+            fs = self.GYR_FS
+        # Define for other sensor types as necessary
 
-        if activity_detected:
-            processed_signal = self.process_chunk(signal, sensor_type)
-            bits = self.quantize_signal(processed_signal)
-            return bits
-        else:
-            return 'No significant activity detected'
+        # Determine the window size for chunking
+        win_size = int(fp_chunk / 4) if sensor_type == 'bar' else int(fp_chunk / 2)
+
+        # Compute number of chunks
+        n_chunks = int(len(signal) / (win_size * fs)) - int((fp_chunk - win_size) / win_size)
+
+        binary_data = []
+        for i in range(n_chunks):
+            # Get signal chunk
+            sig_chunk = signal[i * win_size * fs:(i * win_size + fp_chunk) * fs]
+
+            # Process each chunk if it contains significant activity
+            if sensor_type == 'bar':
+                activity_detected = self.activity_filter(self.normalize_signal(sig_chunk, 'meansub'), sensor_type);
+            else:
+                activity_detected = self.activity_filter(sig_chunk, sensor_type);
+
+            if activity_detected:
+                processed_chunk = self.process_chunk(sig_chunk, sensor_type)
+                chunk_bits = self.quantize_signal(processed_chunk)
+                binary_data.append(chunk_bits)
+            else:
+                binary_data.append('No significant activity detected')
+
+        return binary_data
 
 # Example usage:
 if __name__ == "__main__":
