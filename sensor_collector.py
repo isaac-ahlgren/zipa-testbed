@@ -8,9 +8,13 @@ import numpy as np
 from nfs import NFSLogger
 
 
-# MAIN TEST FOR THIS:
-# you want multiple processes (threads) to read from the buffer at the same time during
 class SensorCollector:
+    """
+    Class copies `Sensor_Reader`, but refitted to collect and log sensor data
+    onto NFS server and MySQL. Noticable difference is the absence of `read`
+    function, being replaced by `collect`.
+    """
+
     def __init__(self, device, logger):
         self.sensor = device
         self.shm = shared_memory.SharedMemory(
@@ -22,9 +26,7 @@ class SensorCollector:
             dtype=self.sensor.data_type,
             buffer=self.shm.buf,
         )
-        self.ready = mp.Value("b", False)
         self.pointer = mp.Value("i", 0)
-
         self.MAX_SENSOR_CLIENTS = 1024
         self.semaphore = mp.Semaphore(self.MAX_SENSOR_CLIENTS)
         self.mutex = mp.Semaphore()
@@ -65,17 +67,7 @@ class SensorCollector:
 
             self.mutex.release()
 
-    # TODO Redo this to route chunks to NFS server.
     def collect(self, sample_num):
-        """
-        Create file for sensor if not in NFS; append chunks to file if exists
-
-        CSV File
-
-        Make sure you're mounted to the NFS
-
-        Log if file was created using NFS logger
-        """
         if sample_num > self.sensor.buffer_size:
             raise Exception(
                 "Sensor_Reader.read: Cannot request more data than the buffer size"
@@ -99,21 +91,14 @@ class SensorCollector:
         self.logger.log((str(self.sensor.name), "csv", csv))
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
     def sen_thread(sen):
         p = mp.Process(target=sen.poll)
         p.start()
 
     def getter_thread(sen):
-        length = 3 * 48000
-        output = np.zeros(10 * length)
         for i in range(10):
             sen.collect(40_000)
-            # for j in range(length):
-            #     output[j + i * length] = data[j]
-        # plt.plot(output)
-        # plt.show()
+
         quit()
 
     from test_sensor import Test_Sensor
@@ -127,6 +112,7 @@ if __name__ == "__main__":
                       nfs_server_dir='/mnt/data',  # Make sure this directory exists and is writable
                       identifier='192.168.1.220'  # Could be IP address or any unique identifier
                     ))
+    
     sen_thread(sen_reader)
     p = mp.Process(target=getter_thread, args=[sen_reader])
     p.start()

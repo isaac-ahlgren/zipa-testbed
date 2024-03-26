@@ -14,26 +14,28 @@ class NFSLogger:
         self.nfs_server_dir = nfs_server_dir
         self.identifier = identifier
 
-    def log(self, data_tuples, count=None, ip_addr=None):
-        # Ditching timestamp, else new files will get written all the time
+    def log(self, data, count=None, ip_addr=None):
+        # Timestamp only used in the creation of a file
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        # Using indexing instead
-        # TODO Ensure that file gets written to NFS mounted on pi
-        filename = f"/mnt/data/{data_tuples[0]}_id{self.identifier}"  # File creation time will be recorded by NFS's linux box
+        # File logged onto mounted NFS server
+        filename = f"/mnt/data/{data[0]}_id{self.identifier}"
+
         if count is not None:
             filename += f"_count{count}"
         if ip_addr is not None:
             filename += f"_ipaddr{ip_addr}"
-        filename += f".{data_tuples[1]}"
 
-        mode = "ab" if isinstance(data_tuples[2], bytes) else "a"
+        filename += f".{data[1]}"
+
+        # Appending to avoid overwriting data
+        mode = "ab" if isinstance(data[2], bytes) else "a"
 
         if os.path.exists(filename):
-            print("File exists.\n")
+            # Append to the end of an exsiting file
             with open(filename, mode) as file:
-                file.write(data_tuples[2])
+                file.write(data[2])
         else:
-            print("File doesn't exist.\n")
+            # Create file along with metadata, append data
             with open(filename, mode) as file:
                 header = f"Timestamp: {timestamp}\n"
 
@@ -46,15 +48,15 @@ class NFSLogger:
                     file.write(header.encode("utf-8"))
 
                 # If the file is CSV and data is not a string, use numpy to save
-                if data_tuples[1] == "csv" and not isinstance(data_tuples[2], str):
+                if data[1] == "csv" and not isinstance(data[2], str):
                     np.savetxt(
-                        file, data_tuples[2], header=header.strip(), comments="", fmt="%s"
+                        file, data[2], header=header.strip(), comments="", fmt="%s"
                     )
                 elif mode == "wb":
-                    file.write(data_tuples[2])  # Data should already be bytes
+                    file.write(data[2])  # Data should already be bytes
                 else:
                     file.write(
-                        str(data_tuples[2])
+                        str(data[2])
                     )  # Data is a string, no encoding needed in text mode
                 # log file path to mysql database
                 self._log_to_mysql([filename])
