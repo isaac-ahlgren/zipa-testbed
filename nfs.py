@@ -56,8 +56,8 @@ class NFSLogger:
                     file.write(
                         str(data_tuples[2])
                     )  # Data is a string, no encoding needed in text mode
-        # log file path to mysql database
-        self._log_to_mysql([filename])
+                # log file path to mysql database
+                self._log_to_mysql([filename])
 
     def _log_to_mysql(self, file_paths):
         try:
