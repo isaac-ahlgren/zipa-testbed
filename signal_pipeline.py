@@ -29,6 +29,17 @@ class FastZIP_Protocol:
         self.FP_ACC_CHUNK = 10
         self.FP_GYR_CHUNK = 10
         self.FP_BAR_CHUNK = 20
+        self.BITS_ACC = 24
+        self.BITS_GYR = 16
+        self.BITS_BAR = 12
+        self.BIAS_ACC_V = 0.00015
+        self.BIAS_ACC_H = 0.0001
+        self.BIAS_GYR = 0
+        self.BIAS_BAR = 0
+        self.DELTA_ACC = 10
+        self.DELTA_GYR = 25
+        self.DELTA_BAR = 5
+        self.FPS_PER_CHUNK = 1000
 
     def align_adv_data(self, signal):
         # Assuming alignment is based on pre-calculated offsets or experimental adjustments
@@ -222,6 +233,173 @@ class FastZIP_Protocol:
 
         return dec_acc
 
+    def compute_qs_thr(self, chunk, bias):
+        # Make a copy of chunk
+        chunk_cpy = np.copy(chunk)
+    
+        # Sort the chunk
+        chunk_cpy.sort()
+    
+        return np.median(chunk_cpy) + bias
+   
+    def construct_equidist_rand_points(self, eqd_points1, eqd_points2):
+        # Check that length of equidistant arrays is the same
+        if len(eqd_points1) != len(eqd_points2):
+            print('construct_equidist_rand_points: input arrays must have the same length!')
+            return
+    
+        # Array storing random points
+        random_points = np.zeros(len(eqd_points1) * 2, dtype=int)
+    
+        # Index to populate random points
+        idx = 0
+    
+        # Iterate over equidistant points
+        for i in range(0, len(eqd_points1)):
+            # Point in the middle is the same for both equ_point arrays
+            if i == 0:
+                random_points[idx] = eqd_points1[i]
+            else:
+                # Take one element from the 1st array and the second element from the second array and put the consequently
+                random_points[idx + 1] = eqd_points1[i]
+                random_points[idx + 2] = eqd_points2[i]
+            
+                # Move on with idx
+                idx += 2
+            
+        return random_points
+
+    def generate_fingerprint(self, chunk, random_points, qs_thr):
+        # Fingerprint to be returned
+        fp = []
+    
+        # Iterate over random points
+        for i in range(0, len(random_points)):
+            if chunk[random_points[i]] > qs_thr:
+                fp.append('1')
+            else:
+                fp.append('0')
+            
+        return ''.join(fp)
+
+    def generate_equidist_rand_points(self, chunk_len, step, eqd_delta):
+        # Equidistant delta cannot be bigger than the step
+        if eqd_delta > step:
+            print('generate_equidist_rand_points: "eqd_delta" must be smaller than "step"')
+            return -1, 0
+    
+        # Store equidistant random points
+        eqd_rand_points = []
+    
+        # Generate equdistant points
+        for i in range(0, ceil(chunk_len / eqd_delta)):
+            eqd_rand_points.append(np.arange(0 + eqd_delta * i, chunk_len + eqd_delta * i, step) % chunk_len)
+        
+        return eqd_rand_points, len(eqd_rand_points)
+    
+    def generate_random_points(self, chunk_len, n_bits, strat='random'):
+        if strat == 'random':
+            return np.array([secretsGenerator.randint(0, chunk_len - 1) for x in range(n_bits)])
+        #         return np.array(sorted([secretsGenerator.randint(0, chunk_len - 1) for x in range(n_bits)]))
+        elif strat == 'equid-start':
+            # Default values for guard and increment
+            guard = 0
+            inc = 1
+        
+            # To cover the most of the signal with points we use a guard interval (start, end) and increment (distance between poitns)
+            if n_bits == self.BITS_ACC:
+                guard = 5
+            elif n_bits == self.BITS_GYR:
+                guard = 5
+                inc = 3
+            elif n_bits == self.BITS_BAR:
+                guard = 5
+                inc = 0
+            
+            # Cases for reduced number of bits
+            if n_bits == self.BITS_ACC / 2 + 1:
+                return np.arange(8, 1000, 82)
+        
+            elif n_bits == self.BITS_GYR / 2 + 1:
+                return np.arange(4, 1000, 124)
+            
+            elif n_bits == self.BITS_BAR / 2 + 1:
+                return np.arange(4, 200, 32)
+        
+            return np.arange(0 + guard, chunk_len + guard, ceil(chunk_len / n_bits) + inc)
+        
+        elif strat == 'equid-end':
+            return np.arange(chunk_len - 1, 0, -ceil(chunk_len / n_bits))
+        elif strat == 'equid-midleft' or strat == 'equid-midright':
+            # Generate left and right planes with equidistant points
+            left_side = np.arange(int(chunk_len / 2), 0, -ceil(chunk_len / n_bits))
+            right_side = np.arange(int(chunk_len / 2), chunk_len, ceil(chunk_len / n_bits))
+        
+            if strat == 'equid-midleft':
+                return construct_equidist_rand_points(left_side, right_side)
+            else:
+                return construct_equidist_rand_points(right_side, left_side)
+
+    def generate_fps_corpus_chunk(self, chunk, chunk_qs_thr, n_bits, n_iter=None, eqd_delta=-1):
+        if n_iter is None:
+            n_iter = self.FPS_PER_CHUNK
+        # Initialize vars for computing a corpus of fingerprints
+        fps = []
+        rps = []
+        eqd_flag = False
+
+        # ToDo: this is just for testing, remove it later on
+        rps_strat = ['equid-start', 'equid-end', 'equid-midleft', 'equid-midright']
+
+        # Check if equidistant delta is valid
+        if isinstance(eqd_delta, int) and eqd_delta > 0:
+
+            # Use proper increment (distance between poitns) for each modality
+            if n_bits == self.BITS_ACC:
+                inc = 1
+            elif n_bits == self.BITS_GYR:
+                inc = 3
+            elif n_bits == self.BITS_BAR:
+                inc = 0
+
+            # Cases for reduced number of bits
+            if n_bits == self.BITS_ACC / 2 + 1:
+                inc = 0
+                eqd_delta = 50
+
+            elif n_bits == self.BITS_GYR / 2 + 1:
+                inc = 0
+                eqd_delta = 100
+
+            elif n_bits == self.BITS_BAR / 2 + 1:
+                inc = 0
+                eqd_delta = 20
+
+            # Generate a corpus of equidistant random points
+            eqd_rand_points, n_iter = self.generate_equidist_rand_points(len(chunk), ceil(len(chunk) / n_bits) + inc, eqd_delta)
+
+            # Set equidist flag
+            eqd_flag = True
+
+        # Generate a number of fingerprtins from a single chunk
+        for i in range(0, n_iter):
+            # Generate random x-axis points (time)
+            if not eqd_flag:
+                rand_points = self.generate_random_points(len(chunk), n_bits, rps_strat[0])
+            else:
+                rand_points = eqd_rand_points[i]
+
+            # Generate fp
+            fp = self.generate_fingerprint(chunk, rand_points, chunk_qs_thr)
+
+            # Store random points
+            rps.append(' '.join(str(x) for x in rand_points.tolist()))
+
+            # Append a chunk fingerprint to the corpus of fingerprints
+            fps.append(''.join(fp))
+
+        return fps, rps
+
     def quantize_signal(self, signal):
         # Quantization scheme to convert the filtered signal into binary data
         threshold = np.mean(signal)  # Using mean as a simple threshold example
@@ -233,12 +411,18 @@ class FastZIP_Protocol:
         if sensor_type == 'bar':
             fp_chunk = self.FP_BAR_CHUNK
             fs = self.BAR_FS
+            n_bits = self.BITS_BAR
+            bias = self.BIAS_BAR
         elif sensor_type == 'acc':
             fp_chunk = self.FP_ACC_CHUNK
             fs = self.ACC_FS
+            n_bits = self.BITS_ACC
+            bias = self.BIAS_ACC_V
         elif sensor_type == 'gyrW':
             fp_chunk = self.FP_GYR_CHUNK
             fs = self.GYR_FS
+            n_bits = self.BITS_GYR
+            bias = self.BIAS_GYR
         # Define for other sensor types as necessary
 
         # Determine the window size for chunking
@@ -254,14 +438,15 @@ class FastZIP_Protocol:
 
             # Process each chunk if it contains significant activity
             if sensor_type == 'bar':
-                activity_detected = self.activity_filter(self.normalize_signal(sig_chunk, 'meansub'), sensor_type);
+                activity_detected = self.activity_filter(self.normalize_signal(sig_chunk, 'meansub'), sensor_type)
             else:
-                activity_detected = self.activity_filter(sig_chunk, sensor_type);
+                activity_detected = self.activity_filter(sig_chunk, sensor_type)
 
             if activity_detected:
                 processed_chunk = self.process_chunk(sig_chunk, sensor_type)
-                chunk_bits = self.quantize_signal(processed_chunk)
-                binary_data.append(chunk_bits)
+                chunk_qs_thr = self.compute_qs_thr(processed_chunk, bias)
+                fps, rps = self.generate_fps_corpus_chunk(processed_chunk, chunk_qs_thr, n_bits, 1)
+                binary_data.append({'fps': fps, 'rps': rps})
             else:
                 binary_data.append('No significant activity detected')
 
