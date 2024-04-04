@@ -15,8 +15,10 @@ class NFSLogger:
         self.identifier = identifier
         self.local_dir = local_dir
 
-    def log(self, data_tuples, count=None, ip_addr=None):
+    def log(self, data, count=None, ip_addr=None):
+        # Timestamp only used in the creation of a file
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+
         # Using indexing instead
         if self.local_dir:
             directory = self.local_dir

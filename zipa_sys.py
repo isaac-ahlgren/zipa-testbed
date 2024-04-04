@@ -16,6 +16,7 @@ from perceptio import Perceptio_Protocol
 from PIR import PIRSensor
 from sensor_reader import Sensor_Reader
 from shurmann import Shurmann_Siggs_Protocol
+from voltkey_protocol import VoltKeyProtocol
 from test_sensor import Test_Sensor
 from VEML7700 import LightSensor
 
@@ -204,7 +205,20 @@ class ZIPA_System:
                         self.logger,
                     )
                 )
-
+                
+            case "voltkey":
+                self.protocols.append(
+                    VoltKeyProtocol(
+                        self.sensors[parameters["sensor"]],
+                        parameters["key_length"],
+                        parameters["parity_symbols"],
+                        parameters["protocol"]["periods"],
+                        parameters["protocol"]["bins"],
+                        parameters["timeout"],
+                        self.logger
+                    )
+                )
+                
             case "perceptio":
                 self.protocols.append(
                     Perceptio_Protocol(
@@ -258,6 +272,7 @@ class ZIPA_System:
         self.devices["test_sensor"] = Test_Sensor(
             sample_rates["test_sensor"], sample_rates["test_sensor"] * time_length, chunk_sizes["test_sensor"]
         )
+        # TODO add VoltKey sensor
 
         # Wrap physical sensors into sensor reader
         for device in self.devices:
