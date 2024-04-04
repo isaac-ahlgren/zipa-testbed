@@ -61,26 +61,17 @@ class VoltKeyProtocol:
         bits = self.voltkey_algo(filtered_signal)
 
         return bitstring_to_bytes(bits)
-
+    
     def sync(self, signal, preamble):
-        synced_frames = signal
+        """
+        Aligns datasets through client preamble.
+        """
 
-        # Focusing on one period with buffer space
-        for i in range(
-            self.period_length * 2
-        ):
-            synced = True
-
-            # Evaluate if shift aligns frames with preamble
-            for j in range(self.period_length):
-                if preamble[j] != signal[i + j]:
-                    synced = False
-                    break
-
-            # Adjust frames
-            if synced == True:
-                synced_frames = signal[i:]
-                break
+        # Find where the preamble slice fits best in signal dataset
+        correlation = np.correlate(preamble, signal, 'valid')
+        max_correlation_index = np.argmax(correlation)
+        # Slice and return aligned frames
+        synced_frames = signal[max_correlation_index:]
 
         return synced_frames
 
@@ -89,8 +80,6 @@ class VoltKeyProtocol:
         Assuming the length of a sinusoid period
 
         Working with values ranging from 1-48600
-
-        TODO redo this with calculated period length instead
         """
         filtered_frames = []
         # Iterate through each period; preamble is skipped due to public knowledge
