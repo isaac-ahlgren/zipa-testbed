@@ -11,13 +11,14 @@ from browser import ZIPA_Service_Browser
 from microphone import Microphone
 from miettinen import Miettinen_Protocol
 from network import *
+from nfs import NFSLogger
+from perceptio import Perceptio_Protocol
 from PIR import PIRSensor
 from sensor_reader import Sensor_Reader
 from shurmann import Shurmann_Siggs_Protocol
 from voltkey_protocol import VoltKeyProtocol
 from test_sensor import Test_Sensor
 from VEML7700 import LightSensor
-from nfs import NFSLogger 
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -204,7 +205,7 @@ class ZIPA_System:
                         self.logger,
                     )
                 )
-
+                
             case "voltkey":
                 self.protocols.append(
                     VoltKeyProtocol(
@@ -218,6 +219,27 @@ class ZIPA_System:
                     )
                 )
                 
+            case "perceptio":
+                self.protocols.append(
+                    Perceptio_Protocol(
+                        self.sensors[parameters["sensor"]],
+                        parameters["key_length"],
+                        parameters["parity_symbols"],
+                        parameters["time_length"],
+                        parameters["protocol"]["a"],
+                        parameters["protocol"]["cluster_sizes_to_check"],
+                        parameters["protocol"]["cluster_th"],
+                        parameters["protocol"]["top_th"],
+                        parameters["protocol"]["bottom_th"],
+                        parameters["protocol"]["lump_th"],
+                        parameters["protocol"]["conf_thresh"],
+                        parameters["protocol"]["max_iterations"],
+                        parameters["protocol"]["sleep_time"],
+                        parameters["protocol"]["max_no_events_detected"],
+                        parameters["timeout"],
+                        self.logger                    
+                    )
+                )
             case _:
                 print("Protocol not supported.")
 
@@ -229,6 +251,7 @@ class ZIPA_System:
         chunk_sizes = config_params["chunk_sizes"]
         return time_to_collect, sensor_sample_rates, chunk_sizes
 
+    # TODO: make sht31d an option as a sensor
     def create_sensors(self, sample_rates, time_length, chunk_sizes):
         # ASSUME ORDER: Mic, BMP, PIR, VEML, TEST_SENSOR
         # Create instances of physical sensors
