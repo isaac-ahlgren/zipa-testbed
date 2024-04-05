@@ -40,7 +40,8 @@ VOLTKEY = {
     "parity_symbols": 4,
     "timeout": 10,
     "sensor": "test_sensor" # TODO change to VoltKey when ready
-  
+}
+
 PERCEPTIO = {
     "protocol": {
         "name": "perceptio",
@@ -68,7 +69,6 @@ if __name__ == "__main__":
     bytestream = json.dumps(PERCEPTIO).encode("utf8")
     length = len(bytestream).to_bytes(4, byteorder="big")
     message = HOST.encode() + length + bytestream
-    # print(f"JSON: {JSON}\nLength of JSON's bytestream: {length}\nMessage: {message}")
 
     # Create socket and connect to client that acts as host
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

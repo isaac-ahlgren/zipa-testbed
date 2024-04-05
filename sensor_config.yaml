@@ -1,4 +1,10 @@
 time_collected: 400 # TODO Adjust back to 2 mins
+sensors_used:
+  microphone: True
+  bmp280: True
+  pir: True
+  veml7700: True
+  test_sensor: False
 sensor_sample_rates:
   microphone: 44100
   bmp280: 50

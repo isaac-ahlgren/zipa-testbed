@@ -3,7 +3,6 @@ import ctypes
 import os
 import numpy as np
 
-# TODO: Needs to be tested under multiple threads to ensure the rscode is thread safe
 # Currently built to assume block size will be 8 bits
 class ReedSolomonObj():
     def __init__(self, n, k):
