@@ -5,7 +5,7 @@ import mysql.connector
 import numpy as np
 
 class NFSLogger:
-    def __init__(self, user, password, host, database, nfs_server_dir, identifier, local_dir=None):
+    def __init__(self, user, password, host, database, nfs_server_dir, local_dir, identifier, use_local_dir=False):
         self.user = user
         self.password = password
         self.host = host
@@ -13,12 +13,32 @@ class NFSLogger:
         self.nfs_server_dir = nfs_server_dir
         self.identifier = identifier
         self.local_dir = local_dir
+        self.use_local_dir = use_local_dir
+
+    def log_signal(self, name, signal):
+        # Using indexing instead
+        if self.use_local_dir:
+            directory = self.local_dir
+        else:
+            directory = self.nfs_server_dir
+        
+        timestamp = datetime.now().strftime("%Y%m%d")
+
+        file_name = directory + name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
+
+        file = open(file_name, 'a')
+
+        csv = "\n".join(str(num) for num in signal) + "\n"
+
+        file.write(csv)
+
+        file.close()
+
 
     def log(self, data_tuples, count=None, ip_addr=None):
-        # Timestamp only used in the creation of a file
 
         # Using indexing instead
-        if self.local_dir:
+        if self.use_local_dir:
             directory = self.local_dir
         else:
             directory = self.nfs_server_dir

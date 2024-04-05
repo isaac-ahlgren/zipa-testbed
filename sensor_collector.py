@@ -1,16 +1,9 @@
 import multiprocessing as mp
 
-
-import numpy as np
-
 from nfs import NFSLogger
 
 
-class SensorCollector:
-    """
-    Class copies `Sensor_Reader`, but refitted to collect and log sensor data
-    onto NFS server and MySQL. Noticable difference is the absence of `read`.
-    """
+class Sensor_Collector:
 
     def __init__(self, device, logger):
         self.sensor = device
@@ -22,8 +15,7 @@ class SensorCollector:
     def poll(self):
         while True:
             data = self.sensor.extract()
-            csv = ", ".join(str(num) for num in data)
-            self.logger.log((str(self.sensor.name), "csv", csv))
+            self.logger.log_signal(self.sensor.name, data)
 
 if __name__ == "__main__":
     def sen_thread(sen):
@@ -34,7 +26,7 @@ if __name__ == "__main__":
     from test_sensor import Test_Sensor
 
     ts = Test_Sensor(48000, 3 * 48000, 12_000, signal_type="random")
-    sen_reader = SensorCollector(ts, NFSLogger(
+    sen_reader = Sensor_Collector(ts, NFSLogger(
                       user='luke',
                       password='lucor011&',
                       host='10.17.29.18',

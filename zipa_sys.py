@@ -5,20 +5,17 @@ import socket
 from multiprocessing import Process
 
 import yaml
+import netifaces as ni
 
-from bmp280 import BMP280Sensor
-from browser import ZIPA_Service_Browser
-from microphone import Microphone
 from miettinen import Miettinen_Protocol
-from network import *
-from nfs import NFSLogger
 from perceptio import Perceptio_Protocol
-from PIR import PIRSensor
-from sensor_reader import Sensor_Reader
 from shurmann import Shurmann_Siggs_Protocol
 from voltkey_protocol import VoltKeyProtocol
-from test_sensor import Test_Sensor
-from VEML7700 import LightSensor
+from sensor_collector import Sensor_Collector
+from sensor_reader import Sensor_Reader
+from network import *
+from nfs import NFSLogger
+from browser import ZIPA_Service_Browser
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -26,47 +23,64 @@ STRT = "start   "
 
 
 class ZIPA_System:
-    def __init__(self, identity, ip, port, service, nfs):
+    def __init__(self, identity, service, nfs_dir, collection_mode=False, only_locally_store=False):
+
+        self.collection_mode = collection_mode
+
+        # Create data directory if it does not already exist
+        if not os.path.exists("./local_data"):
+            os.mkdir("./local_data")
 
         # Set up Logger
         self.id = identity
-        self.nfs = nfs
+        self.nfs_dir = nfs_dir
         self.logger = NFSLogger(
                       user='luke',
                       password='lucor011&',
                       host='10.17.29.18',
                       database='file_log',
-                      nfs_server_dir='/mnt/data',  # Make sure this directory exists and is writable
-                      identifier='192.168.1.220'  # Could be IP address or any unique identifier
+                      nfs_server_dir=self.nfs_dir,  # Make sure this directory exists and is writable
+                      local_dir="./local_data/",
+                      identifier='192.168.1.220',  # Could be IP address or any unique identifier
+                      use_local_dir=only_locally_store
                     )
-
-        time_to_collect, sample_rates, chunk_sizes = self.get_sensor_configs(
+        
+        # Set up sensors
+        time_to_collect, sensors_used, sample_rates, chunk_sizes = self.get_sensor_configs(
             os.getcwd() + "/sensor_config.yaml"
         )
-        self.create_sensors(sample_rates, time_to_collect, chunk_sizes)
+        self.create_sensors(time_to_collect, sensors_used, sample_rates, chunk_sizes, collection_mode=collection_mode)
+        
+        # Set up infrastructure if not being run in collection mode
+        if not collection_mode:
+            # Set up a listening socket
+            self.ip = ni.ifaddresses("eth0")[ni.AF_INET][0]["addr"] 
+            self.port = 5005
 
-        # Set up a listening socket
-        self.ip = ip
-        self.port = port
-        # Create a reusable TCP socket through IPv4 broadcasting on the network
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        # Bind socket to the specified socket and IPv4 address that runs continuously
-        self.socket.bind((ip, port))
-        self.socket.setblocking(0)
-        self.socket.listen()
+            # Create a reusable TCP socket through IPv4 broadcasting on the network
+            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            # Bind socket to the specified socket and IPv4 address that runs continuously
+            self.socket.bind((self.ip, self.port))
+            self.socket.setblocking(0)
+            self.socket.listen()
 
-        # Set up a discovery for the protocol
-        self.discoverable = [self.socket]
-        self.browser = ZIPA_Service_Browser(ip, service)
+            # Set up a discovery for the protocol
+            self.discoverable = [self.socket]
+            self.browser = ZIPA_Service_Browser(self.ip, service)
 
-        # Set up protocol and associated processes
-        self.protocol_threads = []
-        self.protocols = []
+            # Set up protocol and associated processes
+            self.protocol_threads = []
+            self.protocols = []
        
 
     def start(self):
+
+        # If in collection mode, no need to handle any incoming network connections
+        if self.collection_mode:
+            return
+
         print("Starting browser thread.\n")
         self.browser.start_thread()
 
@@ -174,6 +188,10 @@ class ZIPA_System:
     def create_protocol(self, parameters):
         name = parameters["protocol"]["name"]
 
+        if parameters["sensor"] not in self.sensors:
+            print("Sensor not supported")
+            return
+
         match name:
             case "shurmann-siggs":
                 self.protocols.append(
@@ -247,33 +265,52 @@ class ZIPA_System:
         with open(f"{yaml_file}", "r") as f:
             config_params = yaml.safe_load(f)
         time_to_collect = config_params["time_collected"]
+        sensors_used = config_params["sensors_used"]
         sensor_sample_rates = config_params["sensor_sample_rates"]
         chunk_sizes = config_params["chunk_sizes"]
-        return time_to_collect, sensor_sample_rates, chunk_sizes
+        return time_to_collect, sensors_used, sensor_sample_rates, chunk_sizes
 
     # TODO: make sht31d an option as a sensor
-    def create_sensors(self, sample_rates, time_length, chunk_sizes):
-        # ASSUME ORDER: Mic, BMP, PIR, VEML, TEST_SENSOR
+    def create_sensors(self, time_length, sensors_used, sample_rates, chunk_sizes, collection_mode=False):
         # Create instances of physical sensors
         self.devices = {}
         self.sensors = {}
-        self.devices["microphone"] = Microphone(
-            sample_rates["microphone"], sample_rates["microphone"] * time_length, chunk_sizes["microphone"]
-        )
-        self.devices["bmp280"] = BMP280Sensor(
-            sample_rates["bmp280"], sample_rates["bmp280"] * time_length, chunk_sizes["bmp280"]
-        )
-        self.devices["pir"] = PIRSensor(
-            sample_rates["pir"], sample_rates["pir"] * time_length, chunk_sizes["pir"]
-        )
-        self.devices["veml7700"] = LightSensor(
-            sample_rates["veml7700"], sample_rates["veml7700"] * time_length, chunk_sizes["veml7700"]
-        )
-        self.devices["test_sensor"] = Test_Sensor(
-            sample_rates["test_sensor"], sample_rates["test_sensor"] * time_length, chunk_sizes["test_sensor"]
-        )
+        
+        if sensors_used["microphone"]:
+            from microphone import Microphone
+            self.devices["microphone"] = Microphone(
+                sample_rates["microphone"], sample_rates["microphone"] * time_length, chunk_sizes["microphone"]
+            )
+
+        if sensors_used["bmp280"]:
+            from bmp280 import BMP280Sensor
+            self.devices["bmp280"] = BMP280Sensor(
+                sample_rates["bmp280"], sample_rates["bmp280"] * time_length, chunk_sizes["bmp280"]
+            )
+
+        if sensors_used["pir"]:
+            from PIR import PIRSensor
+            self.devices["pir"] = PIRSensor(
+                sample_rates["pir"], sample_rates["pir"] * time_length, chunk_sizes["pir"]
+            )
+
+        if sensors_used["veml7700"]:
+            from VEML7700 import LightSensor
+            self.devices["veml7700"] = LightSensor(
+                sample_rates["veml7700"], sample_rates["veml7700"] * time_length, chunk_sizes["veml7700"]
+            )
+        
+        if sensors_used["test_sensor"]:
+            from test_sensor import Test_Sensor
+            self.devices["test_sensor"] = Test_Sensor(
+                sample_rates["test_sensor"], sample_rates["test_sensor"] * time_length, chunk_sizes["test_sensor"]
+            )
         # TODO add VoltKey sensor
 
-        # Wrap physical sensors into sensor reader
-        for device in self.devices:
-            self.sensors[device] = Sensor_Reader(self.devices[device])
+        # Wrap physical sensors into respective sensor wrapper
+        if collection_mode:
+            for device in self.devices:
+                self.sensors[device] = Sensor_Collector(self.devices[device], self.logger)
+        else:
+            for device in self.devices:
+                self.sensors[device] = Sensor_Reader(self.devices[device])
