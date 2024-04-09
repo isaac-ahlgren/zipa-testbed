@@ -1,3 +1,4 @@
+# TODO compare with Seemoo lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/Miettinen.ipynb
 import multiprocessing as mp
 import os
 

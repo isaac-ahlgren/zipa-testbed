@@ -1,3 +1,4 @@
+# TODO compare with Seemoo Lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/SchuermannSigg.ipynb 
 import math
 import multiprocessing as mp
 import time
