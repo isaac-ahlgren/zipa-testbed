@@ -40,7 +40,9 @@ class VoltKeyProtocol:
         self.host = False
         # TODO remove 100, VoltKey will sample quickly
         self.time_length = int(((1 / OUTLET_FREQ) * periods * 8) + 1) * 100
-        self.period_length = self.sensor.sensor.sample_rate // OUTLET_FREQ # Samples within a cycle
+        self.period_length = (
+            self.sensor.sensor.sample_rate // OUTLET_FREQ
+        )  # Samples within a cycle
         self.re = Fuzzy_Commitment(
             ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
@@ -61,14 +63,14 @@ class VoltKeyProtocol:
         bits = self.voltkey_algo(filtered_signal)
 
         return bitstring_to_bytes(bits)
-    
+
     def sync(self, signal, preamble):
         """
         Aligns datasets through client preamble.
         """
 
         # Find where the preamble slice fits best in signal dataset
-        correlation = np.correlate(preamble, signal, 'valid')
+        correlation = np.correlate(preamble, signal, "valid")
         max_correlation_index = np.argmax(correlation)
         # Slice and return aligned frames
         synced_frames = signal[max_correlation_index:]
@@ -83,7 +85,9 @@ class VoltKeyProtocol:
         """
         filtered_frames = []
         # Iterate through each period; preamble is skipped due to public knowledge
-        for period in range(self.period_length, len(signal) - self.period_length, self.period_length):
+        for period in range(
+            self.period_length, len(signal) - self.period_length, self.period_length
+        ):
             current = signal[period : period + self.period_length]
             next = signal[period + self.period_length : period + 2 * self.period_length]
             result = []
@@ -95,7 +99,6 @@ class VoltKeyProtocol:
                     result.append(noise)
 
                 filtered_frames.extend(result)
-            
 
         return filtered_frames
 
@@ -162,7 +165,7 @@ class VoltKeyProtocol:
 
         # time.sleep(5)
         # Get first period, send to host for data synchronization
-        preamble = signal[:self.period_length]
+        preamble = signal[: self.period_length]
         send_preamble(host, preamble)
 
         # Bit extraction sequence
@@ -243,7 +246,7 @@ class VoltKeyProtocol:
         if not preamble:
             if self.verbose:
                 print("Timed out: Client preamble not recieved.\n")
-            
+
             return
 
         # Drop frames according to preamble
@@ -324,14 +327,21 @@ def host(protocol):
 
 
 if __name__ == "__main__":
-    from test_sensor import Test_Sensor
+    import time
+
+    from nfs import NFSLogger
     from sensor_reader import Sensor_Reader
+    from test_sensor import Test_Sensor
+    from voltkey import Voltkey
 
     print("Testing VoltKey protocol.\n")
 
     sample_rate = 2_000
+    buffer_size = sample_rate * 17
+    chunk_size = sample_rate * 4
+
     print(f"Sample rate: {sample_rate}.\n")
-    ts = Test_Sensor(sample_rate, sample_rate * 17, sample_rate * 4)
+    ts = Voltkey(sample_rate, buffer_size, chunk_size)
     sr = Sensor_Reader(ts)
     protocol = VoltKeyProtocol(sr, 8, 4, 16, 8, 10, None, True)
     time.sleep(5)
