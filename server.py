@@ -39,7 +39,7 @@ VOLTKEY = {
     "key_length": 8,
     "parity_symbols": 4,
     "timeout": 10,
-    "sensor": "test_sensor" # TODO change to VoltKey when ready
+    "sensor": "voltkey"
 }
 
 PERCEPTIO = {

@@ -4,16 +4,19 @@ sensors_used:
   bmp280: True
   pir: True
   veml7700: True
+  voltkey: True
   test_sensor: False
 sensor_sample_rates:
   microphone: 44100
   bmp280: 50
   pir: 2
   veml7700: 40
+  voltkey: 2000
   test_sensor: 44100
 chunk_sizes:
   microphone: 1024
   bmp280: 5
   pir: 1
   veml7700: 4
+  voltkey: 500
   test_sensor: 1024

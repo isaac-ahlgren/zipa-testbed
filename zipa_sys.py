@@ -299,6 +299,12 @@ class ZIPA_System:
             self.devices["veml7700"] = LightSensor(
                 sample_rates["veml7700"], sample_rates["veml7700"] * time_length, chunk_sizes["veml7700"]
             )
+
+        if sensors_used["voltkey"]:
+            from voltkey import Voltkey
+            self.devices["voltkey"] = Voltkey(
+                sample_rates["voltkey"], sample_rates["voltkey"] * time_length, chunk_sizes["voltkey"]
+            )
         
         if sensors_used["test_sensor"]:
             from test_sensor import Test_Sensor

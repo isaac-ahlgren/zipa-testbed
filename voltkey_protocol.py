@@ -200,7 +200,6 @@ class VoltKeyProtocol:
         if self.verbose:
             print(f"Generated key: {key}.\n\nSuccess: {success}.\n")
 
-        """
         self.logger.log(
             [
                 ("witness", "txt", witness),
@@ -209,7 +208,6 @@ class VoltKeyProtocol:
                 ("signal", "csv", ", ".join(str(num) for num in signal)),
             ]
         )
-        """
 
         self.count += 1
 
@@ -269,7 +267,6 @@ class VoltKeyProtocol:
             print("Sending commitment.\n")
         send_commit([commitment], [generated_hash], device)
 
-        """
         self.logger.log(
             [
                 ("witness", "txt", str(witness)),
@@ -277,7 +274,6 @@ class VoltKeyProtocol:
                 ("signal", "csv", ", ".join(str(num) for num in signal)),
             ]
         )
-        """
 
         self.count += 1
 
@@ -301,7 +297,6 @@ class VoltKeyProtocol:
 
 
 # Test code
-# TODO Don't forget to uncomment logger code
 import socket
 
 

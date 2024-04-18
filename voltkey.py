@@ -20,7 +20,7 @@ BOOT = b"Booting...\r\n"
 
 
 class Voltkey(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, chunk_size, verbose=True):
+    def __init__(self, sample_rate, buffer_size, chunk_size, verbose=False):
         SensorInterface.__init__(self)
         self.sample_rate = sample_rate
         self.buffer_size = buffer_size
@@ -88,8 +88,6 @@ class Voltkey(SensorInterface):
             self.sensor.write(GO)
 
             serial_message = self.sensor.read_until(EOL)
-            print(serial_message)
-
             self.started.value = 1
 
     def stop(self):
@@ -144,7 +142,7 @@ if __name__ == "__main__":
 
     for i in range(10):
         # sr.sensor.sensor.write(GO)
-        results = sr.read(sample_rate * 17)  # TODO populate arguments
+        results = sr.read(sample_rate * 17)
         print(f"Number of results: {len(results)},\n{results}")
         # time.sleep(10)
 
