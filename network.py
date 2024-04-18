@@ -75,8 +75,8 @@ def send_commit(commitments, hashes, device):
 
     message = COMM.encode() + number_of_commitments + hash_length + com_length
     for i in range(len(commitments)):
-        # message += hashes[i] + commitments[i]
-        message += commitments[i]
+        message += hashes[i] + commitments[i]
+        # message += commitments[i]
     device.send(message)
 
 def commit_standby(connection, timeout):
