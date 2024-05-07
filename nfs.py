@@ -1,4 +1,6 @@
 import os
+import shutil
+import multiprocessing.shared_memory as mp
 from datetime import datetime
 
 import mysql.connector
@@ -15,24 +17,57 @@ class NFSLogger:
         self.local_dir = local_dir
         self.use_local_dir = use_local_dir
 
-    def log_signal(self, name, signal):
-        # Using indexing instead
+    def log_data(self, name, signal):
+        # records name into a list
         if self.use_local_dir:
             directory = self.local_dir
         else:
             directory = self.nfs_server_dir
+
+        timestamp = datetime.now().strftime("%Y%m%d%H")
+
+        filename = name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
+
+        filepath = directory + filename
+
+        data = "\n".join(str(num) for num in signal) + "\n"
+
+        try: # Write to NFS (or maybe its local doesnt matter!!!)
+            # will this still create a file if unable to NFS 
+            file = open(filepath, "a")
+            file.write(data)
+            file.close()
+
+        except: # If it fails the write, write it to the local
+            print("error sending to nfs server")
+            
+            new_file = self.local_dir + filename
+            # writing to local directory
+            file = open(new_file)
+            file.write(data)
+            file.close()
+
+            # writing to shared list
+            self.mutex.acquire()
+            count = 1
+            self.shl[count] = new_file
+
+            count += 1
+            self.shl[0] = count - 1
+
+            self.mutex.release()
+
+    def check_local_dir(self): 
+        # need to access count from prev function 
+        total = self.shl[0]
+
+        while total > 0: 
+            source = os.path.join(self.local_dir, self.shl[count])
+            shutil.write(source, self.nfs_server_dir)
+
+            total -= 1
         
-        timestamp = datetime.now().strftime("%Y%m%d")
-
-        file_name = directory + name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
-
-        file = open(file_name, 'a')
-
-        csv = "\n".join(str(num) for num in signal) + "\n"
-
-        file.write(csv)
-
-        file.close()
+        self.shl[0] = 0
 
 
     def log(self, data_tuples, count=None, ip_addr=None):
