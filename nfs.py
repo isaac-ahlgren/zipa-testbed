@@ -17,6 +17,11 @@ class NFSLogger:
         self.local_dir = local_dir
         self.use_local_dir = use_local_dir
 
+        self.mutex = mp.Semaphore()
+        self.shl = mp.ShareableList(
+            [" " * 40 for i in range(96)]
+            )
+
     def log_data(self, name, signal):
         # records name into a list
         if self.use_local_dir:
