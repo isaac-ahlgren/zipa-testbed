@@ -19,17 +19,19 @@ class NFSLogger:
 
         self.mutex = mp.Semaphore()
         self.shl = mp.ShareableList(
-            [" " * 40 for i in range(96)]
+            # pad 60 bytes into each index 
+            [" " * 60 for i in range(96)]
             )
 
-    def log_data(self, name, signal):
+    def log_signal(self, name, signal):
         # records name into a list
         if self.use_local_dir:
             directory = self.local_dir
         else:
             directory = self.nfs_server_dir
 
-        timestamp = datetime.now().strftime("%Y%m%d%H")
+        # create new files every minute (%S for testing purposes )
+        timestamp = datetime.now().strftime("%Y%m%d%H%S")
 
         filename = name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
 
@@ -46,7 +48,7 @@ class NFSLogger:
         except: # If it fails the write, write it to the local
             print("error sending to nfs server")
             
-            new_file = self.local_dir + filename
+            new_file = self.local_dir + "_name" + filename
             # writing to local directory
             file = open(new_file)
             file.write(data)
@@ -54,25 +56,29 @@ class NFSLogger:
 
             # writing to shared list
             self.mutex.acquire()
-            count = 1
-            self.shl[count] = new_file
 
+            count = self.shl[0]
             count += 1
-            self.shl[0] = count - 1
+
+            self.shl[count] = new_file
+            
+            self.shl[0] = count
 
             self.mutex.release()
 
-    def check_local_dir(self): 
-        # need to access count from prev function 
-        total = self.shl[0]
-
-        while total > 0: 
+        while self.shl[0] > 0: 
+            count = self.shl[0]
+            # creates ./local_data/filename.csv 
             source = os.path.join(self.local_dir, self.shl[count])
-            shutil.write(source, self.nfs_server_dir)
+            destination = os.path.join(self.nfs_server_dir, self.shl[count])
 
-            total -= 1
+            with open(source, "r") as original, open(destination, "a") as copy: 
+                for line in original: 
+                    copy.write(line)
+
+            self.shl[0] = self.shl[0] - 1 
         
-        self.shl[0] = 0
+        # still need a way to delete files from the local dir btw 
 
 
     def log(self, data_tuples, count=None, ip_addr=None):
@@ -117,7 +123,7 @@ class NFSLogger:
                 self._log_to_mysql([filename])
 
     def create_filename(self, directory, name, count, ip_addr, file_ext):
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M")
         filename = f"{directory}/{name}_id{self.identifier}_{timestamp}"
         if count is not None:
             filename += f"_count{count}"
