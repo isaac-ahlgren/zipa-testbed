@@ -33,7 +33,9 @@ class NFSLogger:
         # create new files every minute (%S for testing purposes )
         timestamp = datetime.now().strftime("%Y%m%d%H%S")
 
-        filename = name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
+        # comment for testing purposes
+        # filename = name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
+        filename = "TESTING_" + timestamp
 
         filepath = directory + filename
 
@@ -48,7 +50,7 @@ class NFSLogger:
         except: # If it fails the write, write it to the local
             print("error sending to nfs server")
             
-            new_file = self.local_dir + "_name" + filename
+            new_file = self.local_dir + "_name" + filename # ./local_data/./local_data/fuckyou.txt
             # writing to local directory
             file = open(new_file)
             file.write(data)
@@ -67,9 +69,9 @@ class NFSLogger:
             self.mutex.release()
 
         while self.shl[0] > 0: 
-            count = self.shl[0]
-            # creates ./local_data/filename.csv 
-            source = os.path.join(self.local_dir, self.shl[count])
+            count = self.shl[0] # starts at number stored in shl[0]
+            source = self.shl[count] # source begins at last file added to directory and counts down
+            # creates ./server/filename.csv 
             destination = os.path.join(self.nfs_server_dir, self.shl[count])
 
             with open(source, "r") as original, open(destination, "a") as copy: 
@@ -79,6 +81,7 @@ class NFSLogger:
             self.shl[0] = self.shl[0] - 1 
         
         # still need a way to delete files from the local dir btw 
+        # simulate network error by turning off vpn
 
 
     def log(self, data_tuples, count=None, ip_addr=None):
