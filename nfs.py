@@ -1,6 +1,6 @@
 import os
 import shutil
-import multiprocessing.shared_memory as mp
+import multiprocessing.shared_memory as shm
 import multiprocessing as mp
 from datetime import datetime
 
@@ -19,7 +19,7 @@ class NFSLogger:
         self.use_local_dir = use_local_dir
 
         self.mutex = mp.Semaphore()
-        self.shl = mp.ShareableList(
+        self.shl = shm.ShareableList(
             # pad 60 bytes into each index 
             [" " * 60 for i in range(96)]
             )
