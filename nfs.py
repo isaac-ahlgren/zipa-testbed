@@ -25,7 +25,7 @@ class NFSLogger:
             # pad 60 bytes into each index 
             [" " * 60 for i in range(96)]
             )
-        self.counter.value = mp.Value('i', 0)
+        self.counter = mp.Value('i', 0)
 
     def log_signal(self, name, signal):
         # records name into a list
@@ -64,15 +64,15 @@ class NFSLogger:
             # writing to shared list
             self.mutex.acquire()
 
-            self.counter.value += 1
-            j = self.counter.value
+            self.counter += 1
+            j = self.counter
 
             self.shl[j] = new_file
 
             self.mutex.release()
 
-        while self.counter.value >= 0:
-            i = self.counter.value
+        while self.counter >= 0:
+            i = self.counter
 
             source = os.path.join(self.local_dir, self.shl[i])
             dest = os.path.join(self.nfs_server_dir, self.shl[i])
@@ -82,13 +82,13 @@ class NFSLogger:
                 with open(source, "r") as original, open(dest, "a") as copy:
                     for line in original:
                         copy.write(line)
-                self.counter.value -= 1
+                self.counter -= 1
             else:
                 break
 
             os.remove(source)
 
-    def ping_server(ip_address = '192.168.1.172'):
+    def ping_server(self, ip_address = '192.168.1.172'):
         try:
             output = subprocess.check_output(['ping', '-c', '1', ip_address], stderr=subprocess.STDOUT, universal_newlines=True)
             if "1 received" in output:
