@@ -35,7 +35,7 @@ class NFSLogger:
             directory = self.nfs_server_dir
 
         # create new files every minute (%S for testing purposes )
-        timestamp = datetime.now().strftime("%Y%m%d%H%S")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M")
 
         # comment for testing purposes
         # filename = name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
@@ -57,8 +57,11 @@ class NFSLogger:
         except: # If it fails the write, write it to the local
             print("error sending to nfs server")
             
-            source = self.local_dir + "name_" + filename # /name_file.csv
+            source = self.local_dir + filename # server/local_data/name_file.csv
             # writing to local directory
+            print(source)
+            print(os.getcwd())
+
             file = open(source)
             file.write(data)
             file.close()
