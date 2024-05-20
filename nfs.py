@@ -39,7 +39,7 @@ class NFSLogger:
 
         # comment for testing purposes
         # filename = name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
-        filename = "TESTING_" + timestamp
+        filename = "TESTING_" + timestamp + ".csv"
 
         filepath = directory + filename
 
@@ -113,7 +113,6 @@ class NFSLogger:
             directory = self.nfs_server_dir
 
         for name, file_ext, data in data_tuples:
-
             # Create filename
             filename = self.create_filename(directory, name, count, ip_addr, file_ext)
 
