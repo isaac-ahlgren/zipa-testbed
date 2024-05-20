@@ -43,6 +43,8 @@ class NFSLogger:
 
         filepath = directory + filename
 
+        print(filepath)
+
         # oops
         data = "\n".join(str(num) for num in signal) + "\n"
 
@@ -55,9 +57,9 @@ class NFSLogger:
         except: # If it fails the write, write it to the local
             print("error sending to nfs server")
             
-            new_file = "name_" + filename # /name_file.csv
+            source = self.local_dir + "name_" + filename # /name_file.csv
             # writing to local directory
-            file = open(new_file)
+            file = open(source)
             file.write(data)
             file.close()
 
@@ -67,14 +69,14 @@ class NFSLogger:
             self.counter += 1
             j = self.counter
 
-            self.shl[j] = new_file
+            self.shl[j] = source
 
             self.mutex.release()
 
         while self.counter >= 0:
             i = self.counter
 
-            source = os.path.join(self.local_dir, self.shl[i])
+            source = self.shl[i]
             dest = os.path.join(self.nfs_server_dir, self.shl[i])
 
             # check internet connection before sending files over

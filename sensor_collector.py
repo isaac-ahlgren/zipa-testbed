@@ -31,6 +31,6 @@ if __name__ == "__main__":
                       password='lucor011&',
                       host='10.17.29.18',
                       database='file_log',
-                      nfs_server_dir='/mnt/data',  # Make sure this directory exists and is writable
+                      nfs_server_dir='/mnt/data/',  # Make sure this directory exists and is writable
                       identifier='192.168.1.220'  # Could be IP address or any unique identifier
                     ))
