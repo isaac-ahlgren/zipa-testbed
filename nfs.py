@@ -1,10 +1,12 @@
 import os
 import shutil
+import subprocess
+
 import multiprocessing.shared_memory as shm
 import multiprocessing as mp
 from datetime import datetime
 
-import mysql.connector
+# import mysql.connector
 import numpy as np
 
 class NFSLogger:
@@ -23,6 +25,7 @@ class NFSLogger:
             # pad 60 bytes into each index 
             [" " * 60 for i in range(96)]
             )
+        self.counter.value = mp.Value('i', 0)
 
     def log_signal(self, name, signal):
         # records name into a list
@@ -40,6 +43,7 @@ class NFSLogger:
 
         filepath = directory + filename
 
+        # oops
         data = "\n".join(str(num) for num in signal) + "\n"
 
         try: # Write to NFS (or maybe its local doesnt matter!!!)
@@ -51,7 +55,7 @@ class NFSLogger:
         except: # If it fails the write, write it to the local
             print("error sending to nfs server")
             
-            new_file = self.local_dir + "_name" + filename # ./local_data/./local_data/fuckyou.txt
+            new_file = "name_" + filename # /name_file.csv
             # writing to local directory
             file = open(new_file)
             file.write(data)
@@ -60,30 +64,40 @@ class NFSLogger:
             # writing to shared list
             self.mutex.acquire()
 
-            count = self.shl[0]
-            count += 1
+            self.counter.value += 1
+            j = self.counter.value
 
-            self.shl[count] = new_file
-            
-            self.shl[0] = count
+            self.shl[j] = new_file
 
             self.mutex.release()
 
-        while self.shl[0] > 0: 
-            count = self.shl[0] # starts at number stored in shl[0]
-            source = self.shl[count] # source begins at last file added to directory and counts down
-            # creates ./server/filename.csv 
-            destination = os.path.join(self.nfs_server_dir, self.shl[count])
+        while self.counter.value >= 0:
+            i = self.counter.value
 
-            with open(source, "r") as original, open(destination, "a") as copy: 
-                for line in original: 
-                    copy.write(line)
+            source = os.path.join(self.local_dir, self.shl[i])
+            dest = os.path.join(self.nfs_server_dir, self.shl[i])
 
-            self.shl[0] = self.shl[0] - 1 
+            # check internet connection before sending files over
+            if self.ping_server() == True:
+                with open(source, "r") as original, open(dest, "a") as copy:
+                    for line in original:
+                        copy.write(line)
+                self.counter.value -= 1
+            else:
+                break
+
+            os.remove(source)
+
+    def ping_server(ip_address = '192.168.1.172'):
+        try:
+            output = subprocess.check_output(['ping', '-c', '1', ip_address], stderr=subprocess.STDOUT, universal_newlines=True)
+            if "1 received" in output:
+                return True
+            else:
+                return False
+        except subprocess.CalledProcessError:
+            return False
         
-        # still need a way to delete files from the local dir btw 
-        # simulate network error by turning off vpn
-
 
     def log(self, data_tuples, count=None, ip_addr=None):
 
@@ -135,23 +149,24 @@ class NFSLogger:
                 filename += f"_toipaddr{ip_addr}"
         filename += f".{file_ext}"
 
-    def _log_to_mysql(self, file_paths):
-        try:
-            conn = mysql.connector.connect(
-                user=self.user,
-                password=self.password,
-                host=self.host,
-                database=self.database,
-            )
-            cursor = conn.cursor()
-            for file_path in file_paths:
-                cursor.execute(
-                    "INSERT INTO file_paths (file_path) VALUES (%s)", (file_path,)
-                )
-            conn.commit()
-        except mysql.connector.Error as err:
-            print(f"Error connecting to MySQL: {err}")
-        finally:
-            if conn and conn.is_connected():
-                cursor.close()
-                conn.close()
+
+    # def _log_to_mysql(self, file_paths):
+    #     try:
+    #         conn = mysql.connector.connect(
+    #             user=self.user,
+    #             password=self.password,
+    #             host=self.host,
+    #             database=self.database,
+    #         )
+    #         cursor = conn.cursor()
+    #         for file_path in file_paths:
+    #             cursor.execute(
+    #                 "INSERT INTO file_paths (file_path) VALUES (%s)", (file_path,)
+    #             )
+    #         conn.commit()
+    #     except mysql.connector.Error as err:
+    #         print(f"Error connecting to MySQL: {err}")
+    #     finally:
+    #         if conn and conn.is_connected():
+    #             cursor.close()
+    #             conn.close()
