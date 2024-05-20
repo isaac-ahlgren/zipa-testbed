@@ -66,15 +66,15 @@ class NFSLogger:
             # writing to shared list
             self.mutex.acquire()
 
-            self.counter += 1
-            j = self.counter
+            self.counter.value += 1
+            j = self.counter.value
 
             self.shl[j] = source
 
             self.mutex.release()
 
-        while self.counter >= 0:
-            i = self.counter
+        while self.counter.value >= 0:
+            i = self.counter.value
 
             source = self.shl[i]
             dest = os.path.join(self.nfs_server_dir, self.shl[i])
@@ -84,7 +84,7 @@ class NFSLogger:
                 with open(source, "r") as original, open(dest, "a") as copy:
                     for line in original:
                         copy.write(line)
-                self.counter -= 1
+                self.counter.value -= 1
             else:
                 break
 
