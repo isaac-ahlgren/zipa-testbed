@@ -57,7 +57,7 @@ class NFSLogger:
         except: # If it fails the write, write it to the local
             print("error sending to nfs server")
             
-            source = self.local_dir + filename # server/local_data/name_file.csv
+            source = self.local_dir + filename # ./local_data/name_file.csv
             # writing to local directory
             print(source)
             print(os.getcwd())
@@ -79,7 +79,7 @@ class NFSLogger:
         while self.counter.value >= 0:
             i = self.counter.value
 
-            source = self.shl[i]
+            source = os.path.join(self.local_dir, self.shl[i])
             dest = os.path.join(self.nfs_server_dir, self.shl[i])
 
             # check internet connection before sending files over
