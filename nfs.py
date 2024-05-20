@@ -78,20 +78,20 @@ class NFSLogger:
 
         while self.counter.value >= 0:
             i = self.counter.value
+            if self.shl[i] != (" " * 60):
+                source = os.path.join(self.local_dir, self.shl[i])
+                dest = os.path.join(self.nfs_server_dir, self.shl[i])
 
-            source = os.path.join(self.local_dir, self.shl[i])
-            dest = os.path.join(self.nfs_server_dir, self.shl[i])
+                # check internet connection before sending files over
+                if self.ping_server() == True:
+                    with open(source, "r") as original, open(dest, "a") as copy:
+                        for line in original:
+                            copy.write(line)
+                    self.counter.value -= 1
+                else:
+                    break
 
-            # check internet connection before sending files over
-            if self.ping_server() == True:
-                with open(source, "r") as original, open(dest, "a") as copy:
-                    for line in original:
-                        copy.write(line)
-                self.counter.value -= 1
-            else:
-                break
-
-            os.remove(source)
+                os.remove(source)
 
     def ping_server(self, ip_address = '192.168.1.172'):
         try:
