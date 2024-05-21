@@ -65,11 +65,12 @@ class NFSLogger:
 
         try: # Write to NFS (or maybe its local doesnt matter!!!)
             # will this still create a file if unable to NFS
+            print("testing: i can send to nfs server!")
             with open(filepath, 'w') as nfs_file:
                 nfs_file.write(data)
 
         except: # If it fails the write, write it to the local
-            print("error sending to nfs server")
+            print("testing: i cannot send to nfs server")
             
             source = os.path.join(self.local_dir, filename) # ./local_data/name_file.csv
             # print(source) 
@@ -91,11 +92,14 @@ class NFSLogger:
     def send_to_server(self):
         print("testing: send_to_server method :D")
         while self.counter.value >= 0:
+            print("testing: while loop shl >= 0")
             i = self.counter.value
+            print(self.shl[i])
             # check internet connection before sending files over
             # file name in shl is not empty
 
             if self.shl[i] != (" " * 60) and self.ping_server():
+                print("testing: if shl[i] is not empty/ has wifi")
                 source = os.path.join(self.local_dir, self.shl[i])
                 dest = os.path.join(self.nfs_server_dir, self.shl[i])
 
@@ -108,13 +112,16 @@ class NFSLogger:
                 # deletes operating system
                 os.remove(source)
 
-    def ping_server(self, ip_address = '192.168.1.172'):
+    def ping_server(self, ip_address = '192.168.1.226'):
+        print("testing: superpopcorn")
         try:
             output = subprocess.check_output(['ping', '-c', '1', ip_address], stderr=subprocess.STDOUT, universal_newlines=True)
             if "1 received" in output:
+                print("testing: superpopcorn true")
                 return True
             else:
                 return False
+                print("testing: superpopcorn not true :(")
         except subprocess.CalledProcessError:
             return False
         
