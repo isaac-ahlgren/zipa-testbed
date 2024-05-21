@@ -42,7 +42,11 @@ class NFSLogger:
 
         filepath = os.path.join(directory, filename)
 
+        # testing to find out what is wrong with my directories
         print(filepath)
+        print(os.getcwd())
+        print(self.local_dir)
+
 
         # oops
         data = "\n".join(str(num) for num in signal) + "\n"
@@ -89,6 +93,7 @@ class NFSLogger:
             # check internet connection before sending files over
             # file name in shl is not empty
 
+            # TypeError: unsupported operand type(s) for &: 'str' and 'bool'
             if self.shl[i] != (" " * 60) & self.ping_server():
                 source = os.path.join(self.local_dir, self.shl[i])
                 dest = os.path.join(self.nfs_server_dir, self.shl[i])
