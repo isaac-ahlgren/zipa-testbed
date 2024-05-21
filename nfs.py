@@ -58,6 +58,7 @@ class NFSLogger:
         
 
     def reroute_files(self, filepath, data, filename):
+        print("testing: reroute_files :D")
         # error: never prints except statement
         # is it possible that even when the internet is down, the program still thinks it's sending data to the nfs file? 
         # maybe call ping_server function and have it reroute here 
@@ -88,6 +89,7 @@ class NFSLogger:
             self.mutex.release()
 
     def send_to_server(self):
+        print("testing: send_to_server method :D")
         while self.counter.value >= 0:
             i = self.counter.value
             # check internet connection before sending files over
