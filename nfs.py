@@ -40,7 +40,7 @@ class NFSLogger:
         # filename = name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
         filename = "TESTING_" + timestamp + ".csv"
 
-        filepath = os.join(directory, filename)
+        filepath = os.path.join(directory, filename)
 
         print(filepath)
 
@@ -66,7 +66,7 @@ class NFSLogger:
         except: # If it fails the write, write it to the local
             print("error sending to nfs server")
             
-            source = os.join(self.local_dir, filename) # ./local_data/name_file.csv
+            source = os.path.join(self.local_dir, filename) # ./local_data/name_file.csv
             # print(source) 
             # print(os.getcwd())
 
