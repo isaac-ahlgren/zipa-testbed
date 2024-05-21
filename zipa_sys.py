@@ -28,8 +28,8 @@ class ZIPA_System:
         self.collection_mode = collection_mode
 
         # Create data directory if it does not already exist
-        if not os.path.exists("./local_data"):
-            os.mkdir("./local_data")
+        if not os.path.exists("./local_data/"):
+            os.mkdir("./local_data/")
 
         # Set up Logger
         self.id = identity
