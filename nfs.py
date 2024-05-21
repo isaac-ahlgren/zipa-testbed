@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import time
 
 import multiprocessing.shared_memory as shm
 import multiprocessing as mp
@@ -25,7 +26,7 @@ class NFSLogger:
             # pad 60 bytes into each index 
             [" " * 60 for i in range(96)]
             )
-        self.counter = mp.Value('i', 0)
+        self.counter = mp.Value('i', -1)
 
     def log_signal(self, name, signal):
         if self.use_local_dir:
@@ -68,6 +69,8 @@ class NFSLogger:
             print("testing: i can send to nfs server!")
             with open(filepath, 'w') as nfs_file:
                 nfs_file.write(data)
+            
+            time.sleep(0.1)
 
         except: # If it fails the write, write it to the local
             print("testing: i cannot send to nfs server")
