@@ -28,7 +28,6 @@ class NFSLogger:
         self.counter = mp.Value('i', 0)
 
     def log_signal(self, name, signal):
-        # records name into a list
         if self.use_local_dir:
             directory = self.local_dir
         else:
@@ -41,32 +40,40 @@ class NFSLogger:
         # filename = name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
         filename = "TESTING_" + timestamp + ".csv"
 
-        filepath = directory + filename
+        filepath = os.join(directory, filename)
 
         print(filepath)
 
         # oops
         data = "\n".join(str(num) for num in signal) + "\n"
 
+        self.reroute_files(filepath, data, filename)
+
+        self.send_to_server()
+
+        
+
+    def reroute_files(self, filepath, data, filename):
+        # error: never prints except statement
+        # is it possible that even when the internet is down, the program still thinks it's sending data to the nfs file? 
+        # maybe call ping_server function and have it reroute here 
+
         try: # Write to NFS (or maybe its local doesnt matter!!!)
-            # will this still create a file if unable to NFS 
-            file = open(filepath, "a")
-            file.write(data)
-            file.close()
+            # will this still create a file if unable to NFS
+            with open(filepath, 'w') as nfs_file:
+                nfs_file.write(data)
 
         except: # If it fails the write, write it to the local
             print("error sending to nfs server")
             
-            source = self.local_dir + filename # ./local_data/name_file.csv
-            # writing to local directory
-            print(source)
-            print(os.getcwd())
+            source = os.join(self.local_dir, filename) # ./local_data/name_file.csv
+            # print(source) 
+            # print(os.getcwd())
 
-            file = open(source)
-            file.write(data)
-            file.close()
+            with open(source, 'w') as local_file:
+                local_file.write(data)
 
-            # writing to shared list
+            # mutex stuff 
             self.mutex.acquire()
 
             self.counter.value += 1
@@ -76,21 +83,23 @@ class NFSLogger:
 
             self.mutex.release()
 
+    def send_to_server(self):
         while self.counter.value >= 0:
             i = self.counter.value
-            if self.shl[i] != (" " * 60):
+            # check internet connection before sending files over
+            # file name in shl is not empty
+
+            if self.shl[i] != (" " * 60) & self.ping_server():
                 source = os.path.join(self.local_dir, self.shl[i])
                 dest = os.path.join(self.nfs_server_dir, self.shl[i])
 
-                # check internet connection before sending files over
-                if self.ping_server() == True:
-                    with open(source, "r") as original, open(dest, "a") as copy:
-                        for line in original:
-                            copy.write(line)
-                    self.counter.value -= 1
-                else:
-                    break
+                with open(source, "r") as original, open(dest, "a") as copy:
+                    for line in original:
+                        copy.write(line)
+                self.counter.value -= 1 
+                # counter will not decrement unless if statement conditions are fulfilled ? or maybe a timeout to try again later 
 
+                # deletes operating system
                 os.remove(source)
 
     def ping_server(self, ip_address = '192.168.1.172'):
