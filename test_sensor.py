@@ -3,6 +3,7 @@ from sensor_interface import SensorInterface
 import time
 
 # remove after testing
+import time
 from datetime import datetime
 import csv
 
@@ -23,6 +24,8 @@ class Test_Sensor(SensorInterface):
         self.signal_type = signal_type
         self.start_thread()
 
+        self.time = 0 
+
 
     def start(self):
         pass
@@ -34,6 +37,7 @@ class Test_Sensor(SensorInterface):
         # testing purposes
         timestamp = datetime.now().strftime("%Y%m%d%H%M")
         destination = './local_data/' + timestamp + ".csv"
+        server = '/mnt/data/' + timestamp + ".csv"
 
         time.sleep(self.chunk_size/self.sample_rate)
         output = np.zeros(self.chunk_size, dtype=self.data_type)
@@ -54,5 +58,10 @@ class Test_Sensor(SensorInterface):
                 for index, value in enumerate(output):
                     writer.writerow([self.time - len(output) + index, value])
 
-        return output
+                with open(server, 'a', newline='') as csvfile:
+                    writer = csv.writer(csvfile)
+                    for index, value in enumerate(output):
+                        writer.writerow([self.time - len(output) + index, value])
+
+        # return output
         
