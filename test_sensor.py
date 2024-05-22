@@ -1,7 +1,11 @@
 import numpy as np
 from sensor_interface import SensorInterface
 import time
+
+# remove after testing
 from datetime import datetime
+import csv
+
 
 class Test_Sensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size, signal_type='sine'):
@@ -28,7 +32,7 @@ class Test_Sensor(SensorInterface):
 
     def read(self):
         # testing purposes
-        timestamp = datetime.now().strftime("%Y%m%d%H")
+        timestamp = datetime.now().strftime("%Y%m%d%H%M")
         destination = './local_data/' + timestamp + ".csv"
 
         time.sleep(self.chunk_size/self.sample_rate)
@@ -44,7 +48,8 @@ class Test_Sensor(SensorInterface):
 
         # more testing purposes
         with open(destination, 'a') as data:
-            data.write(output)
+            data = csv.writer(data)
+            data.writerows(output)
 
         return output
         
