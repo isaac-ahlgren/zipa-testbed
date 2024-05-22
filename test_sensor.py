@@ -1,6 +1,7 @@
 import numpy as np
 from sensor_interface import SensorInterface
 import time
+from datetime import datetime
 
 class Test_Sensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size, signal_type='sine'):
@@ -26,6 +27,10 @@ class Test_Sensor(SensorInterface):
         pass
 
     def read(self):
+        # testing purposes
+        timestamp = datetime.now().strftime("%Y%m%d%H")
+        destination = './local_data/' + timestamp
+
         time.sleep(self.chunk_size/self.sample_rate)
         output = np.zeros(self.chunk_size, dtype=self.data_type)
         if self.signal_type == 'random':
@@ -36,5 +41,10 @@ class Test_Sensor(SensorInterface):
             for i in range(len(output)):
                 output[i] = np.sin(2*np.pi/self.sample_rate*i)
             self.time += len(output)
+
+        # more testing purposes
+        with open(destination, 'a') as data:
+            data.write(output)
+
         return output
         

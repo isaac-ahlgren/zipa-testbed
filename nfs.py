@@ -69,8 +69,6 @@ class NFSLogger:
             print("testing: i can send to nfs server!")
             with open(filepath, 'w') as nfs_file:
                 nfs_file.write(data)
-            
-            time.sleep(0.1)
 
         except: # If it fails the write, write it to the local
             print("testing: i cannot send to nfs server")
@@ -170,7 +168,7 @@ class NFSLogger:
                 self._log_to_mysql([filename])
 
     def create_filename(self, directory, name, count, ip_addr, file_ext):
-        timestamp = datetime.now().strftime("%Y%m%d%H%M")
+        timestamp = datetime.now().strftime("%Y%m%d%H")
         filename = f"{directory}/{name}_id{self.identifier}_{timestamp}"
         if count is not None:
             filename += f"_count{count}"
