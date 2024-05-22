@@ -49,7 +49,7 @@ class Test_Sensor(SensorInterface):
         
         # more testing purposes
         for i in range(100):
-            with open(self.csv_file, 'a', newline='') as csvfile:
+            with open(destination, 'a', newline='') as csvfile:
                 writer = csv.writer(csvfile)
                 for index, value in enumerate(output):
                     writer.writerow([self.time - len(output) + index, value])
