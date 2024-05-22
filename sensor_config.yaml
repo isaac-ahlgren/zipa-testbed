@@ -7,7 +7,7 @@ sensors_used:
   voltkey: True
   test_sensor: False
 sensor_sample_rates:
-  microphone: 44100
+  microphone: 120
   bmp280: 50
   pir: 2
   veml7700: 40
