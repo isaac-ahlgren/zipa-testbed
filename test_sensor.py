@@ -46,10 +46,13 @@ class Test_Sensor(SensorInterface):
                 output[i] = np.sin(2*np.pi/self.sample_rate*i)
             self.time += len(output)
 
+        
         # more testing purposes
-        with open(destination, 'a') as data:
-            data = csv.writer(data)
-            data.writerows(output)
+        for i in range(100):
+            with open(self.csv_file, 'a', newline='') as csvfile:
+                writer = csv.writer(csvfile)
+                for index, value in enumerate(output):
+                    writer.writerow([self.time - len(output) + index, value])
 
         return output
         
