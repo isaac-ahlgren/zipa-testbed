@@ -3,9 +3,9 @@ from sensor_interface import SensorInterface
 import time
 
 # remove after testing
-import time
-from datetime import datetime
-import csv
+# import time
+# from datetime import datetime
+# import csv
 
 
 class Test_Sensor(SensorInterface):
@@ -35,9 +35,9 @@ class Test_Sensor(SensorInterface):
 
     def read(self):
         # testing purposes
-        timestamp = datetime.now().strftime("%Y%m%d%H%M")
-        destination = './local_data/' + timestamp + ".csv"
-        server = '/mnt/data/' + timestamp + ".csv"
+        # timestamp = datetime.now().strftime("%Y%m%d%H%M")
+        # destination = './local_data/' + timestamp + ".csv"
+        # server = '/mnt/data/' + timestamp + ".csv"
 
         time.sleep(self.chunk_size/self.sample_rate)
         output = np.zeros(self.chunk_size, dtype=self.data_type)
@@ -52,16 +52,16 @@ class Test_Sensor(SensorInterface):
 
         
         # more testing purposes
-        for i in range(100):
-            with open(destination, 'a', newline='') as csvfile:
-                writer = csv.writer(csvfile)
-                for index, value in enumerate(output):
-                    writer.writerow([self.time - len(output) + index, value])
+        # for i in range(100):
+        #     with open(destination, 'a', newline='') as csvfile:
+        #         writer = csv.writer(csvfile)
+        #         for index, value in enumerate(output):
+        #             writer.writerow([self.time - len(output) + index, value])
 
-                with open(server, 'a', newline='') as csvfile:
-                    writer = csv.writer(csvfile)
-                    for index, value in enumerate(output):
-                        writer.writerow([self.time - len(output) + index, value])
+        #         with open(server, 'a', newline='') as csvfile:
+        #             writer = csv.writer(csvfile)
+        #             for index, value in enumerate(output):
+        #                 writer.writerow([self.time - len(output) + index, value])
 
         # return output
         
