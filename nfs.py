@@ -115,7 +115,7 @@ class NFSLogger:
                 # deletes operating system
                 os.remove(source)
 
-    def ping_server(self, ip_address = '192.168.1.226'):
+    def ping_server(self, ip_address = '147.126.2.89'):
         print("testing: superpopcorn")
         try:
             output = subprocess.check_output(['ping', '-c', '1', ip_address], stderr=subprocess.STDOUT, universal_newlines=True)
