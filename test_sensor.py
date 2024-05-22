@@ -29,7 +29,7 @@ class Test_Sensor(SensorInterface):
     def read(self):
         # testing purposes
         timestamp = datetime.now().strftime("%Y%m%d%H")
-        destination = './local_data/' + timestamp
+        destination = './local_data/' + timestamp + ".csv"
 
         time.sleep(self.chunk_size/self.sample_rate)
         output = np.zeros(self.chunk_size, dtype=self.data_type)
