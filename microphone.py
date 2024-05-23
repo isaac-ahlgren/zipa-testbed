@@ -9,6 +9,8 @@ import time
 import os
 import wave
 
+
+# TODO: Remind Isaac to comment all of this so it makes sense later, I'm on a time crunch currently
 class Microphone(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size, mic_sampling_rate=48000):
         SensorInterface.__init__(self)
@@ -18,15 +20,15 @@ class Microphone(SensorInterface):
         self.pyaud = pyaudio.PyAudio()
         self.chunk_size = chunk_size
         self.samples_per_spl_sample = mic_sampling_rate // sample_rate
-        self.buffer_size = buffer_size*self.samples_per_spl_sample
+        self.buffer_size = buffer_size
         self.stream = self.pyaud.open(
             format=self.format,
             channels=1,  # Stereo audio
             rate=mic_sampling_rate,
             input=True,
-            frames_per_buffer=self.buffer_size
+            frames_per_buffer=self.buffer_size*self.samples_per_spl_sample
         )
-        self.data_type = np.int32()
+        self.data_type = np.float64()
         self.count = 0
         self.start_thread()
 
@@ -42,9 +44,9 @@ class Microphone(SensorInterface):
     def calc_rms(self, signal):
         output = np.zeros(self.chunk_size, dtype=np.float32)
         for i in range(self.chunk_size):
-            output[i] = np.sqrt(np.mean(signal[i*self.samples_per_spl_sample:(i+1)*self.samples_per_spl_sample]**2)) / len(signal)
-        rms = np.sqrt(np.mean(signal**2)) / len(signal)
-        return rms
+            arr = signal[i*self.samples_per_spl_sample:(i+1)*self.samples_per_spl_sample].astype(np.int64)
+            output[i] = np.sqrt(np.mean(arr**2)) / self.samples_per_spl_sample
+        return output
 
     def read(self):
         output = self.stream.read(self.samples_per_spl_sample*self.chunk_size)
@@ -57,7 +59,8 @@ class Microphone(SensorInterface):
 # Test case
 if __name__ == "__main__":
     from sensor_reader import Sensor_Reader
-  
-    mic = Microphone(120, 1000000, 120) 
+    import time 
+    mic = Microphone(120, 120*5, 120) 
     sen_reader = Sensor_Reader(mic)
+    time.sleep(3)
     print(sen_reader.read(240))
