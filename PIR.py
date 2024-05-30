@@ -1,8 +1,11 @@
 import multiprocessing
-import RPi.GPIO as GPIO
 import time
-from sensor_interface import SensorInterface
+
 import numpy as np
+import RPi.GPIO as GPIO
+
+from sensor_interface import SensorInterface
+
 
 class PIRSensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size, pin=12):
@@ -21,7 +24,6 @@ class PIRSensor(SensorInterface):
         GPIO.setup(self.pin, GPIO.IN)
         self.start_thread()
 
-
     def start(self):
         pass
 
@@ -36,17 +38,20 @@ class PIRSensor(SensorInterface):
             time.sleep(1 / self.sample_rate)
 
         return data
-    
+
+
 if __name__ == "__main__":
     from sensor_reader import Sensor_Reader
-    import time
+
     pir = PIRSensor(2, 10, 2)
     sr = Sensor_Reader(pir)
+
     time.sleep(3)
     print("Getting ready to read.")
+
     for i in range(5):
         results = sr.read(10)
         print(results)
         time.sleep(10)
-        
+
     exit()

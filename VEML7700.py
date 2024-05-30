@@ -1,8 +1,11 @@
 import time
-import board
+
 import adafruit_veml7700
-from sensor_interface import SensorInterface
+import board
 import numpy as np
+
+from sensor_interface import SensorInterface
+
 
 class LightSensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size):
@@ -13,7 +16,9 @@ class LightSensor(SensorInterface):
         self.chunk_size = chunk_size
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "lux"
-        self.buffer = np.zeros(chunk_size, np.float32())  # Initialize buffer for lux readings
+        self.buffer = np.zeros(
+            chunk_size, np.float32()
+        )  # Initialize buffer for lux readings
         self.buffer_index = 0
         self.buffer_full = False
         self.data_type = self.buffer.dtype
@@ -25,7 +30,7 @@ class LightSensor(SensorInterface):
 
     def stop(self):
         pass
-    
+
     def read(self):
         data = np.empty(self.chunk_size, self.data_type)
 
@@ -35,17 +40,20 @@ class LightSensor(SensorInterface):
             time.sleep(1 / self.sample_rate)
 
         return data
-        
-# TODO buffer not updating in chunks, running into overflow values
+
+
 if __name__ == "__main__":
     from sensor_reader import Sensor_Reader
-    import time
+
     veml = LightSensor(40, 40 * 5, 8)
     sr = Sensor_Reader(veml)
+
     time.sleep(3)
     print("Beginning reading.")
+
     for i in range(10):
         results = sr.read(40 * 5)
         print(f"Number of results: {len(results)},\n {results}")
         time.sleep(10)
+
     exit()

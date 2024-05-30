@@ -6,6 +6,7 @@ import numpy as np
 
 from sensor_interface import SensorInterface
 
+
 class HumiditySensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size):
         SensorInterface.__init__(self)
@@ -36,16 +37,20 @@ class HumiditySensor(SensorInterface):
             time.sleep(1 / self.sample_rate)
 
         return data
-    
+
+
 if __name__ == "__main__":
     from sensor_reader import Sensor_Reader
-    import time
+
     sht31d = HumiditySensor(40, 40 * 5, 8)
     sr = Sensor_Reader(sht31d)
+
     time.sleep(3)
     print("Beginning reading.")
+
     for i in range(10):
         results = sr.read(40 * 5)
         print(f"Number of results: {len(results)},\n {results}")
         time.sleep(10)
+
     exit()

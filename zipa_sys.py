@@ -314,7 +314,7 @@ class ZIPA_System:
             )
 
         if sensors_used["pir"]:
-            from PIR import PIRSensor
+            from pir import PIRSensor
 
             self.devices["pir"] = PIRSensor(
                 sample_rates["pir"],
@@ -323,7 +323,7 @@ class ZIPA_System:
             )
 
         if sensors_used["veml7700"]:
-            from VEML7700 import LightSensor
+            from veml7700 import LightSensor
 
             self.devices["veml7700"] = LightSensor(
                 sample_rates["veml7700"],
