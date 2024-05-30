@@ -13,7 +13,7 @@ class HumiditySensor(SensorInterface):
         self.buffer_size = buffer_size
         self.chunk_size = chunk_size
         self.chunks = int(self.buffer_size / self.chunk_size)
-        self.name = "humidity"
+        self.name = "sht31d"
         self.buffer = np.zeros(chunk_size, np.float32())
         self.buffer_index = 0
         self.buffer_full = False

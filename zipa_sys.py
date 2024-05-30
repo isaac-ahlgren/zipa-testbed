@@ -4,18 +4,18 @@ import select
 import socket
 from multiprocessing import Process
 
-import yaml
 import netifaces as ni
+import yaml
 
+from browser import ZIPA_Service_Browser
 from miettinen import Miettinen_Protocol
-from perceptio import Perceptio_Protocol
-from shurmann import Shurmann_Siggs_Protocol
-from voltkey_protocol import VoltKeyProtocol
-from sensor_collector import Sensor_Collector
-from sensor_reader import Sensor_Reader
 from network import *
 from nfs import NFSLogger
-from browser import ZIPA_Service_Browser
+from perceptio import Perceptio_Protocol
+from sensor_collector import Sensor_Collector
+from sensor_reader import Sensor_Reader
+from shurmann import Shurmann_Siggs_Protocol
+from voltkey_protocol import VoltKeyProtocol
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -23,7 +23,14 @@ STRT = "start   "
 
 
 class ZIPA_System:
-    def __init__(self, identity, service, nfs_dir, collection_mode=False, only_locally_store=False):
+    def __init__(
+        self,
+        identity,
+        service,
+        nfs_dir,
+        collection_mode=False,
+        only_locally_store=False,
+    ):
 
         self.collection_mode = collection_mode
 
@@ -35,26 +42,32 @@ class ZIPA_System:
         self.id = identity
         self.nfs_dir = nfs_dir
         self.logger = NFSLogger(
-                      user='luke',
-                      password='lucor011&',
-                      host='10.17.29.18',
-                      database='file_log',
-                      nfs_server_dir=self.nfs_dir,  # Make sure this directory exists and is writable
-                      local_dir="./local_data/",
-                      identifier='192.168.1.220',  # Could be IP address or any unique identifier
-                      use_local_dir=only_locally_store
-                    )
-        
-        # Set up sensors
-        time_to_collect, sensors_used, sample_rates, chunk_sizes = self.get_sensor_configs(
-            os.getcwd() + "/sensor_config.yaml"
+            user="USERNAME",
+            password="PASSWORD",
+            host="SERVER IP",
+            database="file_log",
+            nfs_server_dir=self.nfs_dir,  # Make sure this directory exists and is writable
+            local_dir="./local_data/",
+            identifier="DEVICE IDENTIFIER",  # Could be IP address or any unique identifier
+            use_local_dir=only_locally_store,
         )
-        self.create_sensors(time_to_collect, sensors_used, sample_rates, chunk_sizes, collection_mode=collection_mode)
-        
+
+        # Set up sensors
+        time_to_collect, sensors_used, sample_rates, chunk_sizes = (
+            self.get_sensor_configs(os.getcwd() + "/sensor_config.yaml")
+        )
+        self.create_sensors(
+            time_to_collect,
+            sensors_used,
+            sample_rates,
+            chunk_sizes,
+            collection_mode=collection_mode,
+        )
+
         # Set up infrastructure if not being run in collection mode
         if not collection_mode:
             # Set up a listening socket
-            self.ip = ni.ifaddresses("eth0")[ni.AF_INET][0]["addr"] 
+            self.ip = ni.ifaddresses("wlan0")[ni.AF_INET][0]["addr"]
             self.port = 5005
 
             # Create a reusable TCP socket through IPv4 broadcasting on the network
@@ -73,7 +86,6 @@ class ZIPA_System:
             # Set up protocol and associated processes
             self.protocol_threads = []
             self.protocols = []
-       
 
     def start(self):
 
@@ -197,11 +209,11 @@ class ZIPA_System:
                 self.protocols.append(
                     Shurmann_Siggs_Protocol(
                         self.sensors[parameters["sensor"]],
-                        parameters["key_length"], 
-                        parameters["parity_symbols"], 
-                        parameters["protocol"]["window_len"], 
-                        parameters["protocol"]["band_len"], 
-                        parameters["timeout"], 
+                        parameters["key_length"],
+                        parameters["parity_symbols"],
+                        parameters["protocol"]["window_len"],
+                        parameters["protocol"]["band_len"],
+                        parameters["timeout"],
                         self.logger,
                     )
                 )
@@ -223,7 +235,7 @@ class ZIPA_System:
                         self.logger,
                     )
                 )
-                
+
             case "voltkey":
                 self.protocols.append(
                     VoltKeyProtocol(
@@ -233,10 +245,10 @@ class ZIPA_System:
                         parameters["protocol"]["periods"],
                         parameters["protocol"]["bins"],
                         parameters["timeout"],
-                        self.logger
+                        self.logger,
                     )
                 )
-                
+
             case "perceptio":
                 self.protocols.append(
                     Perceptio_Protocol(
@@ -255,7 +267,7 @@ class ZIPA_System:
                         parameters["protocol"]["sleep_time"],
                         parameters["protocol"]["max_no_events_detected"],
                         parameters["timeout"],
-                        self.logger                    
+                        self.logger,
                     )
                 )
             case _:
@@ -271,52 +283,87 @@ class ZIPA_System:
         return time_to_collect, sensors_used, sensor_sample_rates, chunk_sizes
 
     # TODO: make sht31d an option as a sensor
-    def create_sensors(self, time_length, sensors_used, sample_rates, chunk_sizes, collection_mode=False):
+    def create_sensors(
+        self,
+        time_length,
+        sensors_used,
+        sample_rates,
+        chunk_sizes,
+        collection_mode=False,
+    ):
         # Create instances of physical sensors
         self.devices = {}
         self.sensors = {}
-        
+
         if sensors_used["microphone"]:
             from microphone import Microphone
+
             self.devices["microphone"] = Microphone(
-                sample_rates["microphone"], sample_rates["microphone"] * time_length, chunk_sizes["microphone"]
+                sample_rates["microphone"],
+                sample_rates["microphone"] * time_length,
+                chunk_sizes["microphone"],
             )
 
         if sensors_used["bmp280"]:
             from bmp280 import BMP280Sensor
+
             self.devices["bmp280"] = BMP280Sensor(
-                sample_rates["bmp280"], sample_rates["bmp280"] * time_length, chunk_sizes["bmp280"]
+                sample_rates["bmp280"],
+                sample_rates["bmp280"] * time_length,
+                chunk_sizes["bmp280"],
             )
 
         if sensors_used["pir"]:
             from PIR import PIRSensor
+
             self.devices["pir"] = PIRSensor(
-                sample_rates["pir"], sample_rates["pir"] * time_length, chunk_sizes["pir"]
+                sample_rates["pir"],
+                sample_rates["pir"] * time_length,
+                chunk_sizes["pir"],
             )
 
         if sensors_used["veml7700"]:
             from VEML7700 import LightSensor
+
             self.devices["veml7700"] = LightSensor(
-                sample_rates["veml7700"], sample_rates["veml7700"] * time_length, chunk_sizes["veml7700"]
+                sample_rates["veml7700"],
+                sample_rates["veml7700"] * time_length,
+                chunk_sizes["veml7700"],
             )
 
-        if sensors_used["voltkey"]:
-            from voltkey import Voltkey
-            self.devices["voltkey"] = Voltkey(
-                sample_rates["voltkey"], sample_rates["voltkey"] * time_length, chunk_sizes["voltkey"]
+        if sensors_used["sht31d"]:
+            from sht31d import HumiditySensor
+            
+            self.devices["sht31d"] = HumiditySensor(
+                sample_rates["sht31d"],
+                sample_rates["sht31d"] * time_length,
+                chunk_sizes["sht31d"]
             )
         
+        if sensors_used["voltkey"]:
+            from voltkey import Voltkey
+
+            self.devices["voltkey"] = Voltkey(
+                sample_rates["voltkey"],
+                sample_rates["voltkey"] * time_length,
+                chunk_sizes["voltkey"],
+            )
+
         if sensors_used["test_sensor"]:
             from test_sensor import Test_Sensor
+
             self.devices["test_sensor"] = Test_Sensor(
-                sample_rates["test_sensor"], sample_rates["test_sensor"] * time_length, chunk_sizes["test_sensor"]
+                sample_rates["test_sensor"],
+                sample_rates["test_sensor"] * time_length,
+                chunk_sizes["test_sensor"],
             )
-        # TODO add VoltKey sensor
 
         # Wrap physical sensors into respective sensor wrapper
         if collection_mode:
             for device in self.devices:
-                self.sensors[device] = Sensor_Collector(self.devices[device], self.logger)
+                self.sensors[device] = Sensor_Collector(
+                    self.devices[device], self.logger
+                )
         else:
             for device in self.devices:
                 self.sensors[device] = Sensor_Reader(self.devices[device])

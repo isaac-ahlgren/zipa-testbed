@@ -4,6 +4,7 @@ sensors_used:
   bmp280: True
   pir: True
   veml7700: True
+  sht31d: True
   voltkey: False
   test_sensor: False
 sensor_sample_rates:
@@ -11,6 +12,7 @@ sensor_sample_rates:
   bmp280: 50
   pir: 2
   veml7700: 40
+  sht31d: 40
   voltkey: 2000
   test_sensor: 44100
 chunk_sizes:
@@ -18,5 +20,6 @@ chunk_sizes:
   bmp280: 5
   pir: 1
   veml7700: 4
+  sht31d: 4
   voltkey: 500
   test_sensor: 1024
