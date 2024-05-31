@@ -109,6 +109,8 @@ class NFSLogger:
             filename += f"_toipaddr{ip_addr}"
         filename += f".{file_ext}"
 
+        return filename
+
     # TODO: Check if mySQL will be used for project
     def _log_to_mysql(self, file_paths):
         try:
