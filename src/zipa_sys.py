@@ -7,15 +7,15 @@ from multiprocessing import Process
 import netifaces as ni
 import yaml
 
-from browser import ZIPA_Service_Browser
-from miettinen import Miettinen_Protocol
-from network import *
-from nfs import NFSLogger
-from perceptio import Perceptio_Protocol
-from sensor_collector import Sensor_Collector
-from sensor_reader import Sensor_Reader
-from shurmann import Shurmann_Siggs_Protocol
-from voltkey_protocol import VoltKeyProtocol
+from networking.browser import ZIPA_Service_Browser
+from networking.network import *
+from networking.nfs import NFSLogger
+from protocols.miettinen import Miettinen_Protocol
+from protocols.perceptio import Perceptio_Protocol
+from protocols.shurmann import Shurmann_Siggs_Protocol
+from protocols.voltkey_protocol import VoltKeyProtocol
+from sensors.sensor_collector import Sensor_Collector
+from sensors.sensor_reader import Sensor_Reader
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -296,7 +296,7 @@ class ZIPA_System:
         self.sensors = {}
 
         if sensors_used["microphone"]:
-            from microphone import Microphone
+            from sensors.microphone import Microphone
 
             self.devices["microphone"] = Microphone(
                 sample_rates["microphone"],
@@ -305,7 +305,7 @@ class ZIPA_System:
             )
 
         if sensors_used["bmp280"]:
-            from bmp280 import BMP280Sensor
+            from sensors.bmp280 import BMP280Sensor
 
             self.devices["bmp280"] = BMP280Sensor(
                 sample_rates["bmp280"],
@@ -314,7 +314,7 @@ class ZIPA_System:
             )
 
         if sensors_used["pir"]:
-            from pir import PIRSensor
+            from sensors.pir import PIRSensor
 
             self.devices["pir"] = PIRSensor(
                 sample_rates["pir"],
@@ -323,7 +323,7 @@ class ZIPA_System:
             )
 
         if sensors_used["veml7700"]:
-            from veml7700 import LightSensor
+            from sensors.veml7700 import LightSensor
 
             self.devices["veml7700"] = LightSensor(
                 sample_rates["veml7700"],
@@ -332,16 +332,16 @@ class ZIPA_System:
             )
 
         if sensors_used["sht31d"]:
-            from sht31d import HumiditySensor
-            
+            from sensors.sht31d import HumiditySensor
+
             self.devices["sht31d"] = HumiditySensor(
                 sample_rates["sht31d"],
                 sample_rates["sht31d"] * time_length,
-                chunk_sizes["sht31d"]
+                chunk_sizes["sht31d"],
             )
-        
+
         if sensors_used["voltkey"]:
-            from voltkey import Voltkey
+            from sensors.voltkey import Voltkey
 
             self.devices["voltkey"] = Voltkey(
                 sample_rates["voltkey"],
@@ -350,7 +350,7 @@ class ZIPA_System:
             )
 
         if sensors_used["test_sensor"]:
-            from test_sensor import Test_Sensor
+            from sensors.test_sensor import Test_Sensor
 
             self.devices["test_sensor"] = Test_Sensor(
                 sample_rates["test_sensor"],

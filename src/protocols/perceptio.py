@@ -6,10 +6,10 @@ from cryptography.hazmat.primitives import constant_time, hashes, hmac
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from sklearn.cluster import KMeans
 
-from common_protocols import *
-from corrector import Fuzzy_Commitment
-from network import *
-from reed_solomon import ReedSolomonObj
+from src.error_correction.corrector import Fuzzy_Commitment
+from src.error_correction.reed_solomon import ReedSolomonObj
+from src.networking.network import *
+from src.protocols.common_protocols import *
 
 
 class Perceptio_Protocol:
@@ -630,9 +630,9 @@ def host(prot):
 if __name__ == "__main__":
     import multiprocessing as mp
 
-    from nfs import NFSLogger
-    from sensor_reader import Sensor_Reader
-    from test_sensor import Test_Sensor
+    from src.networking.nfs import NFSLogger
+    from src.sensors.sensor_reader import Sensor_Reader
+    from src.sensors.test_sensor import Test_Sensor
 
     prot = Perceptio_Protocol(
         Sensor_Reader(Test_Sensor(44100, 44100 * 50, 1024, signal_type="random")),
