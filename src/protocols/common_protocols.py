@@ -2,7 +2,7 @@ import os
 
 from cryptography.hazmat.primitives import constant_time, hmac
 
-from src.networking.network import *
+from networking.network import *
 
 
 def send_nonce_msg_to_device(

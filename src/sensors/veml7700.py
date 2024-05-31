@@ -4,7 +4,7 @@ import adafruit_veml7700
 import board
 import numpy as np
 
-from sensor_interface import SensorInterface
+from sensors.sensor_interface import SensorInterface
 
 
 class LightSensor(SensorInterface):
@@ -43,7 +43,7 @@ class LightSensor(SensorInterface):
 
 
 if __name__ == "__main__":
-    from sensor_reader import Sensor_Reader
+    from sensors.sensor_reader import Sensor_Reader
 
     veml = LightSensor(40, 40 * 5, 8)
     sr = Sensor_Reader(veml)

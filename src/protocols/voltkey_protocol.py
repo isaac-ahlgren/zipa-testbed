@@ -3,9 +3,9 @@ import multiprocessing as mp
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes
 
-from src.error_correction.corrector import Fuzzy_Commitment
-from src.error_correction.reed_solomon import ReedSolomonObj
-from src.networking.network import *
+from error_correction.corrector import Fuzzy_Commitment
+from error_correction.reed_solomon import ReedSolomonObj
+from networking.network import *
 
 OUTLET_FREQ = 60  # Hz
 
@@ -327,10 +327,10 @@ def host(protocol):
 if __name__ == "__main__":
     import time
 
-    from src.networking.nfs import NFSLogger
-    from src.sensors.sensor_reader import Sensor_Reader
-    from src.sensors.test_sensor import Test_Sensor
-    from src.sensors.voltkey import Voltkey
+    from networking.nfs import NFSLogger
+    from sensors.sensor_reader import Sensor_Reader
+    from sensors.test_sensor import Test_Sensor
+    from sensors.voltkey import Voltkey
 
     print("Testing VoltKey protocol.\n")
 

@@ -4,7 +4,7 @@ import adafruit_sht31d
 import board
 import numpy as np
 
-from sensor_interface import SensorInterface
+from sensors.sensor_interface import SensorInterface
 
 
 class HumiditySensor(SensorInterface):
@@ -40,7 +40,7 @@ class HumiditySensor(SensorInterface):
 
 
 if __name__ == "__main__":
-    from sensor_reader import Sensor_Reader
+    from sensors.sensor_reader import Sensor_Reader
 
     sht31d = HumiditySensor(40, 40 * 5, 8)
     sr = Sensor_Reader(sht31d)

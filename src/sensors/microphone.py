@@ -7,7 +7,7 @@ from multiprocessing import shared_memory
 import numpy as np
 import pyaudio
 
-from sensor_interface import SensorInterface
+from sensors.sensor_interface import SensorInterface
 
 
 # TODO: Remind Isaac to comment all of this so it makes sense later, I'm on a time crunch currently
@@ -57,7 +57,7 @@ class Microphone(SensorInterface):
 
 # Test case
 if __name__ == "__main__":
-    from sensor_reader import Sensor_Reader
+    from sensors.sensor_reader import Sensor_Reader
 
     mic = Microphone(120, 120 * 5, 120)
     sen_reader = Sensor_Reader(mic)

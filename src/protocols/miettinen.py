@@ -8,9 +8,9 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
-from src.error_correction.corrector import Fuzzy_Commitment
-from src.error_correction.reed_solomon import ReedSolomonObj
-from src.networking.network import *
+from error_correction.corrector import Fuzzy_Commitment
+from error_correction.reed_solomon import ReedSolomonObj
+from networking.network import *
 
 
 class Miettinen_Protocol:

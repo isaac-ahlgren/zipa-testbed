@@ -4,7 +4,7 @@ import adafruit_bmp280
 import board
 import numpy as np
 
-from sensor_interface import SensorInterface
+from sensors.sensor_interface import SensorInterface
 
 
 class BMP280Sensor(SensorInterface):
@@ -46,7 +46,7 @@ class BMP280Sensor(SensorInterface):
 
 
 if __name__ == "__main__":
-    from sensor_reader import Sensor_Reader
+    from sensors.sensor_reader import Sensor_Reader
 
     bmp = BMP280Sensor(50, 50, 25)
     sr = Sensor_Reader(bmp)

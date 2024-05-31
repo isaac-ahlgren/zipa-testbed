@@ -1,6 +1,6 @@
 import multiprocessing as mp
 
-from src.networking.nfs import NFSLogger
+from networking.nfs import NFSLogger
 
 
 class Sensor_Collector:
@@ -24,7 +24,7 @@ if __name__ == "__main__":
         p = mp.Process(target=sen.poll)
         p.start()
 
-    from test_sensor import Test_Sensor
+    from sensors.test_sensor import Test_Sensor
 
     ts = Test_Sensor(48000, 3 * 48000, 12_000, signal_type="random")
     sen_reader = Sensor_Collector(

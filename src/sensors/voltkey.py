@@ -5,7 +5,7 @@ import numpy as np
 import serial
 import serial.threaded
 
-from sensor_interface import SensorInterface
+from sensors.sensor_interface import SensorInterface
 
 SETUP = b"s"
 ACCEPT = b"a"
@@ -128,7 +128,7 @@ class Voltkey(SensorInterface):
 
 
 if __name__ == "__main__":
-    from sensor_reader import Sensor_Reader
+    from sensors.sensor_reader import Sensor_Reader
 
     sample_rate = 2000
     buffer_size = sample_rate * 17

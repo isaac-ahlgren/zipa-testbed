@@ -6,9 +6,9 @@ import time
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes
 
-from src.error_correction.corrector import Fuzzy_Commitment
-from src.error_correction.reed_solomon import ReedSolomonObj
-from src.networking.network import *
+from error_correction.corrector import Fuzzy_Commitment
+from error_correction.reed_solomon import ReedSolomonObj
+from networking.network import *
 
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it

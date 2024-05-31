@@ -4,7 +4,7 @@ import time
 import numpy as np
 import RPi.GPIO as GPIO
 
-from sensor_interface import SensorInterface
+from sensors.sensor_interface import SensorInterface
 
 
 class PIRSensor(SensorInterface):
@@ -41,7 +41,7 @@ class PIRSensor(SensorInterface):
 
 
 if __name__ == "__main__":
-    from sensor_reader import Sensor_Reader
+    from sensors.sensor_reader import Sensor_Reader
 
     pir = PIRSensor(2, 10, 2)
     sr = Sensor_Reader(pir)

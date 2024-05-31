@@ -54,7 +54,7 @@ class ZIPA_System:
 
         # Set up sensors
         time_to_collect, sensors_used, sample_rates, chunk_sizes = (
-            self.get_sensor_configs(os.getcwd() + "/sensor_config.yaml")
+            self.get_sensor_configs(os.getcwd() + "/src/sensors/sensor_config.yaml")
         )
         self.create_sensors(
             time_to_collect,
