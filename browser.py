@@ -10,7 +10,6 @@ class ZIPA_Service_Browser:
     def __init__(self, ip_addr, service_to_browse):
         # Initialized to look for other devices with Avahi
         zeroconf = Zeroconf()
-
         # Find other devices that are participating in ZIPA
         self.listener = ZIPA_Service_Listener(ip_addr)
         self.browser = ServiceBrowser(zeroconf, service_to_browse, self.listener)

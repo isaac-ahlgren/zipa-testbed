@@ -3,9 +3,10 @@ from multiprocessing import shared_memory
 
 import numpy as np
 
+
 # MAIN TEST FOR THIS:
 # you want multiple processes (threads) to read from the buffer at the same time during
-class Sensor():
+class Sensor:
     def __init__(self, device):
         self.sensor = device
         self.sample_rate = device.sample_rate
@@ -44,9 +45,9 @@ class Sensor():
 
     def read(self):
         data = np.empty((self.sensor.buffer_size,), dtype=self.sensor.data_type)
-        
+
         print("Checking if mutex lock is still in play...")
-        while self.mutex.get_value() != 1: 
+        while self.mutex.get_value() != 1:
             pass
 
         self.semaphore.acquire()
@@ -55,32 +56,34 @@ class Sensor():
             data[d] = self.addressable_buffer[
                 (self.pointer.value + d) % self.sensor.buffer_size
             ]
-        
+
         self.semaphore.release()
 
         return data
-    
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+
     def sen_thread(sen):
         p = mp.Process(target=sen.poll)
         p.start()
 
     def getter_thread(sen):
-        length = 3*48000
-        output = np.zeros(10*length)
+        length = 3 * 48000
+        output = np.zeros(10 * length)
         for i in range(10):
             data = sen.read()
             for j in range(length):
-                output[j + i*length] = data[j]
+                output[j + i * length] = data[j]
         plt.plot(output)
         plt.show()
         quit()
 
     from test_sensor import Test_Sensor
-    ts = Test_Sensor(48000, 3*48000, signal_type='sine')
+
+    ts = Test_Sensor(48000, 3 * 48000, signal_type="sine")
     sen_reader = Sensor(ts)
     sen_thread(sen_reader)
     p = mp.Process(target=getter_thread, args=[sen_reader])
     p.start()
-

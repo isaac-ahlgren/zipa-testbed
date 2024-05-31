@@ -1,12 +1,14 @@
-from cryptography.hazmat.primitives import hashes
 import random
+
 import numpy as np
+from cryptography.hazmat.primitives import hashes
+
 
 class Fuzzy_Commitment:
     def __init__(self, error_correction_obj, key_byte_length):
         self.key_byte_length = key_byte_length
         self.error_correction = error_correction_obj
-    
+
     def xor_bytes(self, bytes1: bytearray, bytes2: bytearray) -> bytearray:
         output = bytearray([0 for i in range(len(bytes1))])
         for i in range(len(bytes1)):
@@ -23,7 +25,6 @@ class Fuzzy_Commitment:
         # Commit witness by getting XOR distance between codeword and witness
         commitment = self.xor_bytes(C, witness)
         return secret_key, commitment
-
 
     def decommit_witness(self, commitment, witness):
         # Decommit by XORing the commitment and the witness

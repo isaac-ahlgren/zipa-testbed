@@ -4,8 +4,19 @@ from datetime import datetime
 import mysql.connector
 import numpy as np
 
+
 class NFSLogger:
-    def __init__(self, user, password, host, database, nfs_server_dir, local_dir, identifier, use_local_dir=False):
+    def __init__(
+        self,
+        user,
+        password,
+        host,
+        database,
+        nfs_server_dir,
+        local_dir,
+        identifier,
+        use_local_dir=False,
+    ):
         self.user = user
         self.password = password
         self.host = host
@@ -16,28 +27,41 @@ class NFSLogger:
         self.use_local_dir = use_local_dir
 
     def log_signal(self, name, signal):
-        # Using indexing instead
+        """
+        Used in the sensor collector configuration.
+
+        """
+
+        # Dependant on selection in main.py
         if self.use_local_dir:
             directory = self.local_dir
         else:
             directory = self.nfs_server_dir
-        
+
+        # Logging one day's worth of signals into a file
         timestamp = datetime.now().strftime("%Y%m%d")
-
-        file_name = directory + name + "_id" + str(self.identifier) + "_date" + timestamp + ".csv"
-
-        file = open(file_name, 'a')
-
+        file_name = (
+            directory               # On NFS or locally
+            + name                  # Sensor name
+            + "_id_"
+            + str(self.identifier)  # Unique ID for deivce
+            + "_date_"
+            + timestamp             # Day
+            + ".csv"
+        )
+        # Signal in CSV format
         csv = "\n".join(str(num) for num in signal) + "\n"
 
-        file.write(csv)
-
-        file.close()
-
+        with open(file_name, "a") as file:
+            file.write(csv)
 
     def log(self, data_tuples, count=None, ip_addr=None):
+        """
+        Used in the ZIPA protocol configuration.
+        
+        """
 
-        # Using indexing instead
+        # Dependant on selection in main.py
         if self.use_local_dir:
             directory = self.local_dir
         else:
@@ -49,8 +73,10 @@ class NFSLogger:
             filename = self.create_filename(directory, name, count, ip_addr, file_ext)
 
             # Determine mode based on whether data is bytes or str (it can be a list of bytes too)
-            if isinstance(data, bytes) or (isinstance(data, list) and isinstance(data, bytes)):
-                mode = "wb" 
+            if isinstance(data, bytes) or (
+                isinstance(data, list) and isinstance(data, bytes)
+            ):
+                mode = "wb"
             else:
                 mode = "w"
 
@@ -58,9 +84,7 @@ class NFSLogger:
             with open(filename, mode) as file:
                 # If the file is CSV and data is not a string, use numpy to save
                 if file_ext == "csv" and not isinstance(data, str):
-                    np.savetxt(
-                        file, data, comments="", fmt="%s"
-                    )
+                    np.savetxt(file, data, comments="", fmt="%s")
                 elif mode == "wb":
                     if isinstance(data, list) and isinstance(data, bytes):
                         for byte_string in data:
@@ -82,9 +106,10 @@ class NFSLogger:
         if count is not None:
             filename += f"_count{count}"
         if ip_addr is not None:
-                filename += f"_toipaddr{ip_addr}"
+            filename += f"_toipaddr{ip_addr}"
         filename += f".{file_ext}"
 
+    # TODO: Check if mySQL will be used for project
     def _log_to_mysql(self, file_paths):
         try:
             conn = mysql.connector.connect(

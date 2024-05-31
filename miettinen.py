@@ -341,7 +341,7 @@ class Miettinen_Protocol:
             if self.verbose:
                 print("Sending commitment")
                 print()
-            
+
             send_commit([commitment], None, device_socket)
 
             # Key Confirmation Phase
@@ -513,7 +513,7 @@ class Miettinen_Protocol:
         send_nonce_msg(connection, nonce_msg)
 
         return nonce
-    
+
     # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
     def verify_mac_from_host(self, recieved_nonce_msg, generated_nonce, derived_key):
         success = False
