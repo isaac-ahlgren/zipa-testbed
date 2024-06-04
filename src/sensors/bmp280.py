@@ -32,17 +32,30 @@ class BMP280Sensor(SensorInterface):
     def stop(self):
         pass
 
+    # commenting out 1d array function
+    # def read(self):
+    #     data = np.empty(self.chunk_size, self.data_type)
+
+    #     for i in range(0, self.chunk_size, 3):
+    #         data[i] = self.bmp.temperature
+    #         data[i + 1] = self.bmp.pressure
+    #         data[i + 2] = self.bmp.altitude
+
+    #         time.sleep(1 / self.sample_rate)
+
+    #     return data
+
     def read(self):
-        data = np.empty(self.chunk_size, self.data_type)
+        # rows x columns for pandas readibility
+        data = np.empty((self.chunk_size, 3), self.data_types)
 
-        for i in range(0, self.chunk_size, 3):
-            data[i] = self.bmp.temperature
-            data[i + 1] = self.bmp.pressure
-            data[i + 2] = self.bmp.altitude
-
-            time.sleep(1 / self.sample_rate)
+        for i in range(self.chunk_size):
+            data[i, 0] = self.bmp.temperature
+            data[i, 1] = self.bmp.pressure
+            data[i, 2] = self.bmp.altitude
 
         return data
+
 
 
 if __name__ == "__main__":
