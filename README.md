@@ -1,10 +1,10 @@
 # ZIPA Testbed Project
 
-This repository houses code necessary to perform several Zero Interaction Pairing and Authentication (ZIPA) schemes. This project also has the option to passively collect and store data on-board.
+This repository houses code necessary to perform several Zero Interaction Pairing and Authentication (ZIPA) schemes. This project also has the option to passively collect and store data on-board or log it to an NFS server.
 
 All code has been tested to work on the Raspberry Pi 4 Model B.
 
-For a seamless setup and execution of the testbed and its related dependencies, navigate to the [ZIPA cluster](https://github.com/jc-mart/zipa-cluster)
+For a seamless setup and execution of the testbed and its related dependencies, navigate to the [ZIPA cluster](https://github.com/jc-mart/zipa-cluster) repository.
 
 ## Overview
 
@@ -21,13 +21,17 @@ This segment assumes that the sensors have been hooked up and any necessary depe
 By default, the cluster project's Ansible scripts set up the testbed code so that it runs data collection at the end of its playbook. Noteworthy processes of the testbed code installation include:
 
 1. Changing the network interface in **main.py** and IP address in **zipa_sys.py** to be reflective of the Pi's IP interface and address
-2. Compilation of Reed-Solomon error correction C code using the `make` command under the **rscode-1.3** directory.
+2. Compilation of Reed-Solomon error correction C code using the `make` command under `lib/rscode-1.3`.
 
-Should the need of manually running the testbed arise, stop the ZIPA testbed daemon by running `sudo systemctl stop zipa-systemd` to terminate the service. Next, navigate to the **zipa-testbed** directory and use the installed `run` command to manually start the testbed.
+Should the need of manually running the testbed arise, stop the ZIPA testbed daemon by running `sudo systemctl stop zipa-systemd` to terminate the service when logged onto the Pi. Next, navigate to the `zipa-testbed` directory and use the installed `run` command to manually start the testbed.
 
 ### Changing modes
 
-**This section is currently a work in progress.**
+Changing from collection to ZIPA protocol mode requires at least two of everything mentioned in the requirements section. These Pi's also need to be on the same network to be able to communicate with one another.
+
+To manually change modes, navigate to `src` and edit the `main.py` file. Edit `collection_mode` to `False`. After changing this across the desired Pi's and on a computer connected to the same network, edit `zipa_starter.py`. Set `IP_ADDR` to the computer's IPv4 address and set `TARGET_IP_ADDRESS` to one of the participating Pi's IPv4 address. In `SELECTED_PROTOCOL`, choose one of the four available protocols above this field.
+
+Once set, on the Pi's `zipa-testbed` directory, issue the command `run` to run the testbed. These devices will be on standby for the computer to issue the command to begin working on the selected ZIPA protocol. On the computer, type `python3 zipa_starter.py` to begin the protocol.
 
 ### Sensors tested
 

@@ -64,9 +64,11 @@ PERCEPTIO = {
     "timeout": 10,
 }
 
+SELECTED_PROTOCOL = SHURMANN
+
 if __name__ == "__main__":
     # Pack up message
-    bytestream = json.dumps(PERCEPTIO).encode("utf8")
+    bytestream = json.dumps(SELECTED_PROTOCOL).encode("utf8")
     length = len(bytestream).to_bytes(4, byteorder="big")
     message = HOST.encode() + length + bytestream
 
