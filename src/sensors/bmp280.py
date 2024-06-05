@@ -47,7 +47,7 @@ class BMP280Sensor(SensorInterface):
 
     def read(self):
         # rows x columns for pandas readibility
-        data = np.empty((self.chunk_size, 3), self.data_types)
+        data = np.empty((self.chunk_size, 3), self.data_type)
 
         for i in range(self.chunk_size):
             data[i, 0] = self.bmp.temperature

@@ -48,22 +48,16 @@ class NFSLogger:
             + str(self.identifier)  # Unique ID for deivce
             + "_date_"
             + timestamp             # Day
-            # + ".csv"
-            # commenting this out because pandas writes it as a csv file
         )
-        # Signal in CSV format
-        csv = "\n".join(str(num) for num in signal) + "\n"
 
-        # with open(file_name, "a") as file:
-        #     file.write(csv)
-
-        df = pd.DataFrame(csv)
-        df.to_csv(file_name, mode = 'a', header = False, index = False)
+        # Convert to CSV and save
+        df = pd.DataFrame(signal)
+        df.to_csv(file_name, mode="a", header=False, index=False)
 
     def log(self, data_tuples, count=None, ip_addr=None):
         """
         Used in the ZIPA protocol configuration.
-        
+
         """
 
         # Dependant on selection in main.py
