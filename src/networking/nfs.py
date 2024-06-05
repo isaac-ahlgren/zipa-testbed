@@ -48,6 +48,7 @@ class NFSLogger:
             + str(self.identifier)  # Unique ID for deivce
             + "_date_"
             + timestamp             # Day
+            + ".csv"
         )
 
         # Convert to CSV and save
