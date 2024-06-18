@@ -9,27 +9,39 @@ import pyaudio
 
 from sensors.sensor_interface import SensorInterface
 
-
-# TODO: Remind Isaac to comment all of this so it makes sense later, I'm on a time crunch currently
 class Microphone(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, chunk_size, mic_sampling_rate=48000):
+    def __init__(self, sample_rate, buffer_size, chunk_size, rms_filter_enabled=False):
+        # When the RMS filter is enabled, the true sampling rate will be sample_rate/chunk_size.
+        # Each chunk size will be converted into one sample by performing RMS on the chunk.
         SensorInterface.__init__(self)
-        self.format = pyaudio.paInt32  # Change to 16-bit format
+        
+        self.rms_filter_enabled = rms_filter_enabled
+
+        self.format = pyaudio.paInt32 
         self.sample_rate = sample_rate
         self.name = "mic"
         self.pyaud = pyaudio.PyAudio()
         self.chunk_size = chunk_size
-        self.samples_per_spl_sample = mic_sampling_rate // sample_rate
+        self.samples_per_spl_sample = sample_rate // chunk_size
+ 
+        # This is to account for the differences in buffer size between performing the RMS filter and not performing it
         self.buffer_size = buffer_size
+        if rms_filter_enabled:
+            self.buffer_size = buffer_size * self.samples_per_spl_sample
+
         self.stream = self.pyaud.open(
             format=self.format,
             channels=1,  # Stereo audio
-            rate=mic_sampling_rate,
+            rate=sample_rate,
             input=True,
-            frames_per_buffer=self.buffer_size * self.samples_per_spl_sample,
+            frames_per_buffer=self.buffer_size,
         )
-        self.data_type = np.float64()
-        self.count = 0
+
+        # Data types will switch between using RMS filter or not, mostly because we have to be able to fit all the RMS data into a single datatype
+        self.data_type = np.int32()
+        if rms_filter_enabled:
+            self.data_type = np.float64()
+
         self.start_thread()
 
     def start(self):
@@ -41,7 +53,7 @@ class Microphone(SensorInterface):
         self.stream.stop_stream()
 
     def calc_rms(self, signal):
-        output = np.zeros(self.chunk_size, dtype=np.float32)
+        output = np.zeros(self.chunk_size, dtype=np.float64)
         for i in range(self.chunk_size):
             arr = signal[
                 i * self.samples_per_spl_sample : (i + 1) * self.samples_per_spl_sample
@@ -52,8 +64,9 @@ class Microphone(SensorInterface):
     def read(self):
         output = self.stream.read(self.samples_per_spl_sample * self.chunk_size)
         buf = np.frombuffer(output, dtype=np.int32)
-        return self.calc_rms(buf)
-
+        if self.rms_filter_enabled:
+            buf = self.filter(buf)
+        return buf
 
 # Test case
 if __name__ == "__main__":

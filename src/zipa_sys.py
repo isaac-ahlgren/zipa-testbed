@@ -282,7 +282,6 @@ class ZIPA_System:
         chunk_sizes = config_params["chunk_sizes"]
         return time_to_collect, sensors_used, sensor_sample_rates, chunk_sizes
 
-    # TODO: make sht31d an option as a sensor
     def create_sensors(
         self,
         time_length,
@@ -302,6 +301,7 @@ class ZIPA_System:
                 sample_rates["microphone"],
                 sample_rates["microphone"] * time_length,
                 chunk_sizes["microphone"],
+                rms_filter_enabled=False,
             )
 
         if sensors_used["bmp280"]:
