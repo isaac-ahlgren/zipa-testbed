@@ -65,7 +65,7 @@ class Microphone(SensorInterface):
         output = self.stream.read(self.samples_per_spl_sample * self.chunk_size)
         buf = np.frombuffer(output, dtype=np.int32)
         if self.rms_filter_enabled:
-            buf = self.filter(buf)
+            buf = self.calc_rms(buf)
         return buf
 
 # Test case
