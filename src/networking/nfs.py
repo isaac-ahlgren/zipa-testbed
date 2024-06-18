@@ -42,7 +42,7 @@ class NFSLogger:
             directory = self.nfs_server_dir
 
         # Logging one day's worth of signals into a file
-        timestamp = datetime.now().strftime("%Y%m%d")
+        timestamp = datetime.now().strftime("%Y%m%d%H")
         file_name = (
             directory               # On NFS or locally
             + name                  # Sensor name
