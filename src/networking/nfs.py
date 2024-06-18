@@ -32,7 +32,7 @@ class NFSLogger:
         Used in the sensor collector configuration.
 
         """
-        if not isinstance(signal, list):
+        if isinstance(signal, float):
             signal = [signal] 
 
         # Dependant on selection in main.py
