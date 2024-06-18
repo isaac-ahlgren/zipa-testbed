@@ -32,6 +32,8 @@ class NFSLogger:
         Used in the sensor collector configuration.
 
         """
+        if not isinstance(signal, list):
+            signal = [signal] 
 
         # Dependant on selection in main.py
         if self.use_local_dir:

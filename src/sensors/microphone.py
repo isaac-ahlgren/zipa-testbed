@@ -22,13 +22,8 @@ class Microphone(SensorInterface):
         self.name = "mic"
         self.pyaud = pyaudio.PyAudio()
         self.chunk_size = chunk_size
-        self.samples_per_spl_sample = sample_rate // chunk_size
- 
-        # This is to account for the differences in buffer size between performing the RMS filter and not performing it
+        self.spl_sample_rate = sample_rate // chunk_size
         self.buffer_size = buffer_size
-        if rms_filter_enabled:
-            self.buffer_size = buffer_size * self.samples_per_spl_sample
-
         self.stream = self.pyaud.open(
             format=self.format,
             channels=1,  # Stereo audio
@@ -53,16 +48,10 @@ class Microphone(SensorInterface):
         self.stream.stop_stream()
 
     def calc_rms(self, signal):
-        output = np.zeros(self.chunk_size, dtype=np.float64)
-        for i in range(self.chunk_size):
-            arr = signal[
-                i * self.samples_per_spl_sample : (i + 1) * self.samples_per_spl_sample
-            ].astype(np.int64)
-            output[i] = np.sqrt(np.mean(arr**2)) / self.samples_per_spl_sample
-        return output
+        return np.array(np.sqrt(np.mean(signal.astype(np.int64())**2)) / self.chunk_size, dtype=np.float64)
 
     def read(self):
-        output = self.stream.read(self.samples_per_spl_sample * self.chunk_size)
+        output = self.stream.read(self.chunk_size)
         buf = np.frombuffer(output, dtype=np.int32)
         if self.rms_filter_enabled:
             buf = self.calc_rms(buf)
