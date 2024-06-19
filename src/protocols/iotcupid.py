@@ -29,6 +29,10 @@ class IoTCupid_Protocol:
             feature_dim,
             quantization_factor,
             cluster_th,
+            window_size,
+            bottom_th,
+            top_th,
+            agg_th,
             parity_symbols,
             timeout,
             logger,
@@ -102,195 +106,6 @@ class IoTCupid_Protocol:
         })
         print("Derivative dataframe:", derivative_df)
         return derivative_df
-
-
-
-    def calculate_event_durations(self, events):
-        durations = {}
-        for event_type, event_list in events.items():
-            total_duration = sum((event_list[i+1][0] - event_list[i][0]).total_seconds()
-                                for i in range(0, len(event_list)-1, 2))
-            average_duration = total_duration / (len(event_list) // 2)
-            durations[event_type] = average_duration
-        return durations
-
-
-    def create_event_pairs(self, events):
-        all_pairs = {}
-        durations = self.calculate_event_durations(events)
-        for key, event_list in events.items():
-            pairs = []
-            margin_noise = durations[key] * 0.5  # Example: Δtn as 50% of the average duration
-            margin_signal = durations[key] * 0.25  # Example: Δtv as 25% of the average duration
-            for i in range(0, len(event_list), 2):
-                if i + 1 < len(event_list):
-                    start_event = event_list[i]
-                    end_event = event_list[i+1]
-                    if start_event[1] in ['on', 1] and end_event[1] in ['off', 0]:
-                        pairs.append((start_event[0], end_event[0], margin_noise, margin_signal))
-            all_pairs[key] = pairs
-        return all_pairs
-
-
-
-    def calculate_thresholds(self, all_noise_samples, all_signal_samples):
-        if all_noise_samples and all_signal_samples:
-            noise_mean, noise_std = np.mean(all_noise_samples), np.std(all_noise_samples)
-            signal_mean, signal_std = np.mean(all_signal_samples), np.std(all_signal_samples)
-            TL = noise_mean - 2 * noise_std  # Lower threshold
-            TU = signal_mean + 2 * signal_std  # Upper threshold
-            print(f"Noise Mean: {noise_mean}, Noise Std: {noise_std}, Signal Mean: {signal_mean}, Signal Std: {signal_std}")
-            print(f"Calculated TL: {TL}, TU: {TU}")
-        else:
-            TL, TU = 0, 1  # Default values if no data is available
-
-        return TL, TU
-
-
-    def collect_noise_signal_samples(self, derivatives, event_pairs):
-        all_noise_samples = []
-        all_signal_samples = []
-        #derivatives are not within the correct timeframes
-        for start_timestamp, end_timestamp, margin_noise, margin_signal in event_pairs:
-            noise_start = start_timestamp - pd.Timedelta(seconds=margin_noise)
-            noise_end = end_timestamp + pd.Timedelta(seconds=margin_noise)
-            signal_start = start_timestamp - pd.Timedelta(seconds=margin_signal)
-            signal_end = end_timestamp + pd.Timedelta(seconds=margin_signal)
-
-            print("Event Pair Timestamps:")
-            print(f"Noise Start to End: {noise_start} to {noise_end}")
-            print(f"Signal Start to End: {signal_start} to {signal_end}")
-
-            noise_samples = derivatives[(derivatives['timestamp'] < signal_start) | (derivatives['timestamp'] > signal_end)]['derivative']
-            signal_samples = derivatives[(derivatives['timestamp'] >= signal_start) & (derivatives['timestamp'] <= signal_end)]['derivative']
-            print(f"Noise Samples Count: {len(noise_samples)}, Signal Samples Count: {len(signal_samples)}")
-
-            all_noise_samples.extend(noise_samples.tolist())
-            all_signal_samples.extend(signal_samples.tolist())
-
-        return all_noise_samples, all_signal_samples
-
-
-
-    def calculate_global_thresholds(self, raw, events):
-        if isinstance(events, dict):
-            event_pairs_dict = self.create_event_pairs(events)
-        else:
-            raise ValueError("Expected a dictionary for events, but received a list.")
-
-        all_noise_samples = []
-        all_signal_samples = []
-
-        for event_type, event_pairs in event_pairs_dict.items():
-            noise_samples, signal_samples = self.collect_noise_signal_samples(raw, event_pairs)
-            all_noise_samples.extend(noise_samples)
-            all_signal_samples.extend(signal_samples)
-
-        bottom_th, top_th = self.calculate_thresholds(all_noise_samples, all_signal_samples)
-        abs_bottom_th = abs(bottom_th)
-        abs_top_th = abs(top_th)
-
-        return abs_bottom_th, abs_top_th
-
-
-
-    def evaluate_accuracy(self, detected_events, ground_truth_events, time_threshold=pd.Timedelta(seconds=0.1)):
-        true_positives = 0
-        matched_gt_events = {}  # Change from set to dictionary
-
-        # Match detected events to ground truth events
-        for detected in detected_events:
-            detected_start = pd.to_datetime(detected[0])
-            for truth in ground_truth_events:
-                truth_start = pd.to_datetime(truth[0])
-                # Only consider this truth event if it hasn't been matched yet
-                if truth not in matched_gt_events and abs(detected_start - truth_start) <= time_threshold:
-                    true_positives += 1
-                    matched_gt_events[truth] = detected  # Map this truth to the detected event
-                    break  # Stop after the first match to prevent multiple detections counting multiple times
-
-        # Precision and recall calculations
-        precision = (true_positives / len(detected_events)) * 100 if detected_events else 0
-        recall = (true_positives / len(ground_truth_events)) * 100 if ground_truth_events else 0
-
-        # Debug prints
-        print(f"True Positives: {true_positives}")
-        print(f"Detected Events: {len(detected_events)}")
-        print(f"Ground Truth Events: {len(ground_truth_events)}")
-        print(f"Precision: {precision}")
-        print(f"Recall: {recall}")
-
-        return precision, recall
-
-
-    def grid_search(self, raw_data, events, min_window, max_window, step):
-        event_pairs = self.create_event_pairs(events)  # Adjust this call if needed
-
-        best_window_size = min_window
-        best_precision = 0
-        best_agg_th = 0
-        best_TL = 0
-        best_TU = 0
-        best_derivatives = None
-
-        for agg_th in range(1, 50, 5):
-            for window_size in range(min_window, max_window + 1, step):
-                derivatives = self.compute_derivative(raw_data, window_size)
-                
-        
-                TL, TU = self.calculate_global_thresholds(derivatives, events)
-                print("Lower threshold:", TL)
-                print("Upper threshold:", TU)
-        
-                detected_events = self.detect_events_grid_search(derivatives, TL, TU, agg_th)
-                print("Detected events:", detected_events)
-       
-                flattened_event_pairs = [pair for sublist in event_pairs.values() for pair in sublist]
-
-                precision, recall = self.evaluate_accuracy(detected_events, flattened_event_pairs)
-        
-                if precision > best_precision:
-                    best_precision = precision
-                    best_window_size = window_size
-                    best_agg_th = agg_th
-                    best_TL = TL
-                    best_TU = TU
-                    best_derivatives = derivatives
-
-                #How should I utilize best recall? 
-
-                print(f"Tested window size: {window_size}, Precision: {precision}, Recall: {recall} TL: {TL}, TU: {TU}, Aggregate Threshold: {agg_th}")
-
-        return best_window_size, best_precision, best_agg_th, best_TL, best_TU, best_derivatives
-
-
-    def detect_events_grid_search(self, derivatives, bottom_th, top_th, agg_th):
-        events = []
-        event_start = None
-        in_event = False
-
-        timestamps = derivatives['timestamp']  # Extract the timestamp column for mapping indices to timestamps
-
-        # Iterate over the derivative array
-        for i in range(len(derivatives)):
-            # Check if the absolute value of the derivative is within the thresholds
-            if bottom_th <= abs(derivatives['derivative'].iloc[i]) <= top_th:
-                if not in_event:
-                    event_start = i  # Start of a new event
-                    in_event = True
-            else:
-                if in_event:
-                    # End the current event if it exceeds the aggregation threshold
-                    if i - event_start > agg_th:
-                        # Append the start and end timestamps of the event
-                        events.append((timestamps.iloc[event_start], timestamps.iloc[i]))
-                    in_event = False
-
-        if in_event:
-            events.append((timestamps.iloc[event_start], timestamps.iloc[-1]))
-
-        return events
-
 
 
 
@@ -420,10 +235,6 @@ class IoTCupid_Protocol:
             encoded_timings[cluster_id] = ''.join(bit_strings)
         return encoded_timings
 
-    def evaluate_event_detection(self, events):
-        # Might need to add more to this method, not much description given for the grid search in the paper
-        return len(events)
-
 
     def extract_column_values(self, df, column_name):
         return df[column_name].values
@@ -441,25 +252,21 @@ class IoTCupid_Protocol:
         feature_dim,
         quantization_factor,
         cluster_th,
+        window_size,
+        bottom_th,
+        top_th,
+        agg_th
     ):
         
-        min_window = 1   # Minimum window size in seconds (or appropriate unit)
-        max_window = 300 # Maximum window size in seconds (or appropriate unit)
-        step = 10        # Step size in seconds (or appropriate unit)
 
         smoothed_data = self.ewma_filter(raw, 'rms_db', a)
         print("Smoothed data:", smoothed_data)
 
-        window_size, precision, agg_th, TL, TU, derivatives = self.grid_search(smoothed_data, pre_events, min_window, max_window, step)
-        print("Best window size:", window_size)
-        print("Best detection precision:", precision)
-        print("Best aggregate threshold:", agg_th)
-        print("Best lower threshold:", TL)
-        print("Best upper threshold:", TU)
-   
+        derivatives = self.compute_derivative(smoothed_data, window_size)
+        
         signal_data = self.extract_column_values(derivatives, 'derivative')
-
-        events = self.detect_events(derivatives, TL, TU, agg_th)
+        
+        events = self.detect_events(derivatives, bottom_th, top_th, agg_th)
         if len(events) < 2:
             # Needs two events in order to calculate interevent timings
             if self.verbose:
@@ -477,6 +284,7 @@ class IoTCupid_Protocol:
         inter_event_timings = self.calculate_inter_event_timings(grouped_events)
         
         encoded_timings = self.encode_timings_to_bits(inter_event_timings, quantization_factor)
+        #Method does not exist because IoTCupid is different
         #fps = self.gen_fingerprints(grouped_events, k, key_size, Fs)
         #fps = self.gen_fingerprints(grouped_events, u.shape[0], key_size, Fs)
 
@@ -591,6 +399,10 @@ if __name__ == "__main__":
     feature_dim = 3
     quantization_factor=100
     cluster_th = 0.08
+    window_size = 60
+    bottom_th = 0.15
+    top_th = 0.4
+    agg_th = 5
 
     # Call the iotcupid method
     encoded_timings, grouped_events = protocol.iotcupid(
@@ -602,7 +414,11 @@ if __name__ == "__main__":
         cluster_sizes_to_check=cluster_sizes_to_check,
         feature_dim=feature_dim,
         quantization_factor=quantization_factor,
-        cluster_th=cluster_th
+        cluster_th=cluster_th,
+        window_size = window_size,
+        bottom_th = bottom_th,
+        top_th = top_th,
+        agg_th = agg_th
     )
 
      # Output results for inspection
