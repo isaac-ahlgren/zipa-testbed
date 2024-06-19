@@ -20,9 +20,63 @@ from skfuzzy.cluster import cmeans
 import matplotlib.pyplot as plt
 
 class IoTCupid_Protocol:
-    def __init__(self, verbose=True):
-        self.verbose = verbose
+    def __init__(
+            self,
+            sensors,
+            key_length,
+            a,
+            cluster_sizes_to_check,
+            feature_dim,
+            quantization_factor,
+            cluster_th,
+            parity_symbols,
+            timeout,
+            logger,
+            verbose=True
+        ):
+            self.sensors = sensors
+            
+            self.name = "iotcupid"
 
+            self.timeout = timeout
+
+            self.count = 0
+
+            self.verbose = verbose
+
+
+    
+    def extract_context(self):
+        pass
+
+    def parameters(self, is_host):
+        parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
+        parameters += f"sensor: {self.sensor.sensor.name}\n"
+        parameters += f"key_length: {self.key_length}\n"
+        parameters += f"alpha: {a}\n"
+        parameters += f"cluster_sizes_to_check: {cluster_sizes_to_check}\n"
+        parameters += f"features_dim: {features_dim}\n"
+        parameters += f"quantization_factor: {quantization_factor}\n"
+        parameters += f"cluster_th: {cluster_th}\n"
+        parameters += f"parity_symbols: {self.parity_symbols}\n"
+        parameters += f"time_length: {self.time_length}\n"
+
+    def device_protocol(self, host):
+        pass
+
+    def host_protocol(self, device_sockets):
+        # Log parameters to the NFS server
+        self.logger.log([("parameters", "txt", self.parameters(True))])
+
+        if self.verbose:
+            print("Iteration " + str(self.count))
+            print()
+        for device in device_sockets:
+            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
+            p.start()
+
+    def host_protocol_single_threaded(self, device_socket):
+        pass
 
     def ewma_filter(self, dataframe, column_name, alpha=0.15):
         #Commented out the normalization
@@ -507,8 +561,7 @@ def get_all_event_time_stamps(directory, relative_file_paths, event_name):
 
 #Example Usage:
 if __name__ == "__main__":
-    #fs = 50  # Sampling frequency for bmp280
-    fs = 1 # no sampling rate for radiator, coffee_machine, etc.
+    fs = 1 # Hz, replace with actual sample rate
     directory = "/home/isaac/dataset/"
     relative_file_paths = ["/full-coffee/20-coffee", "/door-short/20-door"]
     
