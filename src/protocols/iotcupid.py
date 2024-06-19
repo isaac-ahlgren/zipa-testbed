@@ -531,11 +531,13 @@ def strings_to_data(event_dictionary):
         converted_events[event_name] = [dt.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f') for timestamp in timestamps]
     return converted_events
 
+
+#Example Usage:
 if __name__ == "__main__":
     #fs = 50  # Sampling frequency for bmp280
     fs = 1 # no sampling rate for radiator, coffee_machine, etc.
-    directory = os.getcwd() + "/../dataset/"
-    relative_file_paths = ["full-coffee/20-coffee", "door-short/20-door"]
+    directory = "/home/isaac/dataset/"
+    relative_file_paths = ["/full-coffee/20-coffee", "/door-short/20-door"]
     
     event_names = ["COFFEE", "DOOR"]
 
