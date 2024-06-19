@@ -16,7 +16,7 @@ sensor_sample_rates:
   voltkey: 2000
   test_sensor: 44100
 chunk_sizes:
-  microphone: 400
+  microphone: 2000
   bmp280: 5
   pir: 1
   veml7700: 4
