@@ -375,22 +375,6 @@ class IoTCupid_Protocol:
         return df[column_name].values
 
 
-    def get_all_event_time_stamps(directory, relative_file_paths, event_name):
-        event_dictionary = dict()
-        for path, name in zip(relative_file_paths, event_name):
-            file_path = directory + path
-            events = get_timestamps(file_path)
-            event_dictionary[name] = events
-        return event_dictionary
-
-
-    def strings_to_data(events, names_of_events):
-        events_considered = []
-        for name in names_of_events:
-            events_considered.extend(events[name])
-        for i in range(len(events_considered)):
-            events_considered[i] = dt.strptime(events_considered[i], '%Y-%m-%d %H:%M:%S.%f')
-
 
     def iotcupid(
         self,
@@ -444,10 +428,6 @@ class IoTCupid_Protocol:
 
         return encoded_timings, grouped_events
 
-
-def load_sensor_datab(filepath):
-        df = pd.read_csv(filepath)
-        return df
 
 
 def load_sensor_data(directory):
@@ -523,13 +503,6 @@ def get_all_event_time_stamps(directory, relative_file_paths, event_name):
         event_dictionary[name] = events
     return event_dictionary
 
-
-def strings_to_data(event_dictionary):
-    converted_events = {}
-    for event_name, timestamps in event_dictionary.items():
-        # Convert each timestamp string to a datetime object
-        converted_events[event_name] = [dt.strptime(timestamp, '%Y-%m-%d %H:%M:%S.%f') for timestamp in timestamps]
-    return converted_events
 
 
 #Example Usage:
