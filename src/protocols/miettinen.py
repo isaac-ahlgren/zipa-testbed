@@ -60,7 +60,7 @@ class Miettinen_Protocol:
 
         self.verbose = verbose
 
-    def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
+    def signal_preprocessing(signal, no_snap_shot_width, snap_shot_width):
         block_num = int(len(signal) / (no_snap_shot_width + snap_shot_width))
         c = np.zeros(block_num)
         for i in range(block_num):
@@ -74,7 +74,7 @@ class Miettinen_Protocol:
             )
         return c
 
-    def gen_key(self, c, rel_thresh, abs_thresh):
+    def gen_key(c, rel_thresh, abs_thresh):
         bits = ""
         for i in range(len(c) - 1):
             feature1 = np.abs(c[i] / (c[i - 1]) - 1)
@@ -86,19 +86,19 @@ class Miettinen_Protocol:
         return bits
 
     # TODO: algorithm needs to be testing using real life data
-    def miettinen_algo(self, x):
+    def miettinen_algo(x, f, w, rel_thresh, abs_thresh):
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
-        signal = self.signal_preprocessing(x, self.f, self.w)
-        key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
+        signal = Miettinen_Protocol.signal_preprocessing(x, f, w)
+        key = Miettinen_Protocol.gen_key(signal, rel_thresh, abs_thresh)
         return bitstring_to_bytes(key)
 
     def extract_context(self):
         signal = self.sensor.read(
             int(self.time_length * self.sensor.sensor.sample_rate)
         )
-        bits = self.miettinen_algo(signal)
+        bits = self.miettinen_algo(signal, self.f, self.w, self.rel_thresh, self.abs_thresh)
         return bits, signal
 
     def parameters(self, is_host):

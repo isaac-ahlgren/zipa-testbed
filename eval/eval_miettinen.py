@@ -7,46 +7,47 @@ import random
 import numpy as np
 import pandas as pd
 from eval_tools import *
-from protocols.shurmann import Shurmann_Siggs_Protocol
+from protocols.miettinen import Miettinen_Protocol
 
-def shurmann_wrapper_func(arr, window_length, band_len):
-    return Shurmann_Siggs_Protocol.sigs_algo(None, arr, window_len=window_length, bands=band_len)
+def miettinen_wrapper_func(arr, f, w, rel_thresh, abs_thresh):
+    return Miettinen_Protocol.miettinen_algo(arr, f, w, rel_thresh, abs_thresh)
 
-def generate_bits(sf, bit_length, window_length, band_length, max_samples):
-    samples_per_key = (
-            math.ceil(
-                ((bit_length) / int((window_length / 2 + 1) / band_length))
-                + 1
-            )
-            * window_length
-        )
+def generate_bits(sf, bit_length, f, w, rel_thresh, abs_thresh, max_samples):
+    samples_per_key = (w + f) * (bit_length + 1)
 
     number_of_keys = max_samples // samples_per_key
     keys_generated = []
     for i in range(number_of_keys):
         samples = sf.read(samples_per_key)
-        key = shurmann_wrapper_func(samples, window_length, band_length)
+        key = miettinen_wrapper_func(samples, f, w, rel_thresh, abs_thresh)
+        print(len(key))
         keys_generated.append(key)
     return keys_generated, samples_per_key
 
 def experiment(data_from_devices, ids, iterations, max_samples):
     bit_length = 128            # Hardcoded to always try to produce keys of a certain length
 
-    file_name = f"shurmann_dev1_{ids[0]}_dev2_{ids[1]}.csv"
+    file_name = f"miettinen_dev1_{ids[0]}_dev2_{ids[1]}.csv"
 
-    # Min and Max values are arbitrary but somewhat relistic potential choices window_length
-    min_window_length = 5000
-    max_window_length = 48000*5
-    min_band_length = 1
+    min_f = 5000
+    max_f = 48000*10
+    min_w = 5000
+    max_w = 48000*10
+    min_rel_thresh = -10000
+    max_rel_thresh = 10000
+    min_abs_thresh = -30
+    max_abs_thresh = 30    
 
     for i in range(iterations):
-        window_length = random.randint(min_window_length, max_window_length)
-        band_len = random.randint(min_band_length, window_length // 2)
+        f = random.randint(min_f, max_f)
+        w = random.randint(min_w, max_w)
+        rel_thresh = random.uniform(min_rel_thresh, max_rel_thresh)
+        abs_thresh = random.uniform(min_abs_thresh, max_abs_thresh)
 
         device_bits = []
         samples_per_key = None
         for sf in data_from_devices:
-            bits, samples_per_key = generate_bits(sf, bit_length, window_length, band_len, max_samples)
+            bits, samples_per_key = generate_bits(sf, bit_length, f, w, rel_thresh, abs_thresh, max_samples)
             device_bits.append(bits)
             sf.reset()
         avg_bit_err = get_average_bit_err(device_bits[0], device_bits[1], bit_length)
@@ -56,21 +57,20 @@ def experiment(data_from_devices, ids, iterations, max_samples):
         min_entropy2_4bit = get_min_entropy(device_bits[1], bit_length, 4)
         min_entropy1_8bit = get_min_entropy(device_bits[0], bit_length, 8)
         min_entropy2_8bit = get_min_entropy(device_bits[1], bit_length, 8)
-        
-        results = {"Window Length": [window_length], 
-                   "Band Length": [band_len], 
-                   "Samples Per Key": [samples_per_key], 
-                   "Average Bit Error": [avg_bit_err],  
-                   "Min Entropy Device 1 Symbol Size 1 Bit": [min_entropy1_1bit], 
-                   "Min Entropy Device 2 Symbol Size 1 Bit": [min_entropy2_1bit], 
-                   "Min Entropy Device 1 Symbol Size 4 Bit": [min_entropy1_4bit], 
-                   "Min Entropy Device 2 Symbol Size 4 Bit": [min_entropy2_4bit], 
-                   "Min Entropy Device 1 Symbol Size 8 Bit": [min_entropy1_8bit], 
+
+        results = {"Window Length": [window_length],
+                   "Band Length": [band_len],
+                   "Samples Per Key": [samples_per_key],
+                   "Average Bit Error": [avg_bit_err],
+                   "Min Entropy Device 1 Symbol Size 1 Bit": [min_entropy1_1bit],
+                   "Min Entropy Device 2 Symbol Size 1 Bit": [min_entropy2_1bit],
+                   "Min Entropy Device 1 Symbol Size 4 Bit": [min_entropy1_4bit],
+                   "Min Entropy Device 2 Symbol Size 4 Bit": [min_entropy2_4bit],
+                   "Min Entropy Device 1 Symbol Size 8 Bit": [min_entropy1_8bit],
                    "Min Entropy Device 2 Symbol Size 8 Bit": [min_entropy2_8bit]}
-        
+
         df = pd.DataFrame(results)
         df.to_csv(file_name, mode="a", index=False, header=(not os.path.isfile(file_name)))
-
 
 def perform_eval():
     iterations = 100
@@ -80,11 +80,12 @@ def perform_eval():
     file_name2 = "mic_id_10.0.0.232_date_20240620*.csv"
     sf1 = Signal_File(signal_directory, file_name1)
     sf2 = Signal_File(signal_directory, file_name2)
-    
+
     ids = ["10.0.0.231", "10.0.0.232"]
 
     data_from_devices = [sf1, sf2]
     experiment(data_from_devices, ids, iterations, max_samples)
-            
+
 if __name__ == "__main__":
     perform_eval()
+
