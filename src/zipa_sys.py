@@ -178,10 +178,9 @@ class ZIPA_System:
                         f"Requested protocol is not ready for use. Skipping {protocol.name}.\n"
                     )
 
-
     def initialize_protocol(self, parameters):
         print(
-            f"Initializing {parameters['protocol']['name']} protocol on all participating devices."
+            f"Initializing {parameters['name']} protocol on all participating devices."
         )
         bytestream = json.dumps(parameters).encode("utf8")
         length = len(bytestream).to_bytes(4, byteorder="big")
