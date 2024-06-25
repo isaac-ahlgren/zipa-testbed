@@ -6,16 +6,21 @@ IP_ADDR = "192.168.1.8"
 TARGET_IP_ADDR = ("192.168.1.106", 5005)
 
 SHURMANN = {
-    "protocol": {"name": "shurmann-siggs", "window_len": 10000, "band_len": 1000},
-    "key_length": 8,
-    "parity_symbols": 4,
-    "sensor": "microphone",
-    "timeout": 10,
+    "name": "shurmann-siggs",
+    "parameters": {
+        "name": "shurmann-siggs",
+        "window_len": 10000,
+        "band_len": 1000,
+        "key_length": 8,
+        "parity_symbols": 4,
+        "sensor": "microphone",
+        "timeout": 10,
+    },
 }
 
 MIETTINEN = {
-    "protocol": {
-        "name": "miettinen",
+    "name": "miettinen",
+    "parameters": {
         "f": 5,
         "w": 5,
         "rel_thresh": 0.1,
@@ -23,28 +28,28 @@ MIETTINEN = {
         "auth_thresh": 0.9,
         "success_thresh": 10,
         "max_iterations": 1,
+        "key_length": 8,
+        "parity_symbols": 4,
+        "sensor": "microphone",
+        "timeout": 10,
     },
-    "key_length": 8,
-    "parity_symbols": 4,
-    "sensor": "microphone",
-    "timeout": 10,
 }
 
 VOLTKEY = {
-    "protocol": {
-        "name": "voltkey",
+    "name": "voltkey",
+    "parameters": {
         "periods": 16,
         "bins": 8,
+        "key_length": 8,
+        "parity_symbols": 4,
+        "timeout": 10,
+        "sensor": "voltkey",
     },
-    "key_length": 8,
-    "parity_symbols": 4,
-    "timeout": 10,
-    "sensor": "voltkey",
 }
 
 PERCEPTIO = {
-    "protocol": {
-        "name": "perceptio",
+    "name": "perceptio",
+    "parameters": {
         "a": 0.3,
         "cluster_sizes_to_check": 3,
         "cluster_th": 0.08,
@@ -56,12 +61,13 @@ PERCEPTIO = {
         "sleep_time": 5,
         "max_no_events_detected": 10,
         "timeout": 10,
+        "key_length": 8,
+        "parity_symbols": 4,
+        "sensor": "microphone",
+        "time_length": 44_100 * 20,
+        "timeout": 10,
     },
-    "key_length": 8,
-    "parity_symbols": 4,
-    "sensor": "microphone",
-    "time_length": 44_100 * 20,
-    "timeout": 10,
+    
 }
 
 SELECTED_PROTOCOL = SHURMANN

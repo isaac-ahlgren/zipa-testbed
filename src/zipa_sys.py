@@ -10,6 +10,7 @@ import yaml
 from networking.browser import ZIPA_Service_Browser
 from networking.network import *
 from networking.nfs import NFSLogger
+from protocols.fastzip import FastZIP_Protocol
 from protocols.miettinen import Miettinen_Protocol
 from protocols.perceptio import Perceptio_Protocol
 from protocols.shurmann import Shurmann_Siggs_Protocol
@@ -141,7 +142,7 @@ class ZIPA_System:
 
             for protocol in self.protocols:
                 # Find the protocol that the message demands
-                if protocol.name == parameters["protocol"]["name"]:
+                if protocol.name == parameters["name"] and not protocol.wip:
                     participants = self.initialize_protocol(parameters)
 
                     if len(participants) == 0:
@@ -154,18 +155,29 @@ class ZIPA_System:
                     thread = Process(target=protocol.host_protocol, args=[participants])
                     thread.start()
                     self.protocol_threads.append(thread)
+
+                else:
+                    print(
+                        f"Requested protocol is not ready for use. Skipping {protocol.name}.\n"
+                    )
+
         # Begin protocol
         elif command == STRT:
             print("Device selected as a client.")
 
             for protocol in self.protocols:
-                if protocol.name == parameters["protocol"]["name"]:
+                if protocol.name == parameters["name"] and not protocol.wip:
                     thread = Process(target=protocol.device_protocol, args=[incoming])
                     thread.start()
 
                     # Remove from discoverable as it's running the protocol
                     self.discoverable.remove(incoming)
                     self.protocol_threads.append(thread)
+                else:
+                    print(
+                        f"Requested protocol is not ready for use. Skipping {protocol.name}.\n"
+                    )
+
 
     def initialize_protocol(self, parameters):
         print(
@@ -197,10 +209,11 @@ class ZIPA_System:
 
         return participants
 
-    def create_protocol(self, parameters):
-        name = parameters["protocol"]["name"]
+    def create_protocol(self, payload):
+        name = payload["name"]
+        sensor = payload["parameters"]["sensor"]
 
-        if parameters["sensor"] not in self.sensors:
+        if sensor not in self.sensors:
             print("Sensor not supported")
             return
 
@@ -208,12 +221,7 @@ class ZIPA_System:
             case "shurmann-siggs":
                 self.protocols.append(
                     Shurmann_Siggs_Protocol(
-                        self.sensors[parameters["sensor"]],
-                        parameters["key_length"],
-                        parameters["parity_symbols"],
-                        parameters["protocol"]["window_len"],
-                        parameters["protocol"]["band_len"],
-                        parameters["timeout"],
+                        payload["parameters"],
                         self.logger,
                     )
                 )
@@ -221,17 +229,7 @@ class ZIPA_System:
             case "miettinen":
                 self.protocols.append(
                     Miettinen_Protocol(
-                        self.sensors[parameters["sensor"]],
-                        parameters["key_length"],
-                        parameters["parity_symbols"],
-                        parameters["protocol"]["f"],
-                        parameters["protocol"]["w"],
-                        parameters["protocol"]["rel_thresh"],
-                        parameters["protocol"]["abs_thresh"],
-                        parameters["protocol"]["auth_thresh"],
-                        parameters["protocol"]["success_thresh"],
-                        parameters["protocol"]["max_iterations"],
-                        parameters["timeout"],
+                        payload["parameters"],
                         self.logger,
                     )
                 )
@@ -239,12 +237,7 @@ class ZIPA_System:
             case "voltkey":
                 self.protocols.append(
                     VoltKeyProtocol(
-                        self.sensors[parameters["sensor"]],
-                        parameters["key_length"],
-                        parameters["parity_symbols"],
-                        parameters["protocol"]["periods"],
-                        parameters["protocol"]["bins"],
-                        parameters["timeout"],
+                        payload["parameters"],
                         self.logger,
                     )
                 )
@@ -252,24 +245,18 @@ class ZIPA_System:
             case "perceptio":
                 self.protocols.append(
                     Perceptio_Protocol(
-                        self.sensors[parameters["sensor"]],
-                        parameters["key_length"],
-                        parameters["parity_symbols"],
-                        parameters["time_length"],
-                        parameters["protocol"]["a"],
-                        parameters["protocol"]["cluster_sizes_to_check"],
-                        parameters["protocol"]["cluster_th"],
-                        parameters["protocol"]["top_th"],
-                        parameters["protocol"]["bottom_th"],
-                        parameters["protocol"]["lump_th"],
-                        parameters["protocol"]["conf_thresh"],
-                        parameters["protocol"]["max_iterations"],
-                        parameters["protocol"]["sleep_time"],
-                        parameters["protocol"]["max_no_events_detected"],
-                        parameters["timeout"],
+                        payload["parameters"],
                         self.logger,
                     )
                 )
+            case "fastzip":
+                self.protocols.append(
+                    FastZIP_Protocol(
+                        payload["parameters"],
+                        self.logger,
+                    )
+                )
+
             case _:
                 print("Protocol not supported.")
 
