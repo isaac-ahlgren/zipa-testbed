@@ -13,57 +13,33 @@ from protocols.common_protocols import *
 
 
 class Perceptio_Protocol:
-    def __init__(
-        self,
-        sensor,
-        key_length,
-        parity_symbols,
-        time_length,
-        a,
-        cluster_sizes_to_check,
-        cluster_th,
-        top_th,
-        bottom_th,
-        lump_th,
-        conf_thresh,
-        max_iterations,
-        sleep_time,
-        max_no_events_detected,
-        timeout,
-        logger,
-        verbose=True,
-    ):
-        self.sensor = sensor
-        self.a = a
-        self.cluster_sizes_to_check = cluster_sizes_to_check
-        self.cluster_th = cluster_th
-        self.top_th = top_th
-        self.bottom_th = bottom_th
-        self.lump_th = lump_th
-        self.conf_threshold = conf_thresh
-        self.max_iterations = max_iterations
-        self.sleep_time = sleep_time
-        self.max_no_events_detected = max_no_events_detected
-
+    def __init__(self, parameters, logger):
         self.name = "perceptio"
-        self.timeout = timeout
-
-        self.key_length = key_length
-        self.parity_symbols = parity_symbols
-        self.commitment_length = parity_symbols + key_length
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, key_length), key_length
-        )
-        self.hash_func = hashes.SHA256()
-        self.nonce_byte_size = 16
-
+        self.wip = True
+        self.verbose = parameters["verbose"]
+        self.sensor = parameters["sensor"]
         self.logger = logger
-
-        self.time_length = time_length
-
+        self.key_length = parameters["key_length"]
+        self.parity_symbols = parameters["parity_symbols"]
+        self.commitment_length = self.parity_symbols + self.key_length
+        self.a = parameters["a"]
+        self.cluster_sizes_to_check = parameters["cluster_sizes_to_check"]
+        self.cluster_th = parameters["cluster_th"]
+        self.top_th = parameters["top_th"]
+        self.bottom_th = parameters["bottom_th"]
+        self.lump_th = parameters["lump_th"]
+        self.conf_threshold = parameters["conf_thresh"]
+        self.max_iterations = parameters["max_iterations"]
+        self.sleep_time = parameters["sleep_time"]
+        self.max_no_events_detected = parameters["max_no_events_detected"]
+        self.timeout = parameters["timeout"]
+        self.hash_func = hashes.SHA256()
+        self.time_length = parameters["time_length"]
+        self.nonce_byte_size = 16
         self.count = 0
-
-        self.verbose = verbose
+        self.re = Fuzzy_Commitment(
+            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
+        )
 
     def extract_context(self, socket):
         events_detected = False
@@ -627,6 +603,7 @@ def host(prot):
     prot.host_protocol([conn])
 
 
+# TODO: Update test case with new protocol arguments
 if __name__ == "__main__":
     import multiprocessing as mp
 

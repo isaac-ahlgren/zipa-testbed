@@ -1,7 +1,5 @@
-# TODO compare with Seemoo Lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/SchuermannSigg.ipynb
 import math
 import multiprocessing as mp
-import time
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes
@@ -13,46 +11,34 @@ from networking.network import *
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
 class Shurmann_Siggs_Protocol:
-    def __init__(
-        self,
-        sensor,
-        key_length,
-        parity_symbols,
-        window_len,
-        band_len,
-        timeout,
-        logger,
-        verbose=True,
-    ):
-        self.sensor = sensor
-        self.window_len = window_len
-        self.band_len = band_len
-
+    def __init__(self, parameters, logger):
         self.name = "shurmann-siggs"
-        self.timeout = timeout
-
-        self.key_length = key_length
-        self.parity_symbols = parity_symbols
-        self.commitment_length = parity_symbols + key_length
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, key_length), key_length
-        )
+        self.wip = False
+        self.verbose = parameters["verbose"]
+        self.sensor = parameters["sensor"]
+        self.logger = logger
+        self.key_length = parameters["key_length"]
+        self.parity_symbols = parameters["parity_symbols"]
+        self.commitment_length = self.parity_symbols + self.key_length
+        self.window_len = parameters["window_len"]
+        self.band_len = parameters["band_len"]
+        self.timeout = parameters["timeout"]
         self.hash_func = hashes.SHA256()
-
+        self.count = 0
+        self.re = Fuzzy_Commitment(
+            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
+        )
         # Conversion from how many requested bits you need to how much sample data you will need for that
         self.time_length = (
             math.ceil(
-                ((self.commitment_length * 8) / int((window_len / 2 + 1) / band_len))
+                (
+                    (self.commitment_length * 8)
+                    / int((self.window_len / 2 + 1) / self.band_len)
+                )
                 + 1
             )
-            * window_len
+            * self.window_len
         )
-
-        self.logger = logger
-
-        self.count = 0
-
-        self.verbose = verbose
 
     def sigs_algo(self, x1, window_len=10000, bands=1000):
         def bitstring_to_bytes(s):
@@ -95,43 +81,49 @@ class Shurmann_Siggs_Protocol:
                 else:
                     bs += "0"
         return bitstring_to_bytes(bs)
-    
-    def zero_out_antialias_sigs_algo(x1, antialias_freq, sampling_freq, window_len=10000, bands=1000):
+
+    def zero_out_antialias_sigs_algo(
+        x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
+    ):
         FFTs = []
-        from scipy.fft import fft, fftfreq, ifft, rfft, irfft
-    
+        from scipy.fft import fft, fftfreq, ifft, irfft, rfft
+
         if window_len == 0:
             window_len = len(x)
-    
-        freq_bin_len = (sampling_freq/2) / (int(window_len/2) + 1)
+
+        freq_bin_len = (sampling_freq / 2) / (int(window_len / 2) + 1)
         antialias_bin = int(antialias_freq / freq_bin_len)
-    
+
         x = np.array(x1.copy())
-        #wind = scipy.signal.windows.hann(window_len)
-        for i in range(0,len(x),window_len):
-            if len(x[i:i+window_len]) < window_len:
-                #wind = scipy.signal.windows.hann(len(x[i:i+window_len]))
-                x[i:i+window_len] = x[i:i+window_len] #* wind
+        # wind = scipy.signal.windows.hann(window_len)
+        for i in range(0, len(x), window_len):
+            if len(x[i : i + window_len]) < window_len:
+                # wind = scipy.signal.windows.hann(len(x[i:i+window_len]))
+                x[i : i + window_len] = x[i : i + window_len]  # * wind
             else:
-                x[i:i+window_len] = x[i:i+window_len] #* wind
-    
-            fft_row = abs(rfft(x[i:i+window_len]))
+                x[i : i + window_len] = x[i : i + window_len]  # * wind
+
+            fft_row = abs(rfft(x[i : i + window_len]))
             FFTs.append(fft_row[:antialias_bin])
         E = {}
         bands_lst = []
-        for i in range(0,len(FFTs)):
+        for i in range(0, len(FFTs)):
             frame = FFTs[i]
-            bands_lst.append([ frame[k:k+bands] for k in range(0,len(frame),bands)])
-            for j in range(0,len(bands_lst[i])):
-                E[(i,j)] = np.sum(bands_lst[i][j])
-    
+            bands_lst.append(
+                [frame[k : k + bands] for k in range(0, len(frame), bands)]
+            )
+            for j in range(0, len(bands_lst[i])):
+                E[(i, j)] = np.sum(bands_lst[i][j])
+
         bs = ""
-        for i in range(1,len(FFTs)):
-            for j in range(0,len(bands_lst[i])-1):
-                if (E[(i,j)] -E[(i,j+1)]) - (E[(i-1,j)] - E[(i-1,j+1)]) > 0:
-                    bs+= "1"
+        for i in range(1, len(FFTs)):
+            for j in range(0, len(bands_lst[i]) - 1):
+                if (E[(i, j)] - E[(i, j + 1)]) - (
+                    E[(i - 1, j)] - E[(i - 1, j + 1)]
+                ) > 0:
+                    bs += "1"
                 else:
-                    bs+="0"   
+                    bs += "0"
         return bs
 
     def extract_context(self):

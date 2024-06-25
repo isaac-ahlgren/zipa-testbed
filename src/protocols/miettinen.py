@@ -1,13 +1,9 @@
-# TODO compare with Seemoo lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/Miettinen.ipynb
 import multiprocessing as mp
-import os
 
 import numpy as np
 from common_protocols import *
-from cryptography.hazmat.primitives import constant_time, hashes, hmac
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from error_correction.corrector import Fuzzy_Commitment
 from error_correction.reed_solomon import ReedSolomonObj
@@ -15,51 +11,31 @@ from networking.network import *
 
 
 class Miettinen_Protocol:
-    def __init__(
-        self,
-        sensor,
-        key_length,
-        parity_symbols,
-        f,
-        w,
-        rel_thresh,
-        abs_thresh,
-        auth_threshold,
-        success_threshold,
-        max_iterations,
-        timeout,
-        logger,
-        verbose=True,
-    ):
-        self.sensor = sensor
-        self.f = int(f * self.sensor.sensor.sample_rate)
-        self.w = int(w * self.sensor.sensor.sample_rate)
-        self.rel_thresh = rel_thresh
-        self.abs_thresh = abs_thresh
-        self.auth_threshold = auth_threshold
-        self.success_threshold = success_threshold
-        self.max_iterations = max_iterations
-
-        self.timeout = timeout
+    def __init__(self, parameters, logger):
         self.name = "miettinen"
-
-        self.key_length = key_length
-        self.parity_symbols = parity_symbols
-        self.commitment_length = parity_symbols + key_length
+        self.wip = False
+        self.verbose = parameters["verbose"]
+        self.sensor = parameters["sensor"]
+        self.logger = logger
+        self.key_length = parameters["key_length"]
+        self.parity_symbols = parameters["parity_symbols"]
+        self.commitment_length = self.parity_symbols + self.key_length
+        self.f = int(parameters["f"] * self.sensor.sensor.sample_rate)
+        self.w = int(parameters["w"] * self.sensor.sensor.sample_rate)
+        self.rel_thresh = parameters["rel_thresh"]
+        self.abs_thresh = parameters["abs_thresh"]
+        self.auth_thresh = parameters["auth_thresh"]
+        self.success_thresh = parameters["success_thresh"]
+        self.max_iterations = parameters["max_iterations"]
+        self.timeout = parameters["timeout"]
         self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, key_length), key_length
+            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
         self.hash_func = hashes.SHA256()
-        self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
-
-        self.time_length = (w + f) * (self.commitment_length * 8 + 1)
-
+        self.time_length = (self.w + self.f) * (self.commitment_length * 8 + 1)
         self.logger = logger
-
         self.count = 0
-
-        self.verbose = verbose
 
     def signal_preprocessing(signal, no_snap_shot_width, snap_shot_width):
         block_num = int(len(signal) / (no_snap_shot_width + snap_shot_width))
@@ -118,8 +94,8 @@ class Miettinen_Protocol:
         parameters += "\nw: " + str(self.w)
         parameters += "\nrel_thresh: " + str(self.rel_thresh)
         parameters += "\nabs_thresh: " + str(self.abs_thresh)
-        parameters += "\nsuccess_threshold: " + str(self.success_threshold)
-        parameters += "\nauthentication_threshold: " + str(self.auth_threshold)
+        parameters += "\nsuccess_threshold: " + str(self.success_thresh)
+        parameters += "\nauthentication_threshold: " + str(self.auth_thresh)
         parameters += "\nmax_iterations: " + str(self.max_iterations)
         parameters += "\ntime_length: " + str(self.time_length)
         return parameters
@@ -154,8 +130,7 @@ class Miettinen_Protocol:
         successes = 0
         total_iterations = 0
         while (
-            successes < self.success_threshold
-            and total_iterations < self.max_iterations
+            successes < self.success_thresh and total_iterations < self.max_iterations
         ):
             # Sending ack that they are ready to begin
 
@@ -253,7 +228,7 @@ class Miettinen_Protocol:
             total_iterations += 1
 
         if self.verbose:
-            if successes / total_iterations >= self.auth_threshold:
+            if successes / total_iterations >= self.auth_thresh:
                 print(
                     "Total Key Pairing Success: auth - "
                     + str(successes / total_iterations)
@@ -274,7 +249,7 @@ class Miettinen_Protocol:
                     + " total_iterations: "
                     + str(total_iterations)
                     + " succeeded: "
-                    + str(successes / total_iterations >= self.auth_threshold),
+                    + str(successes / total_iterations >= self.auth_thresh),
                 )
             ]
         )
@@ -312,8 +287,7 @@ class Miettinen_Protocol:
         total_iterations = 0
         successes = 0
         while (
-            successes < self.success_threshold
-            and total_iterations < self.max_iterations
+            successes < self.success_thresh and total_iterations < self.max_iterations
         ):
             success = False
             # ACK device
@@ -403,7 +377,7 @@ class Miettinen_Protocol:
                 print()
 
         if self.verbose:
-            if successes / total_iterations >= self.auth_threshold:
+            if successes / total_iterations >= self.auth_thresh:
                 print(
                     "Total Key Pairing Success: auth - "
                     + str(successes / total_iterations)
@@ -424,7 +398,7 @@ class Miettinen_Protocol:
                     + " total_iterations: "
                     + str(total_iterations)
                     + " succeeded: "
-                    + str(successes / total_iterations >= self.auth_threshold),
+                    + str(successes / total_iterations >= self.auth_thresh),
                 )
             ],
             ip_addr=device_ip_addr,

@@ -6,27 +6,14 @@ from math import ceil
 
 # WIP
 class FastZIP_Protocol:
-    def __init__(
-        self,
-        sensors,
-        key_length,
-        parity_symbols,
-        window_len,
-        band_len,
-        timeout,
-        logger,
-        verbose=True,
-    ):
-        self.sensors = sensors
-
+    def __init__(self, parameters, logger):
         self.name = "fastzip"
-        self.timeout = timeout
-
+        self.wip = True
+        self.verbose = parameters["verbose"]
+        self.sensor = parameters["sensor"]
         self.logger = logger
-
+        self.timeout = parameters["timeout"]
         self.count = 0
-
-        self.verbose = verbose
 
     def extract_context(self):
         pass
