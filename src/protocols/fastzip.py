@@ -29,17 +29,6 @@ class FastZIP_Protocol(ProtocolInterface):
     def device_protocol(self, host):
         pass
 
-    def host_protocol(self, device_sockets):
-        # Log parameters to the NFS server
-        self.logger.log([("parameters", "txt", self.parameters(True))])
-
-        if self.verbose:
-            print("Iteration " + str(self.count))
-            print()
-        for device in device_sockets:
-            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
-            p.start()
-
     def host_protocol_single_threaded(self, device_socket):
         pass
 
