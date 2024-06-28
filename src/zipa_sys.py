@@ -221,6 +221,7 @@ class ZIPA_System:
                 self.protocols.append(
                     Shurmann_Siggs_Protocol(
                         payload["parameters"],
+                        self.sensors[sensor],
                         self.logger,
                     )
                 )
@@ -229,6 +230,7 @@ class ZIPA_System:
                 self.protocols.append(
                     Miettinen_Protocol(
                         payload["parameters"],
+                        self.sensors[sensor],
                         self.logger,
                     )
                 )
@@ -237,6 +239,7 @@ class ZIPA_System:
                 self.protocols.append(
                     VoltKeyProtocol(
                         payload["parameters"],
+                        self.sensors[sensor],
                         self.logger,
                     )
                 )
@@ -245,6 +248,7 @@ class ZIPA_System:
                 self.protocols.append(
                     Perceptio_Protocol(
                         payload["parameters"],
+                        self.sensors[sensor],
                         self.logger,
                     )
                 )
@@ -252,6 +256,7 @@ class ZIPA_System:
                 self.protocols.append(
                     FastZIP_Protocol(
                         payload["parameters"],
+                        self.sensors[sensor],
                         self.logger,
                     )
                 )

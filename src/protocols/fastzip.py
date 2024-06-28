@@ -9,8 +9,8 @@ from protocols.protocol_interface import ProtocolInterface
 
 # WIP
 class FastZIP_Protocol(ProtocolInterface):
-    def __init__(self, parameters, logger):
-        ProtocolInterface.__init__(self, parameters, logger)
+    def __init__(self, parameters, sensor, logger):
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "fastzip"
         self.wip = True
         self.count = 0

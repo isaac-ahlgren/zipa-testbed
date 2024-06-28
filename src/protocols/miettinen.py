@@ -7,8 +7,8 @@ from protocols.protocol_interface import ProtocolInterface
 
 
 class Miettinen_Protocol(ProtocolInterface):
-    def __init__(self, parameters, logger):
-        ProtocolInterface.__init__(self, parameters, logger)
+    def __init__(self, parameters, sensor, logger):
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "miettinen"
         self.wip = False
         self.f = int(parameters["f"] * self.sensor.sensor.sample_rate)
