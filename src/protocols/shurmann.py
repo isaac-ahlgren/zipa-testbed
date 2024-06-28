@@ -2,32 +2,21 @@ import math
 import multiprocessing as mp
 
 import numpy as np
-from cryptography.hazmat.primitives import constant_time, hashes
+from cryptography.hazmat.primitives import constant_time
+from protocol_interface import ProtocolInterface
 
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import *
 
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
-class Shurmann_Siggs_Protocol:
+class Shurmann_Siggs_Protocol(ProtocolInterface):
     def __init__(self, parameters, logger):
+        ProtocolInterface.__init__(self, parameters, logger)
         self.name = "shurmann-siggs"
         self.wip = False
-        self.verbose = parameters["verbose"]
-        self.sensor = parameters["sensor"]
-        self.logger = logger
-        self.key_length = parameters["key_length"]
-        self.parity_symbols = parameters["parity_symbols"]
-        self.commitment_length = self.parity_symbols + self.key_length
         self.window_len = parameters["window_len"]
         self.band_len = parameters["band_len"]
-        self.timeout = parameters["timeout"]
-        self.hash_func = hashes.SHA256()
         self.count = 0
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
-        )
         # Conversion from how many requested bits you need to how much sample data you will need for that
         self.time_length = (
             math.ceil(
@@ -264,11 +253,6 @@ class Shurmann_Siggs_Protocol:
         )
 
         self.count += 1
-
-    def hash_function(self, bytes):
-        hash_func = hashes.Hash(self.hash_func)
-        hash_func.update(bytes)
-        return hash_func.finalize()
 
 
 """###TESTING CODE###

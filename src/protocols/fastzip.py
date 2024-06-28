@@ -1,18 +1,17 @@
-import numpy as np
-from scipy.signal import savgol_filter
-from scipy.ndimage import gaussian_filter
 from math import ceil
+
+import numpy as np
+from protocol_interface import ProtocolInterface
+from scipy.ndimage import gaussian_filter
+from scipy.signal import savgol_filter
 
 
 # WIP
-class FastZIP_Protocol:
+class FastZIP_Protocol(ProtocolInterface):
     def __init__(self, parameters, logger):
+        ProtocolInterface.__init__(self, parameters, logger)
         self.name = "fastzip"
         self.wip = True
-        self.verbose = parameters["verbose"]
-        self.sensor = parameters["sensor"]
-        self.logger = logger
-        self.timeout = parameters["timeout"]
         self.count = 0
 
     def extract_context(self):
@@ -47,7 +46,7 @@ class FastZIP_Protocol:
     def normalize_signal(self, sig):
         # Check if sig is non-zero
         if len(sig) == 0:
-            print('normalize_signal: signal must have non-zero length!')
+            print("normalize_signal: signal must have non-zero length!")
             return
 
         # Noramlized signal to be returned
@@ -61,7 +60,7 @@ class FastZIP_Protocol:
     def remove_noise(self, data):
         rn_data = np.zeros(data.shape)
         rn_data = gaussian_filter(savgol_filter(data, 5, 3), sigma=1.4)
-        
+
         return rn_data
 
     def ewma_filter(self, data, alpha=0.15):
@@ -73,52 +72,52 @@ class FastZIP_Protocol:
 
     def compute_sig_power(self, sig):
         if len(sig) == 0:
-            print('compute_sig_power: signal must have non-zero length!')
+            print("compute_sig_power: signal must have non-zero length!")
             return
-        return 10 * np.log10(np.sum(sig ** 2) / len(sig))
+        return 10 * np.log10(np.sum(sig**2) / len(sig))
 
     def compute_snr(self, sig):
         if len(sig) == 0:
-            print('compute_snr: signal must have non-zero length!')
+            print("compute_snr: signal must have non-zero length!")
             return
         return np.mean(abs(sig)) / np.std(abs(sig))
 
     def get_peaks(self, sig):
         peak_height = np.mean(sorted(sig)[-9:]) * 0.25
-        peaks, _ = find_peaks(sig, height=peak_height, distance=0.25*self.sample_rate)
+        peaks, _ = find_peaks(sig, height=peak_height, distance=0.25 * self.sample_rate)
         return len(peaks)
 
     def activity_filter(self, signal, power_thresh, snr_thresh, peak_thresh):
         # Ensure signal is a numpy array
         signal = np.copy(signal)
-        
+
         # Initialize metrics
         power, snr, n_peaks = 0, 0, 0
-        
+
         # Compute signal power (similar for all sensor types)
         power = self.compute_sig_power(signal)
-        
+
         # Find peaks
 
         peaks = self.get_peaks(signal)
 
         # Compute signal's SNR
         snr = self.compute_snr(signal)
-        
+
         # Check against thresholds to determine if activity is present
         activity_detected = False
         if power > power_thresh and snr > snr_thresh and peaks > peak_thresh:
             activity_detected = True
-        
+
         return activity_detected
 
     def compute_qs_thr(self, chunk, bias):
         # Make a copy of chunk
         chunk_cpy = np.copy(chunk)
-    
+
         # Sort the chunk
         chunk_cpy.sort()
-    
+
         return np.median(chunk_cpy) + bias
 
     def generate_equidist_points(self, chunk_len, step, eqd_delta):
@@ -126,20 +125,39 @@ class FastZIP_Protocol:
         if eqd_delta > step:
             print('generate_equidist_points: "eqd_delta" must be smaller than "step"')
             return -1, 0
-    
+
         # Store equidistant points
         eqd_points = []
-    
+
         # Generate equdistant points
         for i in range(0, ceil(chunk_len / eqd_delta)):
-            eqd_rand_points.append(np.arange(0 + eqd_delta * i, chunk_len + eqd_delta * i, ceil(chunk_len / n_bits)) % chunk_len)
-        
+            eqd_rand_points.append(
+                np.arange(
+                    0 + eqd_delta * i,
+                    chunk_len + eqd_delta * i,
+                    ceil(chunk_len / n_bits),
+                )
+                % chunk_len
+            )
+
         return eqd_rand_points, len(eqd_rand_points)
 
-    def compute_fingerprint(self, data, n_bits, power_thresh, snr_thresh, peak_thresh, bias, ewma_filter=False, alpha=0.015, remove_noise=False, normalize=False):
+    def compute_fingerprint(
+        self,
+        data,
+        n_bits,
+        power_thresh,
+        snr_thresh,
+        peak_thresh,
+        bias,
+        ewma_filter=False,
+        alpha=0.015,
+        remove_noise=False,
+        normalize=False,
+    ):
 
         fp = None
-        
+
         if normalize:
             chunk = self.normalize_signal(chunk)
 
@@ -162,13 +180,25 @@ class FastZIP_Protocol:
                     fp += "1"
                 else:
                     fp += "0"
-        
+
         return fp
 
-    def fastzip_algo(self, sensor_data_list, n_bits_list, power_thresh_list, snr_thresh_list, peak_thresh_list, bias_list, ewma_filter_list=None, alpha_list=None, remove_noise_list=None, normalize_list=None):
-        
+    def fastzip_algo(
+        self,
+        sensor_data_list,
+        n_bits_list,
+        power_thresh_list,
+        snr_thresh_list,
+        peak_thresh_list,
+        bias_list,
+        ewma_filter_list=None,
+        alpha_list=None,
+        remove_noise_list=None,
+        normalize_list=None,
+    ):
+
         key = ""
-        
+
         for i in range(len(sensor_data)):
             data = sensor_data_list[i]
             n_bits = n_bits_list[i]
@@ -197,30 +227,44 @@ class FastZIP_Protocol:
             else:
                 normalize = normalize[i]
 
-            bits = self.compute_fingerprint(data, n_bits, power_thresh, snr_thresh, peak_thresh, bias, ewma_filter=ewma_filter, alpha=alpha, remove_noise=remove_noise, normalize=normalize)
+            bits = self.compute_fingerprint(
+                data,
+                n_bits,
+                power_thresh,
+                snr_thresh,
+                peak_thresh,
+                bias,
+                ewma_filter=ewma_filter,
+                alpha=alpha,
+                remove_noise=remove_noise,
+                normalize=normalize,
+            )
 
             if bits != None:
                 key += bits
         return key
 
+
 # Example usage:
 if __name__ == "__main__":
     sample_rate = 100  # Hz, replace with actual sample rate
-    
+
     # Simulate 1D barometer data (pressure readings)
     bar_signal = np.random.normal(1013, 5, size=sample_rate * 60)  # 1 minute of data
     # Example accelerometer data; replace with actual sensor data
-    acc_signal = np.random.normal(0, 1, size=(sample_rate * 60, 3))  # Assuming 3-axis accelerometer data for 1 minute
+    acc_signal = np.random.normal(
+        0, 1, size=(sample_rate * 60, 3)
+    )  # Assuming 3-axis accelerometer data for 1 minute
     # Simulate 3D gyroscope data (angular velocity)
-    gyr_signal = np.random.normal(0, 1, size=(sample_rate * 60, 3))  # 1 minute of 3-axis data
+    gyr_signal = np.random.normal(
+        0, 1, size=(sample_rate * 60, 3)
+    )  # 1 minute of 3-axis data
 
     fastzip = FastZIP_Protocol(sample_rate)
 
-    bar_binary_data = fastzip.signal_to_bits(bar_signal, sensor_type='bar')
+    bar_binary_data = fastzip.signal_to_bits(bar_signal, sensor_type="bar")
     print("Barometer binary data:", bar_binary_data)
-    acc_binary_data = fastzip.signal_to_bits(acc_signal, sensor_type='acc')
+    acc_binary_data = fastzip.signal_to_bits(acc_signal, sensor_type="acc")
     print("Accelerometer binary data:", acc_binary_data)
-    gyr_binary_data = fastzip.signal_to_bits(gyr_signal, sensor_type='gyrW')
+    gyr_binary_data = fastzip.signal_to_bits(gyr_signal, sensor_type="gyrW")
     print("Gyroscope binary data:", gyr_binary_data)
-
-
