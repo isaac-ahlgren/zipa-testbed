@@ -7,9 +7,9 @@ from error_correction.reed_solomon import ReedSolomonObj
 
 
 class ProtocolInterface:
-    def __init__(self, parameters, logger):
+    def __init__(self, parameters, sensor, logger):
         self.verbose = parameters["verbose"]
-        self.sensor = parameters["sensor"]
+        self.sensor = sensor
         self.logger = logger
         self.key_length = parameters["key_length"]
         self.parity_symbols = parameters["parity_symbols"]

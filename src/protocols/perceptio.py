@@ -11,8 +11,8 @@ from protocols.protocol_interface import ProtocolInterface
 
 
 class Perceptio_Protocol(ProtocolInterface):
-    def __init__(self, parameters, logger):
-        ProtocolInterface.__init__(self, parameters, logger)
+    def __init__(self, parameters, sensor, logger):
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "perceptio"
         self.wip = True
         self.a = parameters["a"]

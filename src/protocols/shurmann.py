@@ -9,8 +9,8 @@ from protocols.protocol_interface import ProtocolInterface
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
 class Shurmann_Siggs_Protocol(ProtocolInterface):
-    def __init__(self, parameters, logger):
-        ProtocolInterface.__init__(self, parameters, logger)
+    def __init__(self, parameters, sensor, logger):
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "shurmann-siggs"
         self.wip = False
         self.window_len = parameters["window_len"]

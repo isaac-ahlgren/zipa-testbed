@@ -10,9 +10,9 @@ OUTLET_FREQ = 60  # Hz
 
 
 class VoltKeyProtocol(ProtocolInterface):
-    def __init__(self, parameters, logger):
+    def __init__(self, parameters, sensor, logger):
         # General protocol information
-        ProtocolInterface.__init__(self, parameters, logger)
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "voltkey"
         self.wip = True
         self.count = 0
