@@ -1,4 +1,3 @@
-import multiprocessing as mp
 import struct
 
 import numpy as np
@@ -220,17 +219,6 @@ class Perceptio_Protocol(ProtocolInterface):
                 )
             ]
         )
-
-    def host_protocol(self, device_sockets):
-        # Log parameters to the NFS server
-        self.logger.log([("parameters", "txt", self.parameters(True))])
-
-        if self.verbose:
-            print("Iteration " + str(self.count))
-            print()
-        for device in device_sockets:
-            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
-            p.start()
 
     def host_protocol_single_threaded(self, device_socket):
         device_ip_addr, device_port = device_socket.getpeername()
