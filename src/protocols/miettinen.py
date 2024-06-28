@@ -1,8 +1,8 @@
 import numpy as np
-from common_protocols import *
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from networking.network import *
+from protocols.common_protocols import *
 from protocols.protocol_interface import ProtocolInterface
 
 
