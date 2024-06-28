@@ -1,9 +1,10 @@
 from math import ceil
 
 import numpy as np
-from protocol_interface import ProtocolInterface
 from scipy.ndimage import gaussian_filter
 from scipy.signal import savgol_filter
+
+from protocols.protocol_interface import ProtocolInterface
 
 
 # WIP
