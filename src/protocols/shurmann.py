@@ -2,9 +2,9 @@ import math
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
-from protocol_interface import ProtocolInterface
 
 from networking.network import *
+from protocols.protocol_interface import ProtocolInterface
 
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it

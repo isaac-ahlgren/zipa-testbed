@@ -3,11 +3,11 @@ import struct
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from protocol_interface import ProtocolInterface
 from sklearn.cluster import KMeans
 
 from networking.network import *
 from protocols.common_protocols import *
+from protocols.protocol_interface import ProtocolInterface
 
 
 class Perceptio_Protocol(ProtocolInterface):

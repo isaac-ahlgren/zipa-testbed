@@ -1,9 +1,9 @@
 import numpy as np
 from common_protocols import *
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from protocol_interface import ProtocolInterface
 
 from networking.network import *
+from protocols.protocol_interface import ProtocolInterface
 
 
 class Miettinen_Protocol(ProtocolInterface):
