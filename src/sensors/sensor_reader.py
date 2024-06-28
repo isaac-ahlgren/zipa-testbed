@@ -36,6 +36,10 @@ class Sensor_Reader:
             if self.pointer.value + len(data) >= self.sensor.buffer_size:
                 full_buffer = True
 
+            # Compensating for BMP280's 2D array
+            if np.array(data).ndim > 1:
+                data = data[0]
+
             for d in data:
                 self.addressable_buffer[self.pointer.value] = d
                 self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
