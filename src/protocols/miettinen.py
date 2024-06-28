@@ -1,5 +1,3 @@
-import multiprocessing as mp
-
 import numpy as np
 from common_protocols import *
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
@@ -242,16 +240,6 @@ class Miettinen_Protocol(ProtocolInterface):
         )
 
         self.count += 1
-
-    def host_protocol(self, device_sockets):
-        # Log current paramters to the NFS server
-        self.logger.log([("parameters", "txt", self.parameters(True))])
-
-        if self.verbose:
-            print("Iteration " + str(self.count) + "\n")
-        for device in device_sockets:
-            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
-            p.start()
 
     def host_protocol_single_threaded(self, device_socket):
         device_socket.setblocking(1)

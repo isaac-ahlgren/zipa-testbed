@@ -1,5 +1,4 @@
 import math
-import multiprocessing as mp
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
@@ -196,17 +195,6 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         )
 
         self.count += 1
-
-    def host_protocol(self, device_sockets):
-        # Log parameters to the NFS server
-        self.logger.log([("parameters", "txt", self.parameters(True))])
-
-        if self.verbose:
-            print("Iteration " + str(self.count))
-            print()
-        for device in device_sockets:
-            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
-            p.start()
 
     def host_protocol_single_threaded(self, device_socket):
 
