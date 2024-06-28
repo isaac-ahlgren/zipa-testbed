@@ -2,26 +2,20 @@ import multiprocessing as mp
 import struct
 
 import numpy as np
-from cryptography.hazmat.primitives import constant_time, hashes, hmac
+from cryptography.hazmat.primitives import constant_time
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from protocol_interface import ProtocolInterface
 from sklearn.cluster import KMeans
 
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import *
 from protocols.common_protocols import *
 
 
-class Perceptio_Protocol:
+class Perceptio_Protocol(ProtocolInterface):
     def __init__(self, parameters, logger):
+        ProtocolInterface.__init__(self, parameters, logger)
         self.name = "perceptio"
         self.wip = True
-        self.verbose = parameters["verbose"]
-        self.sensor = parameters["sensor"]
-        self.logger = logger
-        self.key_length = parameters["key_length"]
-        self.parity_symbols = parameters["parity_symbols"]
-        self.commitment_length = self.parity_symbols + self.key_length
         self.a = parameters["a"]
         self.cluster_sizes_to_check = parameters["cluster_sizes_to_check"]
         self.cluster_th = parameters["cluster_th"]
@@ -32,14 +26,9 @@ class Perceptio_Protocol:
         self.max_iterations = parameters["max_iterations"]
         self.sleep_time = parameters["sleep_time"]
         self.max_no_events_detected = parameters["max_no_events_detected"]
-        self.timeout = parameters["timeout"]
-        self.hash_func = hashes.SHA256()
         self.time_length = parameters["time_length"]
         self.nonce_byte_size = 16
         self.count = 0
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
-        )
 
     def extract_context(self, socket):
         events_detected = False
@@ -374,11 +363,6 @@ class Perceptio_Protocol:
             ],
             ip_addr=device_ip_addr,
         )
-
-    def hash_function(self, bytes):
-        hash_func = hashes.Hash(self.hash_func)
-        hash_func.update(bytes)
-        return hash_func.finalize()
 
     def ewma(self, signal, a):
         y = np.zeros(len(signal))

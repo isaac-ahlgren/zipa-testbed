@@ -2,24 +2,17 @@ import multiprocessing as mp
 
 import numpy as np
 from common_protocols import *
-from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from protocol_interface import ProtocolInterface
 
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import *
 
 
-class Miettinen_Protocol:
+class Miettinen_Protocol(ProtocolInterface):
     def __init__(self, parameters, logger):
+        ProtocolInterface.__init__(self, parameters, logger)
         self.name = "miettinen"
         self.wip = False
-        self.verbose = parameters["verbose"]
-        self.sensor = parameters["sensor"]
-        self.logger = logger
-        self.key_length = parameters["key_length"]
-        self.parity_symbols = parameters["parity_symbols"]
-        self.commitment_length = self.parity_symbols + self.key_length
         self.f = int(parameters["f"] * self.sensor.sensor.sample_rate)
         self.w = int(parameters["w"] * self.sensor.sensor.sample_rate)
         self.rel_thresh = parameters["rel_thresh"]
@@ -27,14 +20,8 @@ class Miettinen_Protocol:
         self.auth_thresh = parameters["auth_thresh"]
         self.success_thresh = parameters["success_thresh"]
         self.max_iterations = parameters["max_iterations"]
-        self.timeout = parameters["timeout"]
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
-        )
-        self.hash_func = hashes.SHA256()
         self.nonce_byte_size = 16
         self.time_length = (self.w + self.f) * (self.commitment_length * 8 + 1)
-        self.logger = logger
         self.count = 0
 
     def signal_preprocessing(signal, no_snap_shot_width, snap_shot_width):
@@ -405,11 +392,6 @@ class Miettinen_Protocol:
         )
 
         self.count += 1
-
-    def hash_function(self, bytes):
-        hash_func = hashes.Hash(self.hash_func)
-        hash_func.update(bytes)
-        return hash_func.finalize()
 
 
 """###TESTING CODE###
