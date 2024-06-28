@@ -8,6 +8,6 @@ UNCOND_HOST = True
 
 if __name__ == "__main__":
     zipa_sys = ZIPA_System(
-        ID, SERVICE_NAME, "/mnt/data/", collection_mode=True, only_locally_store=False
+        ID, SERVICE_NAME, "/mnt/data/", collection_mode=False, only_locally_store=True
     )
     zipa_sys.start()
