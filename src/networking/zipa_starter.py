@@ -3,7 +3,7 @@ import socket
 
 HOST = "host    "
 IP_ADDR = "192.168.1.248"
-TARGET_IP_ADDR = ("192.168.1.172", 5005)
+TARGET_IP_ADDR = ("192.168.1.160", 5005)
 
 SHURMANN = {
     "name": "Shurmann_Siggs_Protocol",
@@ -13,7 +13,7 @@ SHURMANN = {
         "band_len": 1000,
         "key_length": 8,
         "parity_symbols": 4,
-        "sensor": "microphone",
+        "sensor": "Microphone",
         "timeout": 10,
         "verbose": True
     },
@@ -31,7 +31,7 @@ MIETTINEN = {
         "max_iterations": 1,
         "key_length": 8,
         "parity_symbols": 4,
-        "sensor": "microphone",
+        "sensor": "Microphone",
         "timeout": 10,
         "verbose": True
     },
@@ -45,7 +45,7 @@ VOLTKEY = {
         "key_length": 8,
         "parity_symbols": 4,
         "timeout": 10,
-        "sensor": "voltkey",
+        "sensor": "Voltkey",
         "verbose": True
     },
 }
@@ -66,7 +66,7 @@ PERCEPTIO = {
         "timeout": 10,
         "key_length": 8,
         "parity_symbols": 4,
-        "sensor": "microphone",
+        "sensor": "Microphone",
         "time_length": 44_100 * 20,
         "timeout": 10,
         "verbose": True
