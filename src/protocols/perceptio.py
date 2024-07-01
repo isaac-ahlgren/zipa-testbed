@@ -581,10 +581,10 @@ if __name__ == "__main__":
 
     from networking.nfs import NFSLogger
     from sensors.sensor_reader import Sensor_Reader
-    from sensors.test_sensor import Test_Sensor
+    from sensors.test_sensor import TestSensor
 
     prot = Perceptio_Protocol(
-        Sensor_Reader(Test_Sensor(44100, 44100 * 50, 1024, signal_type="random")),
+        Sensor_Reader(TestSensor(44100, 44100 * 50, 1024, signal_type="random")),
         8,
         4,
         44100 * 20,

@@ -308,7 +308,7 @@ if __name__ == "__main__":
 
     from networking.nfs import NFSLogger
     from sensors.sensor_reader import Sensor_Reader
-    from sensors.test_sensor import Test_Sensor
+    from sensors.test_sensor import TestSensor
     from sensors.voltkey import Voltkey
 
     print("Testing VoltKey protocol.\n")

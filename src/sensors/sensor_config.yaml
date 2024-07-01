@@ -1,25 +1,25 @@
 time_collected: 400
 sensors_used:
-  microphone: True
-  bmp280: True
-  pir: True
-  veml7700: True
-  sht31d: True
-  voltkey: False
-  test_sensor: False
+  Microphone: True
+  BMP280: True
+  PIR: True
+  VEML7700: True
+  SHT31D: True
+  Voltkey: False
+  TestSensor: False
 sensor_sample_rates:
-  microphone: 48000
-  bmp280: 50
-  pir: 2
-  veml7700: 40
-  sht31d: 40
-  voltkey: 2000
-  test_sensor: 44100
+  Microphone: 48000
+  BMP280: 50
+  PIR: 2
+  VEML7700: 40
+  SHT31D: 40
+  Voltkey: 2000
+  TestSensor: 44100
 chunk_sizes:
-  microphone: 2000
-  bmp280: 5
-  pir: 1
-  veml7700: 4
-  sht31d: 4
-  voltkey: 500
-  test_sensor: 1024
+  Microphone: 2000
+  BMP280: 5
+  PIR: 1
+  VEML7700: 4
+  SHT31D: 4
+  Voltkey: 500
+  TestSensor: 1024
