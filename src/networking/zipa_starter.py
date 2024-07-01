@@ -70,7 +70,6 @@ PERCEPTIO = {
         "time_length": 44_100 * 20,
         "timeout": 10,
         "verbose": True
-        "verbose": True
     },
     
 }
