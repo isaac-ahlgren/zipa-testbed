@@ -15,9 +15,9 @@ class Microphone(SensorInterface):
         # Each chunk size will be converted into one sample by performing RMS on the chunk.
         SensorInterface.__init__(self)
         self.name = "mic"        
-        self.sample_rate = sample_rate[self.name]
-        self.buffer_size = buffer_size[self.name]
-        self.chunk_size = chunk_size[self.name]
+        self.sample_rate = sample_rate
+        self.buffer_size = buffer_size
+        self.chunk_size = chunk_size
         self.rms_filter_enabled = rms_filter_enabled
         self.format = pyaudio.paInt32 
         self.pyaud = pyaudio.PyAudio()
