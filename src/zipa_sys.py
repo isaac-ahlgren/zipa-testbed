@@ -18,6 +18,7 @@ from protocols.perceptio import Perceptio_Protocol
 from protocols.shurmann import Shurmann_Siggs_Protocol
 from protocols.voltkey_protocol import VoltKeyProtocol
 from sensors.sensor_collector import Sensor_Collector
+from sensors.sensor_interface import SensorInterface
 from sensors.sensor_reader import Sensor_Reader
 import sensors
 
@@ -292,11 +293,16 @@ class ZIPA_System:
             module = __import__(f"sensors.{module_name}", fromlist=module_name)
 
             for name, obj in inspect.getmembers(module):
-                self.devices[name] = obj(
-                    sample_rates[name],
-                    sample_rates[name] * time_length,
-                    chunk_sizes[name],
-                )
+                if (
+                    inspect.isclass(obj)
+                    and issubclass(obj, SensorInterface)
+                    and obj is not SensorInterface
+                ):
+                    self.devices[name] = obj(
+                        sample_rates[name],
+                        sample_rates[name] * time_length,
+                        chunk_sizes[name],
+                    )
 
         if collection_mode:
             for device in self.devices:
