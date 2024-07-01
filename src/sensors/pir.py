@@ -7,7 +7,7 @@ import RPi.GPIO as GPIO
 from sensors.sensor_interface import SensorInterface
 
 
-class PIRSensor(SensorInterface):
+class PIR(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size, pin=12):
         SensorInterface.__init__(self)
         self.sample_rate = sample_rate
@@ -43,7 +43,7 @@ class PIRSensor(SensorInterface):
 if __name__ == "__main__":
     from sensors.sensor_reader import Sensor_Reader
 
-    pir = PIRSensor(2, 10, 2)
+    pir = PIR(2, 10, 2)
     sr = Sensor_Reader(pir)
 
     time.sleep(3)

@@ -5,7 +5,7 @@ import numpy as np
 from sensors.sensor_interface import SensorInterface
 
 
-class Test_Sensor(SensorInterface):
+class TestSensor(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size, signal_type="sine"):
         SensorInterface.__init__(self)
         self.sample_rate = sample_rate

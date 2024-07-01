@@ -2,6 +2,8 @@ import json
 import os
 import select
 import socket
+import pkgutil
+import inspect
 from multiprocessing import Process
 
 import netifaces as ni
@@ -17,6 +19,7 @@ from protocols.shurmann import Shurmann_Siggs_Protocol
 from protocols.voltkey_protocol import VoltKeyProtocol
 from sensors.sensor_collector import Sensor_Collector
 from sensors.sensor_reader import Sensor_Reader
+import sensors
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -285,71 +288,16 @@ class ZIPA_System:
         self.devices = {}
         self.sensors = {}
 
-        if sensors_used["microphone"]:
-            from sensors.microphone import Microphone
+        for _, module_name, _ in pkgutil.iter_modules(sensors.__path__):
+            module = __import__(f"sensors.{module_name}", fromlist=module_name)
 
-            self.devices["microphone"] = Microphone(
-                sample_rates["microphone"],
-                sample_rates["microphone"] * time_length,
-                chunk_sizes["microphone"],
-                rms_filter_enabled=False,
-            )
+            for name, obj in inspect.getmembers(module):
+                self.devices[name] = obj(
+                    sample_rates[name],
+                    sample_rates[name] * time_length,
+                    chunk_sizes[name],
+                )
 
-        if sensors_used["bmp280"]:
-            from sensors.bmp280 import BMP280Sensor
-
-            self.devices["bmp280"] = BMP280Sensor(
-                sample_rates["bmp280"],
-                sample_rates["bmp280"] * time_length,
-                chunk_sizes["bmp280"],
-            )
-
-        if sensors_used["pir"]:
-            from sensors.pir import PIRSensor
-
-            self.devices["pir"] = PIRSensor(
-                sample_rates["pir"],
-                sample_rates["pir"] * time_length,
-                chunk_sizes["pir"],
-            )
-
-        if sensors_used["veml7700"]:
-            from sensors.veml7700 import LightSensor
-
-            self.devices["veml7700"] = LightSensor(
-                sample_rates["veml7700"],
-                sample_rates["veml7700"] * time_length,
-                chunk_sizes["veml7700"],
-            )
-
-        if sensors_used["sht31d"]:
-            from sensors.sht31d import HumiditySensor
-
-            self.devices["sht31d"] = HumiditySensor(
-                sample_rates["sht31d"],
-                sample_rates["sht31d"] * time_length,
-                chunk_sizes["sht31d"],
-            )
-
-        if sensors_used["voltkey"]:
-            from sensors.voltkey import Voltkey
-
-            self.devices["voltkey"] = Voltkey(
-                sample_rates["voltkey"],
-                sample_rates["voltkey"] * time_length,
-                chunk_sizes["voltkey"],
-            )
-
-        if sensors_used["test_sensor"]:
-            from sensors.test_sensor import Test_Sensor
-
-            self.devices["test_sensor"] = Test_Sensor(
-                sample_rates["test_sensor"],
-                sample_rates["test_sensor"] * time_length,
-                chunk_sizes["test_sensor"],
-            )
-
-        # Wrap physical sensors into respective sensor wrapper
         if collection_mode:
             for device in self.devices:
                 self.sensors[device] = Sensor_Collector(

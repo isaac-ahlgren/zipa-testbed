@@ -7,15 +7,15 @@ import numpy as np
 from sensors.sensor_interface import SensorInterface
 
 
-class LightSensor(SensorInterface):
+class VEML7700(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size):
         SensorInterface.__init__(self)
-        # Sensor configuration parameters
-        self.sample_rate = sample_rate
-        self.buffer_size = buffer_size
-        self.chunk_size = chunk_size
-        self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "lux"
+        # Sensor configuration parameters
+        self.sample_rate = sample_rate[self.name]
+        self.buffer_size = buffer_size[self.name]
+        self.chunk_size = chunk_size[self.name]
+        self.chunks = int(self.buffer_size / self.chunk_size)
         self.buffer = np.zeros(
             chunk_size, np.float32()
         )  # Initialize buffer for lux readings
@@ -45,7 +45,7 @@ class LightSensor(SensorInterface):
 if __name__ == "__main__":
     from sensors.sensor_reader import Sensor_Reader
 
-    veml = LightSensor(40, 40 * 5, 8)
+    veml = VEML7700(40, 40 * 5, 8)
     sr = Sensor_Reader(veml)
 
     time.sleep(3)

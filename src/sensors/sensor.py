@@ -80,9 +80,9 @@ if __name__ == "__main__":
         plt.show()
         quit()
 
-    from test_sensor import Test_Sensor
+    from test_sensor import TestSensor
 
-    ts = Test_Sensor(48000, 3 * 48000, signal_type="sine")
+    ts = TestSensor(48000, 3 * 48000, signal_type="sine")
     sen_reader = Sensor(ts)
     sen_thread(sen_reader)
     p = mp.Process(target=getter_thread, args=[sen_reader])

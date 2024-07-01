@@ -7,7 +7,7 @@ import numpy as np
 from sensors.sensor_interface import SensorInterface
 
 
-class BMP280Sensor(SensorInterface):
+class BMP280(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size):
         # Sensor configuration parameters
         SensorInterface.__init__(self)
@@ -61,7 +61,7 @@ class BMP280Sensor(SensorInterface):
 if __name__ == "__main__":
     from sensors.sensor_reader import Sensor_Reader
 
-    bmp = BMP280Sensor(50, 50, 25)
+    bmp = BMP280(50, 50, 25)
     sr = Sensor_Reader(bmp)
 
     time.sleep(3)  # BMP needs ten seconds to populate on 1st pass
