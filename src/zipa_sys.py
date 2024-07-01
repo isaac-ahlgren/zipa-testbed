@@ -12,14 +12,11 @@ import yaml
 from networking.browser import ZIPA_Service_Browser
 from networking.network import *
 from networking.nfs import NFSLogger
-from protocols.fastzip import FastZIP_Protocol
-from protocols.miettinen import Miettinen_Protocol
-from protocols.perceptio import Perceptio_Protocol
-from protocols.shurmann import Shurmann_Siggs_Protocol
-from protocols.voltkey_protocol import VoltKeyProtocol
+from protocols.protocol_interface import ProtocolInterface
 from sensors.sensor_collector import Sensor_Collector
 from sensors.sensor_interface import SensorInterface
 from sensors.sensor_reader import Sensor_Reader
+import protocols
 import sensors
 
 # Used to initiate and begin protocol
@@ -213,60 +210,25 @@ class ZIPA_System:
         return participants
 
     def create_protocol(self, payload):
-        name = payload["name"]
+        requested_name = payload["name"]
         sensor = payload["parameters"]["sensor"]
 
         if sensor not in self.sensors:
-            print("Sensor not supported")
-            return
+            raise Exception("Sensor not supported")
 
-        match name:
-            case "shurmann-siggs":
-                self.protocols.append(
-                    Shurmann_Siggs_Protocol(
-                        payload["parameters"],
-                        self.sensors[sensor],
-                        self.logger,
-                    )
-                )
+        for _, module_name, _ in pkgutil.iter_importers(protocols.__path__):
+            module = __import__(f"protocols.{module_name}", fromlist=module_name)
 
-            case "miettinen":
-                self.protocols.append(
-                    Miettinen_Protocol(
-                        payload["parameters"],
-                        self.sensors[sensor],
-                        self.logger,
+            for name, obj in inspect.getmembers(module):
+                if (
+                    inspect.isclass(obj)
+                    and issubclass(obj, ProtocolInterface)
+                    and obj is not ProtocolInterface
+                    and name is requested_name
+                ):
+                    self.protocols.append(
+                        obj(payload["parameters"], self.sensors[sensor], self.logger)
                     )
-                )
-
-            case "voltkey":
-                self.protocols.append(
-                    VoltKeyProtocol(
-                        payload["parameters"],
-                        self.sensors[sensor],
-                        self.logger,
-                    )
-                )
-
-            case "perceptio":
-                self.protocols.append(
-                    Perceptio_Protocol(
-                        payload["parameters"],
-                        self.sensors[sensor],
-                        self.logger,
-                    )
-                )
-            case "fastzip":
-                self.protocols.append(
-                    FastZIP_Protocol(
-                        payload["parameters"],
-                        self.sensors[sensor],
-                        self.logger,
-                    )
-                )
-
-            case _:
-                print("Protocol not supported.")
 
     def get_sensor_configs(self, yaml_file):
         with open(f"{yaml_file}", "r") as f:
@@ -297,6 +259,7 @@ class ZIPA_System:
                     inspect.isclass(obj)
                     and issubclass(obj, SensorInterface)
                     and obj is not SensorInterface
+                    and sensors_used[name]
                 ):
                     self.devices[name] = obj(
                         sample_rates[name],
