@@ -2,11 +2,11 @@ import json
 import socket
 
 HOST = "host    "
-IP_ADDR = "192.168.1.8"
-TARGET_IP_ADDR = ("192.168.1.106", 5005)
+IP_ADDR = "192.168.1.248"
+TARGET_IP_ADDR = ("192.168.1.172", 5005)
 
 SHURMANN = {
-    "name": "shurmann-siggs",
+    "name": "Shurmann_Siggs_Protocol",
     "parameters": {
         "name": "shurmann-siggs",
         "window_len": 10000,
@@ -15,11 +15,12 @@ SHURMANN = {
         "parity_symbols": 4,
         "sensor": "microphone",
         "timeout": 10,
+        "verbose": True
     },
 }
 
 MIETTINEN = {
-    "name": "miettinen",
+    "name": "Miettinen_Protocol",
     "parameters": {
         "f": 5,
         "w": 5,
@@ -32,11 +33,12 @@ MIETTINEN = {
         "parity_symbols": 4,
         "sensor": "microphone",
         "timeout": 10,
+        "verbose": True
     },
 }
 
 VOLTKEY = {
-    "name": "voltkey",
+    "name": "VoltkeyProtocol",
     "parameters": {
         "periods": 16,
         "bins": 8,
@@ -44,11 +46,12 @@ VOLTKEY = {
         "parity_symbols": 4,
         "timeout": 10,
         "sensor": "voltkey",
+        "verbose": True
     },
 }
 
 PERCEPTIO = {
-    "name": "perceptio",
+    "name": "Perceptio_Protocol",
     "parameters": {
         "a": 0.3,
         "cluster_sizes_to_check": 3,
@@ -66,6 +69,7 @@ PERCEPTIO = {
         "sensor": "microphone",
         "time_length": 44_100 * 20,
         "timeout": 10,
+        "verbose": True
     },
     
 }
