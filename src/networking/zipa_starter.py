@@ -8,7 +8,6 @@ TARGET_IP_ADDR = ("192.168.1.160", 5005)
 SHURMANN = {
     "name": "Shurmann_Siggs_Protocol",
     "parameters": {
-        "name": "shurmann-siggs",
         "window_len": 10000,
         "band_len": 1000,
         "key_length": 8,
