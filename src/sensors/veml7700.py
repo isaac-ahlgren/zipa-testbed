@@ -12,9 +12,9 @@ class VEML7700(SensorInterface):
         SensorInterface.__init__(self)
         self.name = "lux"
         # Sensor configuration parameters
-        self.sample_rate = sample_rate[self.name]
-        self.buffer_size = buffer_size[self.name]
-        self.chunk_size = chunk_size[self.name]
+        self.sample_rate = sample_rate
+        self.buffer_size = buffer_size
+        self.chunk_size = chunk_size
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.buffer = np.zeros(
             chunk_size, np.float32()
