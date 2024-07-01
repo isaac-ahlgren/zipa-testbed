@@ -210,25 +210,30 @@ class ZIPA_System:
         return participants
 
     def create_protocol(self, payload):
+        print(f"In create protocol function.\n")
         requested_name = payload["name"]
         sensor = payload["parameters"]["sensor"]
 
         if sensor not in self.sensors:
             raise Exception("Sensor not supported")
 
-        for _, module_name, _ in pkgutil.iter_importers(protocols.__path__):
+        print(f"Iterating thorugh possible protocols.\n")
+        for _, module_name, _ in pkgutil.iter_modules(protocols.__path__):
             module = __import__(f"protocols.{module_name}", fromlist=module_name)
 
             for name, obj in inspect.getmembers(module):
+                print(f"Currently inspecting {name}.\n")
                 if (
                     inspect.isclass(obj)
                     and issubclass(obj, ProtocolInterface)
                     and obj is not ProtocolInterface
-                    and name is requested_name
+                    and name == requested_name
                 ):
+                    print(f"Protocol found and adding to active sensor.")
                     self.protocols.append(
                         obj(payload["parameters"], self.sensors[sensor], self.logger)
                     )
+                    break
 
     def get_sensor_configs(self, yaml_file):
         with open(f"{yaml_file}", "r") as f:

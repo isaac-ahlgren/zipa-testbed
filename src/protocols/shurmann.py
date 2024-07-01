@@ -11,7 +11,7 @@ from protocols.protocol_interface import ProtocolInterface
 class Shurmann_Siggs_Protocol(ProtocolInterface):
     def __init__(self, parameters, sensor, logger):
         ProtocolInterface.__init__(self, parameters, sensor, logger)
-        self.name = "shurmann-siggs"
+        self.name = "Shurmann_Siggs_Protocol"
         self.wip = False
         self.window_len = parameters["window_len"]
         self.band_len = parameters["band_len"]
