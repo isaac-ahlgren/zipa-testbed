@@ -1,69 +1,33 @@
-import multiprocessing as mp
 import struct
 
 import numpy as np
-from cryptography.hazmat.primitives import constant_time, hashes, hmac
+from cryptography.hazmat.primitives import constant_time
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from sklearn.cluster import KMeans
 
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import *
 from protocols.common_protocols import *
+from protocols.protocol_interface import ProtocolInterface
 
 
-class Perceptio_Protocol:
-    def __init__(
-        self,
-        sensor,
-        key_length,
-        parity_symbols,
-        time_length,
-        a,
-        cluster_sizes_to_check,
-        cluster_th,
-        top_th,
-        bottom_th,
-        lump_th,
-        conf_thresh,
-        max_iterations,
-        sleep_time,
-        max_no_events_detected,
-        timeout,
-        logger,
-        verbose=True,
-    ):
-        self.sensor = sensor
-        self.a = a
-        self.cluster_sizes_to_check = cluster_sizes_to_check
-        self.cluster_th = cluster_th
-        self.top_th = top_th
-        self.bottom_th = bottom_th
-        self.lump_th = lump_th
-        self.conf_threshold = conf_thresh
-        self.max_iterations = max_iterations
-        self.sleep_time = sleep_time
-        self.max_no_events_detected = max_no_events_detected
-
-        self.name = "perceptio"
-        self.timeout = timeout
-
-        self.key_length = key_length
-        self.parity_symbols = parity_symbols
-        self.commitment_length = parity_symbols + key_length
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, key_length), key_length
-        )
-        self.hash_func = hashes.SHA256()
+class Perceptio_Protocol(ProtocolInterface):
+    def __init__(self, parameters, sensor, logger):
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
+        self.name = "FastZIP_Protocol"
+        self.wip = True
+        self.a = parameters["a"]
+        self.cluster_sizes_to_check = parameters["cluster_sizes_to_check"]
+        self.cluster_th = parameters["cluster_th"]
+        self.top_th = parameters["top_th"]
+        self.bottom_th = parameters["bottom_th"]
+        self.lump_th = parameters["lump_th"]
+        self.conf_threshold = parameters["conf_thresh"]
+        self.max_iterations = parameters["max_iterations"]
+        self.sleep_time = parameters["sleep_time"]
+        self.max_no_events_detected = parameters["max_no_events_detected"]
+        self.time_length = parameters["time_length"]
         self.nonce_byte_size = 16
-
-        self.logger = logger
-
-        self.time_length = time_length
-
         self.count = 0
-
-        self.verbose = verbose
 
     def extract_context(self, socket):
         events_detected = False
@@ -256,17 +220,6 @@ class Perceptio_Protocol:
             ]
         )
 
-    def host_protocol(self, device_sockets):
-        # Log parameters to the NFS server
-        self.logger.log([("parameters", "txt", self.parameters(True))])
-
-        if self.verbose:
-            print("Iteration " + str(self.count))
-            print()
-        for device in device_sockets:
-            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
-            p.start()
-
     def host_protocol_single_threaded(self, device_socket):
         device_ip_addr, device_port = device_socket.getpeername()
 
@@ -398,11 +351,6 @@ class Perceptio_Protocol:
             ],
             ip_addr=device_ip_addr,
         )
-
-    def hash_function(self, bytes):
-        hash_func = hashes.Hash(self.hash_func)
-        hash_func.update(bytes)
-        return hash_func.finalize()
 
     def ewma(self, signal, a):
         y = np.zeros(len(signal))
@@ -627,15 +575,16 @@ def host(prot):
     prot.host_protocol([conn])
 
 
+# TODO: Update test case with new protocol arguments
 if __name__ == "__main__":
     import multiprocessing as mp
 
     from networking.nfs import NFSLogger
     from sensors.sensor_reader import Sensor_Reader
-    from sensors.test_sensor import Test_Sensor
+    from sensors.test_sensor import TestSensor
 
     prot = Perceptio_Protocol(
-        Sensor_Reader(Test_Sensor(44100, 44100 * 50, 1024, signal_type="random")),
+        Sensor_Reader(TestSensor(44100, 44100 * 50, 1024, signal_type="random")),
         8,
         4,
         44100 * 20,

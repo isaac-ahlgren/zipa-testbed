@@ -1,58 +1,32 @@
-# TODO compare with Seemoo Lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/SchuermannSigg.ipynb
 import math
-import multiprocessing as mp
-import time
 
 import numpy as np
-from cryptography.hazmat.primitives import constant_time, hashes
+from cryptography.hazmat.primitives import constant_time
 
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import *
+from protocols.protocol_interface import ProtocolInterface
 
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
-class Shurmann_Siggs_Protocol:
-    def __init__(
-        self,
-        sensor,
-        key_length,
-        parity_symbols,
-        window_len,
-        band_len,
-        timeout,
-        logger,
-        verbose=True,
-    ):
-        self.sensor = sensor
-        self.window_len = window_len
-        self.band_len = band_len
-
-        self.name = "shurmann-siggs"
-        self.timeout = timeout
-
-        self.key_length = key_length
-        self.parity_symbols = parity_symbols
-        self.commitment_length = parity_symbols + key_length
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, key_length), key_length
-        )
-        self.hash_func = hashes.SHA256()
-
+class Shurmann_Siggs_Protocol(ProtocolInterface):
+    def __init__(self, parameters, sensor, logger):
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
+        self.name = "Shurmann_Siggs_Protocol"
+        self.wip = False
+        self.window_len = parameters["window_len"]
+        self.band_len = parameters["band_len"]
+        self.count = 0
         # Conversion from how many requested bits you need to how much sample data you will need for that
         self.time_length = (
             math.ceil(
-                ((self.commitment_length * 8) / int((window_len / 2 + 1) / band_len))
+                (
+                    (self.commitment_length * 8)
+                    / int((self.window_len / 2 + 1) / self.band_len)
+                )
                 + 1
             )
-            * window_len
+            * self.window_len
         )
-
-        self.logger = logger
-
-        self.count = 0
-
-        self.verbose = verbose
 
     def sigs_algo(self, x1, window_len=10000, bands=1000):
         def bitstring_to_bytes(s):
@@ -95,6 +69,50 @@ class Shurmann_Siggs_Protocol:
                 else:
                     bs += "0"
         return bitstring_to_bytes(bs)
+
+    def zero_out_antialias_sigs_algo(
+        x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
+    ):
+        FFTs = []
+        from scipy.fft import fft, fftfreq, ifft, irfft, rfft
+
+        if window_len == 0:
+            window_len = len(x)
+
+        freq_bin_len = (sampling_freq / 2) / (int(window_len / 2) + 1)
+        antialias_bin = int(antialias_freq / freq_bin_len)
+
+        x = np.array(x1.copy())
+        # wind = scipy.signal.windows.hann(window_len)
+        for i in range(0, len(x), window_len):
+            if len(x[i : i + window_len]) < window_len:
+                # wind = scipy.signal.windows.hann(len(x[i:i+window_len]))
+                x[i : i + window_len] = x[i : i + window_len]  # * wind
+            else:
+                x[i : i + window_len] = x[i : i + window_len]  # * wind
+
+            fft_row = abs(rfft(x[i : i + window_len]))
+            FFTs.append(fft_row[:antialias_bin])
+        E = {}
+        bands_lst = []
+        for i in range(0, len(FFTs)):
+            frame = FFTs[i]
+            bands_lst.append(
+                [frame[k : k + bands] for k in range(0, len(frame), bands)]
+            )
+            for j in range(0, len(bands_lst[i])):
+                E[(i, j)] = np.sum(bands_lst[i][j])
+
+        bs = ""
+        for i in range(1, len(FFTs)):
+            for j in range(0, len(bands_lst[i]) - 1):
+                if (E[(i, j)] - E[(i, j + 1)]) - (
+                    E[(i - 1, j)] - E[(i - 1, j + 1)]
+                ) > 0:
+                    bs += "1"
+                else:
+                    bs += "0"
+        return bs
 
     def extract_context(self):
         signal = self.sensor.read(self.time_length)
@@ -178,17 +196,6 @@ class Shurmann_Siggs_Protocol:
 
         self.count += 1
 
-    def host_protocol(self, device_sockets):
-        # Log parameters to the NFS server
-        self.logger.log([("parameters", "txt", self.parameters(True))])
-
-        if self.verbose:
-            print("Iteration " + str(self.count))
-            print()
-        for device in device_sockets:
-            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
-            p.start()
-
     def host_protocol_single_threaded(self, device_socket):
 
         # Exit early if no devices to pair with
@@ -234,11 +241,6 @@ class Shurmann_Siggs_Protocol:
         )
 
         self.count += 1
-
-    def hash_function(self, bytes):
-        hash_func = hashes.Hash(self.hash_func)
-        hash_func.update(bytes)
-        return hash_func.finalize()
 
 
 """###TESTING CODE###
