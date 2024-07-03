@@ -226,8 +226,9 @@ class ZIPA_System:
                     and obj is not ProtocolInterface
                     and name == requested_name
                 ):
+                    protocol_pipe = self.sensors[sensor].create_pipe()
                     self.protocols.append(
-                        obj(payload["parameters"], self.sensors[sensor], self.logger)
+                        obj(payload["parameters"], self.sensors[sensor], protocol_pipe, self.logger)
                     )
                     break
 

@@ -118,6 +118,19 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         signal = self.sensor.read(self.time_length)
         bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
+    
+    def new_extract_context(self):
+        data = []
+
+        while True:
+            self.pipe.send(True)
+            data.extend(self.pipe.recv())
+
+            if len(data) >= self.time_length:
+                self.pipe.send(False)
+                break
+
+        return data
 
     def parameters(self, is_host):
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
