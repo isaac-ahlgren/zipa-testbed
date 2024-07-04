@@ -57,7 +57,7 @@ class FastZIP_Protocol:
     def host_protocol_single_threaded(self, device_socket):
         pass
 
-    def normalize_signal(self, sig):
+    def normalize_signal(sig):
         # Check if sig is non-zero
         if len(sig) == 0:
             print('normalize_signal: signal must have non-zero length!')
@@ -71,37 +71,37 @@ class FastZIP_Protocol:
 
         return norm_sig
 
-    def remove_noise(self, data):
+    def remove_noise(data):
         rn_data = np.zeros(data.shape)
         rn_data = gaussian_filter(savgol_filter(data, 5, 3), sigma=1.4)
         
         return rn_data
 
-    def ewma_filter(self, data, alpha=0.15):
+    def ewma_filter(data, alpha=0.15):
         ewma_data = np.zeros(len(data))
         ewma_data[0] = data[0]
         for i in range(1, len(ewma_data)):
             ewma_data[i] = alpha * data[i] + (1 - alpha) * ewma_data[i - 1]
         return ewma_data
 
-    def compute_sig_power(self, sig):
+    def compute_sig_power(sig):
         if len(sig) == 0:
             print('compute_sig_power: signal must have non-zero length!')
             return
         return 10 * np.log10(np.sum(sig ** 2) / len(sig))
 
-    def compute_snr(self, sig):
+    def compute_snr(sig):
         if len(sig) == 0:
             print('compute_snr: signal must have non-zero length!')
             return
         return np.mean(abs(sig)) / np.std(abs(sig))
 
-    def get_peaks(self, sig):
+    def get_peaks(sig):
         peak_height = np.mean(sorted(sig)[-9:]) * 0.25
-        peaks, _ = find_peaks(sig, height=peak_height, distance=0.25*self.sample_rate)
+        peaks, _ = FastZIP_Protocol.find_peaks(sig, height=peak_height, distance=0.25*self.sample_rate)
         return len(peaks)
 
-    def activity_filter(self, signal, power_thresh, snr_thresh, peak_thresh):
+    def activity_filter(signal, power_thresh, snr_thresh, peak_thresh):
         # Ensure signal is a numpy array
         signal = np.copy(signal)
         
@@ -109,14 +109,13 @@ class FastZIP_Protocol:
         power, snr, n_peaks = 0, 0, 0
         
         # Compute signal power (similar for all sensor types)
-        power = self.compute_sig_power(signal)
+        power = FastZIP_Protocol.compute_sig_power(signal)
         
         # Find peaks
-
-        peaks = self.get_peaks(signal)
+        peaks = FastZIP_Protocol.get_peaks(signal)
 
         # Compute signal's SNR
-        snr = self.compute_snr(signal)
+        snr = FastZIP_Protocol.compute_snr(signal)
         
         # Check against thresholds to determine if activity is present
         activity_detected = False
@@ -125,7 +124,7 @@ class FastZIP_Protocol:
         
         return activity_detected
 
-    def compute_qs_thr(self, chunk, bias):
+    def compute_qs_thr(chunk, bias):
         # Make a copy of chunk
         chunk_cpy = np.copy(chunk)
     
@@ -149,25 +148,25 @@ class FastZIP_Protocol:
         
         return eqd_rand_points, len(eqd_rand_points)
 
-    def compute_fingerprint(self, data, n_bits, power_thresh, snr_thresh, peak_thresh, bias, ewma_filter=False, alpha=0.015, remove_noise=False, normalize=False):
+    def compute_fingerprint(data, n_bits, power_thresh, snr_thresh, peak_thresh, bias, ewma_filter=False, alpha=0.015, remove_noise=False, normalize=False):
 
         fp = None
         
         if normalize:
-            chunk = self.normalize_signal(chunk)
+            chunk = normalize_signal(chunk)
 
-        activity = self.activity_filter(chunk, power_thresh, snr_thresh, peak_thresh)
+        activity = FastZIP_Protocol.activity_filter(chunk, power_thresh, snr_thresh, peak_thresh)
         if activity:
 
             if remove_noise:
-                chunk = self.remove_noise(chunk)
+                chunk = FastZIP_Protocol.remove_noise(chunk)
 
             if ewma_filter:
-                chunk = self.ewma_filter(abs(chunk), alpha=alpha)
+                chunk = FastZIP_Protocol.ewma_filter(abs(chunk), alpha=alpha)
 
-            qs_thr = self.compute_qs_thr(chunk, bias)
+            qs_thr = FastZIP_Protocol.compute_qs_thr(chunk, bias)
 
-            pts = self.generate_equidist_points(len(data), n_bits, eqd_delta)
+            pts = FastZIP_Protocol.generate_equidist_points(len(data), n_bits, eqd_delta)
 
             fp = ""
             for pt in pts:
@@ -178,7 +177,7 @@ class FastZIP_Protocol:
         
         return fp
 
-    def fastzip_algo(self, sensor_data_list, n_bits_list, power_thresh_list, snr_thresh_list, peak_thresh_list, bias_list, ewma_filter_list=None, alpha_list=None, remove_noise_list=None, normalize_list=None):
+    def fastzip_algo(sensor_data_list, n_bits_list, power_thresh_list, snr_thresh_list, peak_thresh_list, bias_list, ewma_filter_list=None, alpha_list=None, remove_noise_list=None, normalize_list=None):
         
         key = ""
         
@@ -210,7 +209,7 @@ class FastZIP_Protocol:
             else:
                 normalize = normalize[i]
 
-            bits = self.compute_fingerprint(data, n_bits, power_thresh, snr_thresh, peak_thresh, bias, ewma_filter=ewma_filter, alpha=alpha, remove_noise=remove_noise, normalize=normalize)
+            bits = FastZIP_Protocol.compute_fingerprint(data, n_bits, power_thresh, snr_thresh, peak_thresh, bias, ewma_filter=ewma_filter, alpha=alpha, remove_noise=remove_noise, normalize=normalize)
 
             if bits != None:
                 key += bits
