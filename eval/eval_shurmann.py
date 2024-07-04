@@ -40,8 +40,8 @@ def experiment(data_from_devices, ids, iterations, max_samples):
     min_band_length = 1
 
     for i in range(iterations):
-        window_length = random.randint(min_window_length, max_window_length)
-        band_len = random.randint(min_band_length, window_length // 2)
+        window_length = 10000 #random.randint(min_window_length, max_window_length)
+        band_len = 1000 #random.randint(min_band_length, window_length // 2)
 
         device_bits = []
         samples_per_key = None
@@ -49,6 +49,7 @@ def experiment(data_from_devices, ids, iterations, max_samples):
             bits, samples_per_key = generate_bits(sf, bit_length, window_length, band_len, max_samples)
             device_bits.append(bits)
             sf.reset()
+        bit_errs = get_bit_err(device_bits[0], device_bits[1], bit_length)
         avg_bit_err = get_average_bit_err(device_bits[0], device_bits[1], bit_length)
         min_entropy1_1bit = get_min_entropy(device_bits[0], bit_length, 1)
         min_entropy2_1bit = get_min_entropy(device_bits[1], bit_length, 1)
@@ -57,6 +58,7 @@ def experiment(data_from_devices, ids, iterations, max_samples):
         min_entropy1_8bit = get_min_entropy(device_bits[0], bit_length, 8)
         min_entropy2_8bit = get_min_entropy(device_bits[1], bit_length, 8)
         
+        np.savetxt(f"shurmann_biterr_dev1_{ids[0]}_dev2_{ids[1]}_windowlen_{window_length}_bandlen_{band_len}.csv", bit_errs)
         results = {"Window Length": [window_length], 
                    "Band Length": [band_len], 
                    "Samples Per Key": [samples_per_key], 
@@ -68,20 +70,23 @@ def experiment(data_from_devices, ids, iterations, max_samples):
                    "Min Entropy Device 1 Symbol Size 8 Bit": [min_entropy1_8bit], 
                    "Min Entropy Device 2 Symbol Size 8 Bit": [min_entropy2_8bit]}
         
+        quit()
         df = pd.DataFrame(results)
         df.to_csv(file_name, mode="a", index=False, header=(not os.path.isfile(file_name)))
 
 
 def perform_eval():
     iterations = 100
+    pi_id1 = 233
+    pi_id2 = 236
     max_samples = 48000*3600*23
     signal_directory = "/mnt/data/"
-    file_name1 = "mic_id_10.0.0.231_date_20240620*.csv"
-    file_name2 = "mic_id_10.0.0.232_date_20240620*.csv"
+    file_name1 = f"mic_id_10.0.0.{pi_id1}_date_20240624*.csv"
+    file_name2 = f"mic_id_10.0.0.{pi_id2}_date_20240624*.csv"
     sf1 = Signal_File(signal_directory, file_name1)
     sf2 = Signal_File(signal_directory, file_name2)
     
-    ids = ["10.0.0.231", "10.0.0.232"]
+    ids = [f"10.0.0.{pi_id1}", f"10.0.0.{pi_id2}"]
 
     data_from_devices = [sf1, sf2]
     experiment(data_from_devices, ids, iterations, max_samples)

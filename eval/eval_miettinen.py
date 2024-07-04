@@ -58,8 +58,10 @@ def experiment(data_from_devices, ids, iterations, max_samples):
         min_entropy1_8bit = get_min_entropy(device_bits[0], bit_length, 8)
         min_entropy2_8bit = get_min_entropy(device_bits[1], bit_length, 8)
 
-        results = {"Window Length": [window_length],
-                   "Band Length": [band_len],
+        results = {"f": [f],
+                   "w": [w],
+                   "rel_thresh": [rel_thresh],
+                   "abs_thresh": [abs_thresh],
                    "Samples Per Key": [samples_per_key],
                    "Average Bit Error": [avg_bit_err],
                    "Min Entropy Device 1 Symbol Size 1 Bit": [min_entropy1_1bit],
