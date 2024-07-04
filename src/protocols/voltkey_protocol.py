@@ -3,49 +3,28 @@ import multiprocessing as mp
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes
 
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
+from protocols.protocol_interface import ProtocolInterface
 from networking.network import *
 
 OUTLET_FREQ = 60  # Hz
 
 
-class VoltKeyProtocol:
-    def __init__(
-        self,
-        sensor,
-        key_length,
-        parity_symbols,
-        periods,
-        bins,
-        timeout,
-        logger,
-        verbose=True,
-    ):
+class VoltKeyProtocol(ProtocolInterface):
+    def __init__(self, parameters, sensor, logger):
         # General protocol information
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "voltkey"
-        self.sensor = sensor
-        self.timeout = timeout
-        self.logger = logger
-        self.verbose = verbose
-        self.hash = hashes.SHA256()
+        self.wip = True
         self.count = 0
-
         # Protocol specific information
-        self.key_length = key_length
-        self.parity_symbols = parity_symbols
-        self.commitment_length = parity_symbols + key_length
-        self.periods = periods + 1  # + 1 Compensating for dropped frames
-        self.bins = bins
+        self.periods = parameters["periods"] + 1  # + 1 Compensating for dropped frames
+        self.bins = parameters["bins"]
         self.host = False
         # TODO remove 100, VoltKey will sample quickly
-        self.time_length = int(((1 / OUTLET_FREQ) * periods * 8) + 1) * 100
+        self.time_length = int(((1 / OUTLET_FREQ) * self.periods * 8) + 1) * 100
         self.period_length = (
             self.sensor.sensor.sample_rate // OUTLET_FREQ
         )  # Samples within a cycle
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
-        )
 
     def extract_signal(self):
         signal = self.sensor.read(self.time_length)
@@ -329,7 +308,7 @@ if __name__ == "__main__":
 
     from networking.nfs import NFSLogger
     from sensors.sensor_reader import Sensor_Reader
-    from sensors.test_sensor import Test_Sensor
+    from sensors.test_sensor import TestSensor
     from sensors.voltkey import Voltkey
 
     print("Testing VoltKey protocol.\n")
