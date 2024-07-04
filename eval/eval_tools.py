@@ -64,14 +64,43 @@ def cmp_bits(b1, b2):
             tot += 1
     return (tot / len(b1)) * 100
 
-def get_average_bit_err(bits1, bits2, key_length):
-    avg_bit_err = 0
+def get_bit_err(bits1, bits2, key_length):
+    bit_err_over_time = []
     for i in range(len(bits1)):
         bs1 = bytes_to_bitstring(bits1[i], key_length)
         bs2 = bytes_to_bitstring(bits2[i], key_length)
         bit_err = cmp_bits(bs1, bs2)
+        bit_err_over_time.append(bit_err)
+    return bit_err_over_time
+
+def get_average_bit_err(bits1, bits2, key_length):
+    bit_errs = get_bit_err(bits1, bits2, key_length)
+    return np.average(bit_errs)
+
+def events_cmp_bits(fp1, fp2, length_in_bits):
+    lowest_bit_error = 100
+    for dev1 in fp1:
+        for dev2 in fp2:
+            b1 = bytes_to_bitstring(dev1, length_in_bits)
+            b2 = bytes_to_bitstring(dev2, length_in_bits)
+            bit_err = cmp_bits(b1, b2)
+            if bit_err < lowest_bit_error:
+                lowest_bit_error = bit_err
+    return lowest_bit_error
+
+def events_get_average_bit_err(fps1, fps2, length_in_bits):
+    avg_bit_err = 0
+    for i in range(len(fps1)):
+        bit_err = events_cmp_bits(bs1, bs2)
         avg_bit_err += bit_err
-    return avg_bit_err / len(bits1)
+    return avg_bit_err / len(fps1)
+
+def flatten_fingerprints(fps):
+    flattened_fps = []
+    for fp in fps:
+        for bits in fp:
+            flattened_fps.append(bits)
+    return flattened_fps
 
 def get_min_entropy(bits, key_length, symbol_size):
     arr = []
