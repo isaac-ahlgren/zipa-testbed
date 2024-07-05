@@ -2,8 +2,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 device = 'mic'
-id_num = '231'
-hr = '06'
+id_num = '227'
+hr = '08'
 
 file = f'{device}_id_10.0.0.{id_num}_date_20240620{hr}.csv'
 
@@ -38,8 +38,8 @@ std_squared = np.where(std**2 == 0, np.finfo(float).eps, std**2)
 snr_data = 10 * np.log10((mean * 2) / std_squared)
 
 plt.plot(snr_data, label='SNR Data')
-plt.plot(rms_data[:len(snr_data)], label='RMS Data')
+# plt.plot(rms_data[:len(snr_data)], label='RMS Data')
 plt.legend()
 plt.title('SNR and RMS Data')
-plt.savefig(f'snr_data/{device}_{id}_{hr}.png)
+plt.savefig(f'snr_data/{device}_{id_num}_{hr}.png')
 # plt.show()
