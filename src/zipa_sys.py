@@ -88,6 +88,7 @@ class ZIPA_System:
             # Set up protocol and associated processes
             self.protocol_threads = []
             self.protocols = []
+            self.pipes = []
 
     def start(self):
 
@@ -227,6 +228,7 @@ class ZIPA_System:
                     and name == requested_name
                 ):
                     protocol_pipe = self.sensors[sensor].create_pipe()
+                    self.pipes.append[protocol_pipe]
                     self.protocols.append(
                         obj(payload["parameters"], self.sensors[sensor], protocol_pipe, self.logger)
                     )
