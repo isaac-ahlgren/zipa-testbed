@@ -1,4 +1,4 @@
-import multiprocessing as mp
+from multiprocessing import Process, Queue, Value
 
 from cryptography.hazmat.primitives import hashes
 
@@ -12,7 +12,8 @@ class ProtocolInterface:
         self.sensor = sensor
         self.logger = logger
         self.send = False
-        self.queue = []
+        self.queue = Queue()
+        self.send = Value("i", 0)
         self.pipe = protocol_pipe
         self.key_length = parameters["key_length"]
         self.parity_symbols = parameters["parity_symbols"]
@@ -22,6 +23,9 @@ class ProtocolInterface:
         self.re = Fuzzy_Commitment(
             ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
+
+    def share(self):
+        pass
 
     def hash_function(self, bytes):
         hash_func = hashes.Hash(self.hash_func)
@@ -36,7 +40,7 @@ class ProtocolInterface:
         if self.verbose:
             print("Iteration " + str(self.count) + "\n")
         for device in device_sockets:
-            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
+            p = Process(target=self.host_protocol_single_threaded, args=[device])
             p.start()
 
     # Must be implemented on a protocol basis

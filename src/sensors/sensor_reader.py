@@ -4,9 +4,9 @@ MAX_CLIENTS = 1024
 
 
 class SensorReader:
-    def __init__(self, sensor):
+    def __init__(self, sensor, pipe):
         self.sensor = sensor
-        self.pipes = []
+        self.pipe = pipe
         self.send = []
         self.mutex = mp.Lock()
         self.sensor.start()
@@ -29,26 +29,6 @@ class SensorReader:
                         print(f"Found a pipe to send data to")
                         sensor_pipe.send(data)
 
-    def create_pipe(self):
-        # Keep track for listening and sending data, and closing pipes
-        print(f"Creating a new pipe.")
-        with self.mutex:
-            sensor_pipe, protocol_pipe = mp.Pipe()
-            self.pipes.append(sensor_pipe)
-            self.send.append(1)
-        print(f"Pipe created.")
-        return protocol_pipe
-
-    def close_pipe(self, protocoL_pipe):
-        with self.mutex:
-            # Find protocol pipe index and close both protocol and sensor pipes
-            pipe_index = self.protocol_pipes.index(protocoL_pipe)
-            sensor_pipe = self.sensor_pipes[pipe_index]
-            protocoL_pipe.close()
-            sensor_pipe.close()
-            # Remove from list of pipes
-            self.sensor_pipes.pop[pipe_index]
-            self.protocol_pipes.pop[pipe_index]
 
 
 if __name__ == "__main__":

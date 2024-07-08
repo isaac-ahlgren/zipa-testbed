@@ -4,7 +4,7 @@ import select
 import socket
 import pkgutil
 import inspect
-from multiprocessing import Process
+from multiprocessing import Process, Pipe
 
 import netifaces as ni
 import yaml
@@ -15,7 +15,7 @@ from networking.nfs import NFSLogger
 from protocols.protocol_interface import ProtocolInterface
 from sensors.sensor_collector import Sensor_Collector
 from sensors.sensor_interface import SensorInterface
-from sensors.sensor_reader import Sensor_Reader
+from sensors.sensor_reader import SensorReader
 import protocols
 import sensors
 
@@ -88,7 +88,7 @@ class ZIPA_System:
             # Set up protocol and associated processes
             self.protocol_threads = []
             self.protocols = []
-            self.pipes = []
+
 
     def start(self):
 
@@ -213,6 +213,7 @@ class ZIPA_System:
     def create_protocol(self, payload):
         requested_name = payload["name"]
         sensor = payload["parameters"]["sensor"]
+        sensor_pipe, protocol_pipe = self.pipes[sensor]
 
         if sensor not in self.sensors:
             raise Exception("Sensor not supported")
@@ -227,8 +228,6 @@ class ZIPA_System:
                     and obj is not ProtocolInterface
                     and name == requested_name
                 ):
-                    protocol_pipe = self.sensors[sensor].create_pipe()
-                    self.pipes.append[protocol_pipe]
                     self.protocols.append(
                         obj(payload["parameters"], self.sensors[sensor], protocol_pipe, self.logger)
                     )
@@ -254,6 +253,7 @@ class ZIPA_System:
         # Create instances of physical sensors
         self.devices = {}
         self.sensors = {}
+        self.pipes = {}
 
         for _, module_name, _ in pkgutil.iter_modules(sensors.__path__):
             module = __import__(f"sensors.{module_name}", fromlist=module_name)
@@ -278,4 +278,6 @@ class ZIPA_System:
                 )
         else:
             for device in self.devices:
-                self.sensors[device] = Sensor_Reader(self.devices[device])
+                sensor_pipe, protocol_pipe = Pipe()
+                self.pipes[device.name] = (sensor_pipe, protocol_pipe)
+                self.sensors[device] = SensorReader(self.devices[device], sensor_pipe)
