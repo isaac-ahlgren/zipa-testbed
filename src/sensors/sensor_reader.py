@@ -1,4 +1,4 @@
-import multiprocessing as mp
+from multiprocessing import Process, Lock
 
 MAX_CLIENTS = 1024
 
@@ -7,11 +7,13 @@ class SensorReader:
     def __init__(self, sensor, pipe):
         self.sensor = sensor
         self.pipe = pipe
-        self.send = []
-        self.mutex = mp.Lock()
+        self.queues = []
+        self.mutex = Lock()
         self.sensor.start()
-        self.poll_process = mp.Process(target=self.poll, name=sensor.name)
+        self.poll_process = Process(target=self.poll, name=sensor.name + " POLL")
+        self.recieve_process = Process(target=self.queue_status, name=sensor.name + " STATUS")
         self.poll_process.start()
+        self.recieve_process.start()
 
     def poll(self):
         print(f"[POLLING] Process started.")
@@ -29,6 +31,35 @@ class SensorReader:
                         print(f"Found a pipe to send data to")
                         sensor_pipe.send(data)
 
+    def poll(self):
+        while True:
+            data = self.sensor.extract()
+
+            with self.mutex:
+                for protocol_queue in self.queues:
+                    status, queue = protocol_queue
+                    
+                    if status.value == 1:
+                        queue.append(data)
+
+    def queue_status(self):
+        while True:
+            # Protocol sending over a queue and flag
+            if self.pipe.poll():
+                payload = self.pipe.recv()
+
+                with self.mutex:
+                    self.queues.append(payload)
+
+            # If protocols done using queue, get rid of it
+            # TODO If queue hasn't been modified for an amount of time, delete it
+            for i in range(len(self.queues)):
+                status, queue = self.queues[i]
+                if status == -1:
+                    with self.mutex:
+                        self.queues.pop(i)
+                        del status
+                        del queue
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ class ProtocolInterface:
         self.logger = logger
         self.send = False
         self.queue = Queue()
-        self.send = Value("i", 0)
+        self.send_flag = Value("i", 0)
         self.pipe = protocol_pipe
         self.key_length = parameters["key_length"]
         self.parity_symbols = parameters["parity_symbols"]
@@ -23,9 +23,7 @@ class ProtocolInterface:
         self.re = Fuzzy_Commitment(
             ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
-
-    def share(self):
-        pass
+        self.pipe.send((self.send_flag, self.queue))
 
     def hash_function(self, bytes):
         hash_func = hashes.Hash(self.hash_func)
