@@ -1,4 +1,4 @@
-from multiprocessing import Process, Queue, Value
+from multiprocessing import Process, Queue, Value, Lock
 
 from cryptography.hazmat.primitives import hashes
 
@@ -11,19 +11,18 @@ class ProtocolInterface:
         self.verbose = parameters["verbose"]
         self.sensor = sensor
         self.logger = logger
-        self.send = False
         self.queue = Queue()
         self.send_flag = Value("i", 0)
-        self.pipe = protocol_pipe
         self.key_length = parameters["key_length"]
         self.parity_symbols = parameters["parity_symbols"]
         self.commitment_length = self.parity_symbols + self.key_length
+        self.mutex = Lock()
         self.timeout = parameters["timeout"]
         self.hash_func = hashes.SHA256()
         self.re = Fuzzy_Commitment(
             ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
-        self.pipe.send((self.send_flag, self.queue))
+        self.sensor.add_protocol_queue(self.queue)
 
     def hash_function(self, bytes):
         hash_func = hashes.Hash(self.hash_func)

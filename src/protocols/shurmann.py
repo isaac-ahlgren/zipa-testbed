@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives import constant_time
 
 from networking.network import *
 from protocols.protocol_interface import ProtocolInterface
+import queue
 
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
@@ -71,7 +72,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         return bitstring_to_bytes(bs)
 
     def zero_out_antialias_sigs_algo(
-        x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
+        self, x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
     ):
         FFTs = []
         from scipy.fft import fft, fftfreq, ifft, irfft, rfft
@@ -114,23 +115,34 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                     bs += "0"
         return bs
 
-    def extract_context(self):
+    def old_extract_context(self):
         signal = self.sensor.read(self.time_length)
         bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
     
-    def new_extract_context(self):
-        data = []
+    def extract_context(self):
+        signal = []
+        print("Extracting context.")
+        with self.mutex:
+            self.send_flag.value = 1
 
         while True:
-            self.pipe.send(True)
-            data.extend(self.pipe.recv())
+            with self.mutex:
+                try:
+                    data = self.queue.get()
+                    print(f"Received data:\n{data}\n")
+                    signal.extend(data)
+                except queue.Empty:
+                    continue
 
-            if len(data) >= self.time_length:
-                self.pipe.send(False)
+            if len(signal) >= self.time_length:
+                with self.mutex:
+                    self.send_flag.value = -1
+
                 break
-
-        return data
+        self.sensor.remove_protocol_queue(self.queue)
+        bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
+        return bits, signal
 
     def parameters(self, is_host):
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
