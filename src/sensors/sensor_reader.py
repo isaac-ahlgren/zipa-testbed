@@ -32,23 +32,27 @@ class SensorReader:
 
     def add_protocol_queue(self, protocol_queue):
         if self.poll_process.is_alive():
-            # Graceful exit to prevent data corruption on shared memory objects
+            # TODO find better way for gracefully exiting, terminating could mess up shared queue
+            self.poll_process.terminate()
             self.poll_process.join()
 
         # Ensure no other object is interactivng with the queues
         with self.mutex:
             self.queues.append(protocol_queue)
 
+        self.poll_process = Process(target=self.poll, name=self.sensor.name)
         self.poll_process.start()
 
     def remove_protocol_queue(self, protocol_queue):
         if self.poll_process.is_alive():
+            self.poll_process.terminate()
             self.poll_process.join()
 
         with self.mutex:
             index = self.queues.index(protocol_queue)
             self.queues.pop(index)
 
+        self.poll_process = Process(target=self.poll, name=self.sensor.name)
         self.poll_process.start()
 
 
