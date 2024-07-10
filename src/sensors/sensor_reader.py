@@ -12,16 +12,16 @@ class SensorReader:
         self.queues = []
         self.mutex = Lock()
         self.sensor.start()
-        self.poll_process = Process(target=self.poll, name=sensor.name + " POLL")
+        self.poll_process = Process(target=self.poll, args=self.queues, name=sensor.name + " POLL")
         self.poll_process.start()
 
-    def poll(self):
+    def poll(self, servicing_queues):
         while True:
             data = self.sensor.extract()
 
 
-            for protocol_queue in self.queues:
-                status, protocol_queue = protocol_queue
+            for status_queue in servicing_queues:
+                status, protocol_queue = status_queue
 
                 if status.value == 1:
                     try:

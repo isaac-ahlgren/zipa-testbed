@@ -22,7 +22,7 @@ class ProtocolInterface:
         self.re = Fuzzy_Commitment(
             ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
-        self.sensor.add_protocol_queue(self.queue)
+        self.sensor.add_protocol_queue((self.send_flag, self.queue))
 
     def hash_function(self, bytes):
         hash_func = hashes.Hash(self.hash_func)
