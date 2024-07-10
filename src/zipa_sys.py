@@ -2,6 +2,8 @@ import json
 import os
 import select
 import socket
+import pkgutil
+import inspect
 from multiprocessing import Process
 
 import netifaces as ni
@@ -10,12 +12,12 @@ import yaml
 from networking.browser import ZIPA_Service_Browser
 from networking.network import *
 from networking.nfs import NFSLogger
-from protocols.miettinen import Miettinen_Protocol
-from protocols.perceptio import Perceptio_Protocol
-from protocols.shurmann import Shurmann_Siggs_Protocol
-from protocols.voltkey_protocol import VoltKeyProtocol
+from protocols.protocol_interface import ProtocolInterface
 from sensors.sensor_collector import Sensor_Collector
+from sensors.sensor_interface import SensorInterface
 from sensors.sensor_reader import Sensor_Reader
+import protocols
+import sensors
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -142,7 +144,7 @@ class ZIPA_System:
 
             for protocol in self.protocols:
                 # Find the protocol that the message demands
-                if protocol.name == parameters["protocol"]["name"]:
+                if protocol.name == parameters["name"] and not protocol.wip:
                     participants = self.initialize_protocol(parameters)
 
                     if len(participants) == 0:
@@ -155,22 +157,32 @@ class ZIPA_System:
                     thread = Process(target=protocol.host_protocol, args=[participants])
                     thread.start()
                     self.protocol_threads.append(thread)
+
+                else:
+                    print(
+                        f"Requested protocol is not ready for use. Skipping {protocol.name}.\n"
+                    )
+
         # Begin protocol
         elif command == STRT:
             print("Device selected as a client.")
 
             for protocol in self.protocols:
-                if protocol.name == parameters["protocol"]["name"]:
+                if protocol.name == parameters["name"] and not protocol.wip:
                     thread = Process(target=protocol.device_protocol, args=[incoming])
                     thread.start()
 
                     # Remove from discoverable as it's running the protocol
                     self.discoverable.remove(incoming)
                     self.protocol_threads.append(thread)
+                else:
+                    print(
+                        f"Requested protocol is not ready for use. Skipping {protocol.name}.\n"
+                    )
 
     def initialize_protocol(self, parameters):
         print(
-            f"Initializing {parameters['protocol']['name']} protocol on all participating devices."
+            f"Initializing {parameters['name']} protocol on all participating devices."
         )
         bytestream = json.dumps(parameters).encode("utf8")
         length = len(bytestream).to_bytes(4, byteorder="big")
@@ -198,81 +210,27 @@ class ZIPA_System:
 
         return participants
 
-    def create_protocol(self, parameters):
-        name = parameters["protocol"]["name"]
+    def create_protocol(self, payload):
+        requested_name = payload["name"]
+        sensor = payload["parameters"]["sensor"]
 
-        if parameters["sensor"] not in self.sensors:
-            print("Sensor not supported")
-            return
+        if sensor not in self.sensors:
+            raise Exception("Sensor not supported")
 
-        match name:
-            case "shurmann-siggs":
-                self.protocols.append(
-                    Shurmann_Siggs_Protocol(
-                        self.sensors[parameters["sensor"]],
-                        parameters["key_length"],
-                        parameters["parity_symbols"],
-                        parameters["protocol"]["window_len"],
-                        parameters["protocol"]["band_len"],
-                        parameters["timeout"],
-                        self.logger,
+        for _, module_name, _ in pkgutil.iter_modules(protocols.__path__):
+            module = __import__(f"protocols.{module_name}", fromlist=module_name)
+
+            for name, obj in inspect.getmembers(module):
+                if (
+                    inspect.isclass(obj)
+                    and issubclass(obj, ProtocolInterface)
+                    and obj is not ProtocolInterface
+                    and name == requested_name
+                ):
+                    self.protocols.append(
+                        obj(payload["parameters"], self.sensors[sensor], self.logger)
                     )
-                )
-
-            case "miettinen":
-                self.protocols.append(
-                    Miettinen_Protocol(
-                        self.sensors[parameters["sensor"]],
-                        parameters["key_length"],
-                        parameters["parity_symbols"],
-                        parameters["protocol"]["f"],
-                        parameters["protocol"]["w"],
-                        parameters["protocol"]["rel_thresh"],
-                        parameters["protocol"]["abs_thresh"],
-                        parameters["protocol"]["auth_thresh"],
-                        parameters["protocol"]["success_thresh"],
-                        parameters["protocol"]["max_iterations"],
-                        parameters["timeout"],
-                        self.logger,
-                    )
-                )
-
-            case "voltkey":
-                self.protocols.append(
-                    VoltKeyProtocol(
-                        self.sensors[parameters["sensor"]],
-                        parameters["key_length"],
-                        parameters["parity_symbols"],
-                        parameters["protocol"]["periods"],
-                        parameters["protocol"]["bins"],
-                        parameters["timeout"],
-                        self.logger,
-                    )
-                )
-
-            case "perceptio":
-                self.protocols.append(
-                    Perceptio_Protocol(
-                        self.sensors[parameters["sensor"]],
-                        parameters["key_length"],
-                        parameters["parity_symbols"],
-                        parameters["time_length"],
-                        parameters["protocol"]["a"],
-                        parameters["protocol"]["cluster_sizes_to_check"],
-                        parameters["protocol"]["cluster_th"],
-                        parameters["protocol"]["top_th"],
-                        parameters["protocol"]["bottom_th"],
-                        parameters["protocol"]["lump_th"],
-                        parameters["protocol"]["conf_thresh"],
-                        parameters["protocol"]["max_iterations"],
-                        parameters["protocol"]["sleep_time"],
-                        parameters["protocol"]["max_no_events_detected"],
-                        parameters["timeout"],
-                        self.logger,
-                    )
-                )
-            case _:
-                print("Protocol not supported.")
+                    break
 
     def get_sensor_configs(self, yaml_file):
         with open(f"{yaml_file}", "r") as f:
@@ -295,71 +253,22 @@ class ZIPA_System:
         self.devices = {}
         self.sensors = {}
 
-        if sensors_used["microphone"]:
-            from sensors.microphone import Microphone
+        for _, module_name, _ in pkgutil.iter_modules(sensors.__path__):
+            module = __import__(f"sensors.{module_name}", fromlist=module_name)
 
-            self.devices["microphone"] = Microphone(
-                sample_rates["microphone"],
-                sample_rates["microphone"] * time_length,
-                chunk_sizes["microphone"],
-                rms_filter_enabled=False,
-            )
+            for name, obj in inspect.getmembers(module):
+                if (
+                    inspect.isclass(obj)
+                    and issubclass(obj, SensorInterface)
+                    and obj is not SensorInterface
+                    and sensors_used[name]
+                ):
+                    self.devices[name] = obj(
+                        sample_rates[name],
+                        sample_rates[name] * time_length,
+                        chunk_sizes[name],
+                    )
 
-        if sensors_used["bmp280"]:
-            from sensors.bmp280 import BMP280Sensor
-
-            self.devices["bmp280"] = BMP280Sensor(
-                sample_rates["bmp280"],
-                sample_rates["bmp280"] * time_length,
-                chunk_sizes["bmp280"],
-            )
-
-        if sensors_used["pir"]:
-            from sensors.pir import PIRSensor
-
-            self.devices["pir"] = PIRSensor(
-                sample_rates["pir"],
-                sample_rates["pir"] * time_length,
-                chunk_sizes["pir"],
-            )
-
-        if sensors_used["veml7700"]:
-            from sensors.veml7700 import LightSensor
-
-            self.devices["veml7700"] = LightSensor(
-                sample_rates["veml7700"],
-                sample_rates["veml7700"] * time_length,
-                chunk_sizes["veml7700"],
-            )
-
-        if sensors_used["sht31d"]:
-            from sensors.sht31d import HumiditySensor
-
-            self.devices["sht31d"] = HumiditySensor(
-                sample_rates["sht31d"],
-                sample_rates["sht31d"] * time_length,
-                chunk_sizes["sht31d"],
-            )
-
-        if sensors_used["voltkey"]:
-            from sensors.voltkey import Voltkey
-
-            self.devices["voltkey"] = Voltkey(
-                sample_rates["voltkey"],
-                sample_rates["voltkey"] * time_length,
-                chunk_sizes["voltkey"],
-            )
-
-        if sensors_used["test_sensor"]:
-            from sensors.test_sensor import Test_Sensor
-
-            self.devices["test_sensor"] = Test_Sensor(
-                sample_rates["test_sensor"],
-                sample_rates["test_sensor"] * time_length,
-                chunk_sizes["test_sensor"],
-            )
-
-        # Wrap physical sensors into respective sensor wrapper
         if collection_mode:
             for device in self.devices:
                 self.sensors[device] = Sensor_Collector(

@@ -7,7 +7,7 @@ import numpy as np
 from sensors.sensor_interface import SensorInterface
 
 
-class HumiditySensor(SensorInterface):
+class SHT31D(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size):
         SensorInterface.__init__(self)
         self.sample_rate = sample_rate
@@ -42,7 +42,7 @@ class HumiditySensor(SensorInterface):
 if __name__ == "__main__":
     from sensors.sensor_reader import Sensor_Reader
 
-    sht31d = HumiditySensor(40, 40 * 5, 8)
+    sht31d = SHT31D(40, 40 * 5, 8)
     sr = Sensor_Reader(sht31d)
 
     time.sleep(3)

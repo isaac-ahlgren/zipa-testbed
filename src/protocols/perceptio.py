@@ -1,69 +1,33 @@
-import multiprocessing as mp
 import struct
 
 import numpy as np
-from cryptography.hazmat.primitives import constant_time, hashes, hmac
+from cryptography.hazmat.primitives import constant_time
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from sklearn.cluster import KMeans
 
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import *
 from protocols.common_protocols import *
+from protocols.protocol_interface import ProtocolInterface
 
 
-class Perceptio_Protocol:
-    def __init__(
-        self,
-        sensor,
-        key_length,
-        parity_symbols,
-        time_length,
-        a,
-        cluster_sizes_to_check,
-        cluster_th,
-        top_th,
-        bottom_th,
-        lump_th,
-        conf_thresh,
-        max_iterations,
-        sleep_time,
-        max_no_events_detected,
-        timeout,
-        logger,
-        verbose=True,
-    ):
-        self.sensor = sensor
-        self.a = a
-        self.cluster_sizes_to_check = cluster_sizes_to_check
-        self.cluster_th = cluster_th
-        self.top_th = top_th
-        self.bottom_th = bottom_th
-        self.lump_th = lump_th
-        self.conf_threshold = conf_thresh
-        self.max_iterations = max_iterations
-        self.sleep_time = sleep_time
-        self.max_no_events_detected = max_no_events_detected
-
-        self.name = "perceptio"
-        self.timeout = timeout
-
-        self.key_length = key_length
-        self.parity_symbols = parity_symbols
-        self.commitment_length = parity_symbols + key_length
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, key_length), key_length
-        )
-        self.hash_func = hashes.SHA256()
+class Perceptio_Protocol(ProtocolInterface):
+    def __init__(self, parameters, sensor, logger):
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
+        self.name = "FastZIP_Protocol"
+        self.wip = True
+        self.a = parameters["a"]
+        self.cluster_sizes_to_check = parameters["cluster_sizes_to_check"]
+        self.cluster_th = parameters["cluster_th"]
+        self.top_th = parameters["top_th"]
+        self.bottom_th = parameters["bottom_th"]
+        self.lump_th = parameters["lump_th"]
+        self.conf_threshold = parameters["conf_thresh"]
+        self.max_iterations = parameters["max_iterations"]
+        self.sleep_time = parameters["sleep_time"]
+        self.max_no_events_detected = parameters["max_no_events_detected"]
+        self.time_length = parameters["time_length"]
         self.nonce_byte_size = 16
-
-        self.logger = logger
-
-        self.time_length = time_length
-
         self.count = 0
-
-        self.verbose = verbose
 
     def extract_context(self, socket):
         events_detected = False
@@ -256,17 +220,6 @@ class Perceptio_Protocol:
             ]
         )
 
-    def host_protocol(self, device_sockets):
-        # Log parameters to the NFS server
-        self.logger.log([("parameters", "txt", self.parameters(True))])
-
-        if self.verbose:
-            print("Iteration " + str(self.count))
-            print()
-        for device in device_sockets:
-            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
-            p.start()
-
     def host_protocol_single_threaded(self, device_socket):
         device_ip_addr, device_port = device_socket.getpeername()
 
@@ -404,7 +357,7 @@ class Perceptio_Protocol:
         hash_func.update(bytes)
         return hash_func.finalize()
 
-    def ewma(self, signal, a):
+    def ewma(signal, a):
         y = np.zeros(len(signal))
 
         y[0] = a * signal[0]
@@ -412,7 +365,9 @@ class Perceptio_Protocol:
             y[i] = a * signal[i] + (1 - a) * y[i - 1]
         return y
 
-    def get_events(self, signal, a, bottom_th, top_th, lump_th):
+
+    def get_events(signal, a, bottom_th, top_th, lump_th):
+
         signal = self.ewma(np.abs(signal), a)
 
         # Get events that are within the threshold
@@ -442,7 +397,7 @@ class Perceptio_Protocol:
 
         return events
 
-    def get_event_features(self, events, signal):
+    def get_event_features(events, signal):
         event_features = []
         for i in range(len(events)):
             length = events[i][1] - events[i][0]
@@ -450,7 +405,7 @@ class Perceptio_Protocol:
             event_features.append((length, max_amplitude))
         return event_features
 
-    def kmeans_w_elbow_method(self, event_features, cluster_sizes_to_check, cluster_th):
+    def kmeans_w_elbow_method(event_features, cluster_sizes_to_check, cluster_th):
         if len(event_features) < cluster_sizes_to_check:
             # Handle the case where the number of samples is less than the desired number of clusters
             if self.verbose:
@@ -459,7 +414,7 @@ class Perceptio_Protocol:
                 )
             return np.zeros(len(event_features), dtype=int), 1
 
-        km = KMeans(1, n_init="auto", random_state=0).fit(event_features)
+        km = KMeans(1, n_init=50, random_state=0).fit(event_features)
         x1 = km.inertia_
         rel_inert = x1
 
@@ -470,7 +425,7 @@ class Perceptio_Protocol:
         for i in range(2, cluster_sizes_to_check):
             labels = km.labels_
 
-            km = KMeans(i, n_init="auto", random_state=0).fit(event_features)
+            km = KMeans(i, n_init=50, random_state=0).fit(event_features)
             x2 = km.inertia_
 
             inertias.append(x2)
@@ -491,20 +446,22 @@ class Perceptio_Protocol:
 
         return labels, k
 
-    def group_events(self, events, labels, k):
+    def group_events(events, labels, k):
         event_groups = [[] for i in range(k)]
         for i in range(len(events)):
             event_groups[labels[i]].append(events[i])
         return event_groups
 
-    def gen_fingerprints(self, grouped_events, k, key_size, Fs):
+    def gen_fingerprints(grouped_events, k, key_size, Fs):
+        from datetime import timedelta
         fp = []
         for i in range(k):
             event_list = grouped_events[i]
             key = bytearray()
-            for i in range(len(event_list)):
-                interval = (event_list[i][1] - event_list[i][0]) / Fs
-                key += bytearray(struct.pack(">f", interval))
+            for j in range(len(event_list) - 1):
+                interval = (event_list[j][0] - event_list[j+1][0]) / Fs
+                in_microseconds = int(timedelta(seconds=interval) / timedelta(microseconds=1))
+                key += in_microseconds.to_bytes(4, 'big') # Going to treat every interval as a 4 byte integer
 
             if len(key) >= key_size:
                 key = bytes(key[:key_size])
@@ -512,7 +469,6 @@ class Perceptio_Protocol:
         return fp
 
     def perceptio(
-        self,
         signal,
         key_size,
         Fs,
@@ -523,22 +479,22 @@ class Perceptio_Protocol:
         top_th,
         lump_th,
     ):
-        events = self.get_events(signal, a, bottom_th, top_th, lump_th)
+        events = Perceptio_Protocol.get_events(signal, a, bottom_th, top_th, lump_th)
         if len(events) < 2:
             # Needs two events in order to calculate interevent timings
             if self.verbose:
                 print("Error: Less than two events detected")
             return ([], events)
 
-        event_features = self.get_event_features(events, signal)
+        event_features = Perceptio_Protocol.get_event_features(events, signal)
 
-        labels, k = self.kmeans_w_elbow_method(
+        labels, k = Perceptio_Protocol.kmeans_w_elbow_method(
             event_features, cluster_sizes_to_check, cluster_th
         )
 
-        grouped_events = self.group_events(events, labels, k)
+        grouped_events = Perceptio_Protocol.group_events(events, labels, k)
 
-        fps = self.gen_fingerprints(grouped_events, k, key_size, Fs)
+        fps = Perceptio_Protocol.gen_fingerprints(grouped_events, k, key_size, Fs)
 
         return fps, grouped_events
 
@@ -626,15 +582,16 @@ def host(prot):
     prot.host_protocol([conn])
 
 
+# TODO: Update test case with new protocol arguments
 if __name__ == "__main__":
     import multiprocessing as mp
 
     from networking.nfs import NFSLogger
     from sensors.sensor_reader import Sensor_Reader
-    from sensors.test_sensor import Test_Sensor
+    from sensors.test_sensor import TestSensor
 
     prot = Perceptio_Protocol(
-        Sensor_Reader(Test_Sensor(44100, 44100 * 50, 1024, signal_type="random")),
+        Sensor_Reader(TestSensor(44100, 44100 * 50, 1024, signal_type="random")),
         8,
         4,
         44100 * 20,

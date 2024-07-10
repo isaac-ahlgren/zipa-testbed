@@ -32,8 +32,8 @@ class NFSLogger:
         Used in the sensor collector configuration.
 
         """
-        if not isinstance(signal, list):
-            signal = [signal]
+        if isinstance(signal, float):
+            signal = [signal] 
 
         # Dependant on selection in main.py
         if self.use_local_dir:
@@ -42,7 +42,7 @@ class NFSLogger:
             directory = self.nfs_server_dir
 
         # Logging one day's worth of signals into a file
-        timestamp = datetime.now().strftime("%Y%m%d")
+        timestamp = datetime.now().strftime("%Y%m%d%H")
         file_name = (
             directory  # On NFS or locally
             + name  # Sensor name

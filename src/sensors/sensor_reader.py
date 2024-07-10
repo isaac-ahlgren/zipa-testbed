@@ -35,6 +35,10 @@ class Sensor_Reader:
             if self.pointer.value + len(data) >= self.sensor.buffer_size:
                 full_buffer = True
 
+            # Compensating for BMP280's 2D array
+            if np.array(data).ndim > 1:
+                data = data[0]
+
             for d in data:
                 self.addressable_buffer[self.pointer.value] = d
                 self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
@@ -96,9 +100,9 @@ if __name__ == "__main__":
         plt.show()
         quit()
 
-    from test_sensor import Test_Sensor
+    from test_sensor import TestSensor
 
-    ts = Test_Sensor(48000, 3 * 48000, signal_type="random")
+    ts = TestSensor(48000, 3 * 48000, signal_type="random")
     sen_reader = Sensor_Reader(ts)
     sen_thread(sen_reader)
     p = mp.Process(target=getter_thread, args=[sen_reader])
