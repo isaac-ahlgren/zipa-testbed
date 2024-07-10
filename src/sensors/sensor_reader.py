@@ -12,7 +12,7 @@ class SensorReader:
         self.queues = []
         self.mutex = Lock()
         self.sensor.start()
-        self.poll_process = Process(target=self.poll, args=self.queues, name=sensor.name + " POLL")
+        self.poll_process = Process(target=self.poll, args=[self.queues], name=sensor.name + " POLL")
         self.poll_process.start()
 
     def poll(self, servicing_queues):
@@ -40,7 +40,7 @@ class SensorReader:
         with self.mutex:
             self.queues.append(protocol_queue)
 
-        self.poll_process = Process(target=self.poll, name=self.sensor.name)
+        self.poll_process = Process(target=self.poll, args=[self.queues], name=self.sensor.name)
         self.poll_process.start()
 
     def remove_protocol_queue(self, protocol_queue):
@@ -52,7 +52,7 @@ class SensorReader:
             index = self.queues.index(protocol_queue)
             self.queues.pop(index)
 
-        self.poll_process = Process(target=self.poll, name=self.sensor.name)
+        self.poll_process = Process(target=self.poll, args=[self.queues], name=self.sensor.name)
         self.poll_process.start()
 
 
