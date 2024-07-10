@@ -19,15 +19,15 @@ class SensorReader:
         while True:
             data = self.sensor.extract()
 
-            with self.mutex:
-                for protocol_queue in self.queues:
-                    status, protocol_queue = protocol_queue
 
-                    if status.value == 1:
-                        try:
-                            protocol_queue.put(data)
-                        except queue.Full:
-                            continue
+            for protocol_queue in self.queues:
+                status, protocol_queue = protocol_queue
+
+                if status.value == 1:
+                    try:
+                        protocol_queue.put(data)
+                    except queue.Full:
+                        continue
 
 
     def add_protocol_queue(self, protocol_queue):

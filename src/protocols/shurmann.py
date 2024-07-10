@@ -10,8 +10,8 @@ import queue
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
 class Shurmann_Siggs_Protocol(ProtocolInterface):
-    def __init__(self, parameters, sensor, logger):
-        ProtocolInterface.__init__(self, parameters, sensor, logger)
+    def __init__(self, parameters, sensor, pipe, logger):
+        ProtocolInterface.__init__(self, parameters, sensor, pipe, logger)
         self.name = "Shurmann_Siggs_Protocol"
         self.wip = False
         self.window_len = parameters["window_len"]
@@ -123,21 +123,19 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
     def extract_context(self):
         signal = []
         print("Extracting context.")
-        with self.mutex:
-            self.send_flag.value = 1
+        self.send_flag.value = 1
 
         while True:
-            with self.mutex:
-                try:
-                    data = self.queue.get()
-                    print(f"Received data:\n{data}\n")
-                    signal.extend(data)
-                except queue.Empty:
-                    continue
+            try:
+                print(f"Getting data")
+                data = self.queue.get()
+                print(f"Received data:\n{data}\n")
+                signal.extend(data)
+            except queue.Empty:
+                continue
 
             if len(signal) >= self.time_length:
-                with self.mutex:
-                    self.send_flag.value = -1
+                self.send_flag.value = -1
 
                 break
         self.sensor.remove_protocol_queue(self.queue)
