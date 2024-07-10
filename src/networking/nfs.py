@@ -33,7 +33,7 @@ class NFSLogger:
 
         """
         if not isinstance(signal, list):
-            signal = [signal] 
+            signal = [signal]
 
         # Dependant on selection in main.py
         if self.use_local_dir:
@@ -44,12 +44,12 @@ class NFSLogger:
         # Logging one day's worth of signals into a file
         timestamp = datetime.now().strftime("%Y%m%d")
         file_name = (
-            directory               # On NFS or locally
-            + name                  # Sensor name
+            directory  # On NFS or locally
+            + name  # Sensor name
             + "_id_"
             + str(self.identifier)  # Unique ID for deivce
             + "_date_"
-            + timestamp             # Day
+            + timestamp  # Day
             + ".csv"
         )
 
@@ -70,7 +70,6 @@ class NFSLogger:
             directory = self.nfs_server_dir
 
         for name, file_ext, data in data_tuples:
-
             # Create filename
             filename = self.create_filename(directory, name, count, ip_addr, file_ext)
 

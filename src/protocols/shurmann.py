@@ -190,7 +190,6 @@ class Shurmann_Siggs_Protocol:
             p.start()
 
     def host_protocol_single_threaded(self, device_socket):
-
         # Exit early if no devices to pair with
         if not ack_standby(device_socket, self.timeout):
             if self.verbose:

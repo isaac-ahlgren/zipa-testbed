@@ -30,7 +30,7 @@ class Test_Sensor(SensorInterface):
     def read(self):
         time.sleep(self.chunk_size / self.sample_rate)
         output = np.zeros(self.chunk_size, dtype=self.data_type)
-        
+
         if self.signal_type == "random":
             rng = np.random.default_rng()
             for i in range(len(output)):
@@ -39,5 +39,5 @@ class Test_Sensor(SensorInterface):
             for i in range(len(output)):
                 output[i] = np.sin(2 * np.pi / self.sample_rate * i)
             self.time += len(output)
-        
+
         return output

@@ -9,15 +9,16 @@ import pyaudio
 
 from sensors.sensor_interface import SensorInterface
 
+
 class Microphone(SensorInterface):
     def __init__(self, sample_rate, buffer_size, chunk_size, rms_filter_enabled=False):
         # When the RMS filter is enabled, the true sampling rate will be sample_rate/chunk_size.
         # Each chunk size will be converted into one sample by performing RMS on the chunk.
         SensorInterface.__init__(self)
-        
+
         self.rms_filter_enabled = rms_filter_enabled
 
-        self.format = pyaudio.paInt32 
+        self.format = pyaudio.paInt32
         self.sample_rate = sample_rate
         self.name = "mic"
         self.pyaud = pyaudio.PyAudio()
@@ -48,7 +49,10 @@ class Microphone(SensorInterface):
         self.stream.stop_stream()
 
     def calc_rms(self, signal):
-        return np.array(np.sqrt(np.mean(signal.astype(np.int64())**2)) / self.chunk_size, dtype=np.float64)
+        return np.array(
+            np.sqrt(np.mean(signal.astype(np.int64()) ** 2)) / self.chunk_size,
+            dtype=np.float64,
+        )
 
     def read(self):
         output = self.stream.read(self.chunk_size)
@@ -56,6 +60,7 @@ class Microphone(SensorInterface):
         if self.rms_filter_enabled:
             buf = self.calc_rms(buf)
         return buf
+
 
 # Test case
 if __name__ == "__main__":

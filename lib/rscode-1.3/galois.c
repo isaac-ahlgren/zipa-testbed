@@ -21,16 +21,16 @@
  * contact author for details.
  *
  * Source code is available at http://rscode.sourceforge.net
- * 
+ *
  *
  * Multiplication and Arithmetic on Galois Field GF(256)
  *
  * From Mee, Daniel, "Magnetic Recording, Volume III", Ch. 5 by Patel.
- * 
+ *
  *
  ******************************/
- 
- 
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "ecc.h"
@@ -39,7 +39,7 @@
  * of degree 8 and cycle length 255. (Ch 5, pp. 275, Magnetic Recording)
  * The high order 1 bit is implicit */
 /* x^8 + x^4 + x^3 + x^2 + 1 */
-#define PPOLY 0x1D 
+#define PPOLY 0x1D
 
 
 int gexp[512];
@@ -51,7 +51,7 @@ static void init_exp_table (void);
 
 void
 init_galois_tables (void)
-{	
+{
   /* initialize the table of powers of alpha */
   init_exp_table();
 }
@@ -65,11 +65,11 @@ init_exp_table (void)
 
   pinit = p2 = p3 = p4 = p5 = p6 = p7 = p8 = 0;
   p1 = 1;
-	
+
   gexp[0] = 1;
   gexp[255] = gexp[0];
   glog[0] = 0;			/* shouldn't log[0] be an error? */
-	
+
   for (i = 1; i < 256; i++) {
     pinit = p8;
     p8 = p7;
@@ -83,7 +83,7 @@ init_exp_table (void)
     gexp[i] = p1 + p2*2 + p3*4 + p4*8 + p5*16 + p6*32 + p7*64 + p8*128;
     gexp[i+255] = gexp[i];
   }
-	
+
   for (i = 1; i < 256; i++) {
     for (z = 0; z < 256; z++) {
       if (gexp[z] == i) {
@@ -103,10 +103,9 @@ int gmult(int a, int b)
   j = glog[b];
   return (gexp[i+j]);
 }
-		
 
-int ginv (int elt) 
-{ 
+
+int ginv (int elt)
+{
   return (gexp[255-glog[elt]]);
 }
-

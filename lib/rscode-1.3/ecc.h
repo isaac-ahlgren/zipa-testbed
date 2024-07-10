@@ -25,10 +25,10 @@
  */
 
 /****************************************************************
-  
+
   Below is NPAR, the only compile-time parameter you should have to
   modify.
-  
+
   It is the number of parity bytes which will be appended to
   your data to create a codeword.
 
@@ -42,7 +42,7 @@
 
   ****************************************************************/
 /****************************************************************/
-
+
 
 
 
@@ -98,7 +98,7 @@ extern int gexp[];
 extern int glog[];
 
 void init_galois_tables (void);
-int ginv(int elt); 
+int ginv(int elt);
 int gmult(int a, int b);
 
 

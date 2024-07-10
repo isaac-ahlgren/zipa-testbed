@@ -413,7 +413,6 @@ class Perceptio_Protocol:
         return y
 
     def get_events(self, signal, a, bottom_th, top_th, lump_th):
-
         signal = self.ewma(np.abs(signal), a)
 
         # Get events that are within the threshold

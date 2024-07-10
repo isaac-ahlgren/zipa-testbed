@@ -1,5 +1,5 @@
-/* 
- * Reed Solomon Encoder/Decoder 
+/*
+ * Reed Solomon Encoder/Decoder
  *
  * Copyright Henry Minsky (hqm@alum.mit.edu) 1991-2009
  *
@@ -50,7 +50,7 @@ initialize_ecc ()
 
 /* FUNCTION CREATED FOR ZIPA TESTBED. ALL FURTHER MODIFICATIONS TO THE CODE WILL BE IN SERVICE OF MAKING THAT WORK */
 struct ReedSolomon_Instance*
-initialize_rs_instance(int npar) 
+initialize_rs_instance(int npar)
 {
     /* Maximum degree of various polynomials. */
     int max_deg = 2*npar;
@@ -87,7 +87,7 @@ initialize_rs_instance(int npar)
 
 /* FUNCTION CREATED FOR ZIPA TESTBED. ALL FURTHER MODIFICATIONS TO THE CODE WILL BE IN SERVICE OF MAKING THAT WORK */
 void
-free_rs_instance(struct ReedSolomon_Instance* rs) 
+free_rs_instance(struct ReedSolomon_Instance* rs)
 {
     free(rs->synBytes);
     free(rs->genPoly);
@@ -107,11 +107,11 @@ zero_fill_from (unsigned char buf[], int from, int to)
 /* debugging routines */
 void
 print_parity (struct ReedSolomon_Instance* rs)
-{ 
+{
   int i, npar = rs->npar;
   int* pBytes = rs->pBytes;
   printf("Parity Bytes: ");
-  for (i = 0; i < npar; i++) 
+  for (i = 0; i < npar; i++)
     printf("[%d]:%x, ",i,pBytes[i]);
   printf("\n");
 }
@@ -119,11 +119,11 @@ print_parity (struct ReedSolomon_Instance* rs)
 
 void
 print_syndrome (struct ReedSolomon_Instance* rs)
-{ 
+{
   int i, npar = rs->npar;
   int* synBytes = rs->synBytes;
   printf("Syndrome Bytes: ");
-  for (i = 0; i < npar; i++) 
+  for (i = 0; i < npar; i++)
     printf("[%d]:%x, ",i,synBytes[i]);
   printf("\n");
 }
@@ -136,19 +136,19 @@ build_codeword (unsigned char msg[], int nbytes, unsigned char dst[], struct Ree
 	int* pBytes = rs->pBytes;
 
   for (i = 0; i < nbytes; i++) dst[i] = msg[i];
-	
+
   for (i = 0; i < npar; i++) {
     dst[i+nbytes] = pBytes[npar-1-i];
   }
 }
-	
+
 /**********************************************************
- * Reed Solomon Decoder 
+ * Reed Solomon Decoder
  *
  * Computes the syndrome of a codeword. Puts the results
  * into the synBytes[] array.
  */
- 
+
 void
 decode_data(unsigned char data[], int nbytes, struct ReedSolomon_Instance* rs)
 {
@@ -171,7 +171,7 @@ check_syndrome (struct ReedSolomon_Instance* rs)
 {
  int i, nz = 0, npar = rs->npar;
  int* synBytes = rs->synBytes;
- 
+
  for (i =0 ; i < npar; i++) {
   if (synBytes[i] != 0) {
       nz = 1;
@@ -184,19 +184,19 @@ check_syndrome (struct ReedSolomon_Instance* rs)
 
 void
 debug_check_syndrome (struct ReedSolomon_Instance* rs)
-{	
+{
   int i;
 	int* synBytes = rs->synBytes;
   for (i = 0; i < 3; i++) {
-    printf(" inv log S[%d]/S[%d] = %d\n", i, i+1, 
+    printf(" inv log S[%d]/S[%d] = %d\n", i, i+1,
 	   glog[gmult(synBytes[i], ginv(synBytes[i+1]))]);
   }
 }
 
 
-/* Create a generator polynomial for an n byte RS code. 
+/* Create a generator polynomial for an n byte RS code.
  * The coefficients are returned in the genPoly arg.
- * Make sure that the genPoly array which is passed in is 
+ * Make sure that the genPoly array which is passed in is
  * at least n+1 bytes long.
  */
 
@@ -215,18 +215,18 @@ compute_genpoly (int nbytes, struct ReedSolomon_Instance* rs)
     zero_poly(tp, max_deg);
     tp[0] = gexp[i];		/* set up x+a^n */
     tp[1] = 1;
-	  
+
     mult_polys(genpoly, tp, tp1, max_deg);
     copy_poly(tp1, genpoly, max_deg);
   }
 }
 
-/* Simulate a LFSR with generator polynomial for n byte RS code. 
- * Pass in a pointer to the data array, and amount of data. 
+/* Simulate a LFSR with generator polynomial for n byte RS code.
+ * Pass in a pointer to the data array, and amount of data.
  *
  * The parity bytes are deposited into pBytes[], and the whole message
  * and parity are copied to dest to make a codeword.
- * 
+ *
  */
 
 void
@@ -236,7 +236,7 @@ encode_data (unsigned char msg[], int nbytes, unsigned char dst[], struct ReedSo
   int* genPoly = rs->genPoly;
   int* pBytes = rs->pBytes;
   int i, LFSR[npar+1],dbyte, j;
-	
+
   for(i=0; i < npar+1; i++) LFSR[i]=0;
 
   for (i = 0; i < nbytes; i++) {
@@ -247,9 +247,8 @@ encode_data (unsigned char msg[], int nbytes, unsigned char dst[], struct ReedSo
     LFSR[0] = gmult(genPoly[0], dbyte);
   }
 
-  for (i = 0; i < npar; i++) 
+  for (i = 0; i < npar; i++)
     pBytes[i] = LFSR[i];
-	
+
   build_codeword(msg, nbytes, dst, rs);
 }
-

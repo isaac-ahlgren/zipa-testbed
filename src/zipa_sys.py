@@ -31,7 +31,6 @@ class ZIPA_System:
         collection_mode=False,
         only_locally_store=False,
     ):
-
         self.collection_mode = collection_mode
 
         # Create data directory if it does not already exist
@@ -53,9 +52,12 @@ class ZIPA_System:
         )
 
         # Set up sensors
-        time_to_collect, sensors_used, sample_rates, chunk_sizes = (
-            self.get_sensor_configs(os.getcwd() + "/src/sensors/sensor_config.yaml")
-        )
+        (
+            time_to_collect,
+            sensors_used,
+            sample_rates,
+            chunk_sizes,
+        ) = self.get_sensor_configs(os.getcwd() + "/src/sensors/sensor_config.yaml")
         self.create_sensors(
             time_to_collect,
             sensors_used,
@@ -88,7 +90,6 @@ class ZIPA_System:
             self.protocols = []
 
     def start(self):
-
         # If in collection mode, no need to handle any incoming network connections
         if self.collection_mode:
             return

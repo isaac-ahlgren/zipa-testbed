@@ -57,7 +57,6 @@ class BMP280Sensor(SensorInterface):
         return data
 
 
-
 if __name__ == "__main__":
     from sensors.sensor_reader import Sensor_Reader
 

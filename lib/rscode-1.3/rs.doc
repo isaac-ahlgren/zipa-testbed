@@ -1,6 +1,6 @@
 
 
-Introduction to Reed Solomon Codes: 
+Introduction to Reed Solomon Codes:
 
 Henry Minsky, Universal Access Inc.
 hqm@alum.mit.edu
@@ -18,7 +18,7 @@ byte errors in unknown positions.
 This is an implementation of a Reed-Solomon code with 8 bit bytes, and
 a configurable number of parity bytes.  The maximum sequence length
 (codeword) that can be generated is 255 bytes, including parity bytes.
-In practice, shorter sequences are used. 
+In practice, shorter sequences are used.
 
 ENCODING: The basic principle of encoding is to find the remainder of
 the message divided by a generator polynomial G(x). The encoder works
@@ -81,6 +81,3 @@ to insure against the case that a multibyte burst error wipes out more
 than two bytes in each codeword. The cross-correction capability of
 the product code can provide backup if in fact there are more than 2
 uncorrectable errors in a block.
-
-
-

@@ -8,7 +8,7 @@ CC = gcc
 DEBUG_FLAGS = -g
 CFLAGS = -shared -fPIC -Wall -Wstrict-prototypes  $(OPTIMIZE_FLAGS) $(DEBUG_FLAGS) -I..
 
-CFILES = rs.c galois.c berlekamp.c crcgen.c  
+CFILES = rs.c galois.c berlekamp.c crcgen.c
 
 TARGET_LIB = libecc.so
 
@@ -19,4 +19,3 @@ clean:
 	rm -f *.o libecc.so
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
-

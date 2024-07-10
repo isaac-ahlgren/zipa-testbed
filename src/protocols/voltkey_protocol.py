@@ -212,7 +212,6 @@ class VoltKeyProtocol:
         self.count += 1
 
     def host_protocol(self, devices):
-
         # self.logger.log([("parameters", "txt", self.parameters(True))])
 
         if self.verbose:

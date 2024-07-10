@@ -81,7 +81,7 @@ def send_commit(commitments, hashes, device):
     # Prepare hash length and begin packing payload
     hash_length = hash_length.to_bytes(4, byteorder="big")
     message = COMM.encode() + number_of_commitments + hash_length + com_length
-   
+
     for i in range(len(commitments)):
         message += hashes[i] + commitments[i]
 
@@ -99,7 +99,6 @@ def commit_standby(connection, timeout):
         message = connection.recv(8)
 
         if message[:8] == COMM.encode():
-
             # Recieve and unpack the hash
             message = connection.recv(12)
 
@@ -111,7 +110,7 @@ def commit_standby(connection, timeout):
             commits = connection.recv(number_of_commits * (hash_length + com_length))
             commitments = []
             hashes = []
-            
+
             # Extract commitments and hashes, appending to their respective lists
             for i in range(number_of_commits):
                 hashes.append(

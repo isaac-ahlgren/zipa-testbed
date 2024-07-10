@@ -3,7 +3,7 @@
  *
  * This software library is licensed under terms of the GNU GENERAL
  * PUBLIC LICENSE
- * 
+ *
  *
  * RSCODE is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,33 +47,33 @@ static void mul_z_poly (int src[], int max_deg);
 /* From  Cain, Clark, "Error-Correction Coding For Digital Communications", pp. 216. */
 void
 Modified_Berlekamp_Massey (struct ReedSolomon_Instance* rs)
-{	
+{
   int n, L, L2, k, d, i, npar = rs->npar, max_deg = rs->max_deg, NErasures = rs->NErasures;
   int psi[max_deg], psi2[max_deg], D[max_deg];
   int gamma[max_deg];
   int* synBytes = rs->synBytes;
   int* Lambda = rs->Lambda;
-	
+
   /* initialize Gamma, the erasure locator polynomial */
   init_gamma(gamma, rs);
 
   /* initialize to z */
   copy_poly(D, gamma, max_deg);
   mul_z_poly(D, max_deg);
-	
-  copy_poly(psi, gamma, max_deg);	
+
+  copy_poly(psi, gamma, max_deg);
   k = -1; L = NErasures;
-	
+
   for (n = NErasures; n < npar; n++) {
-	
+
     d = compute_discrepancy(psi, synBytes, L, n);
-		
+
     if (d != 0) {
-		
+
       /* psi2 = psi - d*D */
       for (i = 0; i < max_deg; i++) psi2[i] = psi[i] ^ gmult(d, D[i]);
-		
-		
+
+
       if (L < (n-k)) {
 	L2 = n-k;
 	k = n-L;
@@ -81,20 +81,20 @@ Modified_Berlekamp_Massey (struct ReedSolomon_Instance* rs)
 	for (i = 0; i < max_deg; i++) D[i] = gmult(psi[i], ginv(d));
 	L = L2;
       }
-			
+
       /* psi = psi2 */
       for (i = 0; i < max_deg; i++) psi[i] = psi2[i];
     }
-		
+
     mul_z_poly(D, max_deg);
   }
-	
+
   for(i = 0; i < max_deg; i++) Lambda[i] = psi[i];
-  compute_modified_omega(rs);	
+  compute_modified_omega(rs);
 }
 
 /* given Psi (called Lambda in Modified_Berlekamp_Massey) and synBytes,
-   compute the combined erasure/error evaluator polynomial as 
+   compute the combined erasure/error evaluator polynomial as
    Psi*S mod z^4
   */
 void
@@ -106,7 +106,7 @@ compute_modified_omega (struct ReedSolomon_Instance* rs)
   int* synBytes = rs->synBytes;
 	int* Omega = rs->Omega;
 
-  mult_polys(product, Lambda, synBytes, max_deg);	
+  mult_polys(product, Lambda, synBytes, max_deg);
   zero_poly(Omega, max_deg);
   for(i = 0; i < npar; i++) Omega[i] = product[i];
 
@@ -118,25 +118,25 @@ mult_polys (int dst[], int p1[], int p2[], int max_deg)
 {
   int i, j;
   int tmp1[max_deg*2];
-	
+
   for (i=0; i < (max_deg*2); i++) dst[i] = 0;
-	
+
   for (i = 0; i < max_deg; i++) {
     for(j=max_deg; j<(max_deg*2); j++) tmp1[j]=0;
-		
+
     /* scale tmp1 by p1[i] */
     for(j=0; j<max_deg; j++) tmp1[j]=gmult(p2[j], p1[i]);
     /* and mult (shift) tmp1 right by i */
     for (j = (max_deg*2)-1; j >= i; j--) tmp1[j] = tmp1[j-i];
     for (j = 0; j < i; j++) tmp1[j] = 0;
-		
+
     /* add into partial product */
     for(j=0; j < (max_deg*2); j++) dst[j] ^= tmp1[j];
   }
 }
 
 
-	
+
 /* gamma = product (1-z*a^Ij) for erasure locs Ij */
 void
 init_gamma (int gamma[], struct ReedSolomon_Instance* rs)
@@ -144,11 +144,11 @@ init_gamma (int gamma[], struct ReedSolomon_Instance* rs)
   int max_deg = rs->max_deg, NErasures = rs->NErasures;
   int e, tmp[max_deg];
   int* ErasureLocs = rs->ErasureLocs;
-	
+
   zero_poly(gamma, max_deg);
   zero_poly(tmp, max_deg);
   gamma[0] = 1;
-	
+
   for (e = 0; e < NErasures; e++) {
     copy_poly(tmp, gamma, max_deg);
     scale_poly(gexp[ErasureLocs[e]], tmp, max_deg);
@@ -156,10 +156,10 @@ init_gamma (int gamma[], struct ReedSolomon_Instance* rs)
     add_polys(gamma, tmp, max_deg);
   }
 }
-	
-	
-	
-void 
+
+
+
+void
 compute_next_omega (int d, int A[], int dst[], int src[], int max_deg)
 {
   int i;
@@ -167,41 +167,41 @@ compute_next_omega (int d, int A[], int dst[], int src[], int max_deg)
     dst[i] = src[i] ^ gmult(d, A[i]);
   }
 }
-	
+
 
 
 int
 compute_discrepancy (int lambda[], int S[], int L, int n)
 {
   int i, sum=0;
-	
-  for (i = 0; i <= L; i++) 
+
+  for (i = 0; i <= L; i++)
     sum ^= gmult(lambda[i], S[n-i]);
   return (sum);
 }
 
 /********** polynomial arithmetic *******************/
 
-void add_polys (int dst[], int src[], int max_deg) 
+void add_polys (int dst[], int src[], int max_deg)
 {
   int i;
   for (i = 0; i < max_deg; i++) dst[i] ^= src[i];
 }
 
-void copy_poly (int dst[], int src[], int max_deg) 
+void copy_poly (int dst[], int src[], int max_deg)
 {
   int i;
   for (i = 0; i < max_deg; i++) dst[i] = src[i];
 }
 
-void scale_poly (int k, int poly[], int max_deg) 
-{	
+void scale_poly (int k, int poly[], int max_deg)
+{
   int i;
   for (i = 0; i < max_deg; i++) poly[i] = gmult(k, poly[i]);
 }
 
 
-void zero_poly (int poly[], int max_deg) 
+void zero_poly (int poly[], int max_deg)
 {
   int i;
   for (i = 0; i < max_deg; i++) poly[i] = 0;
@@ -218,51 +218,51 @@ static void mul_z_poly (int src[], int max_deg)
 
 
 /* Finds all the roots of an error-locator polynomial with coefficients
- * Lambda[j] by evaluating Lambda at successive values of alpha. 
- * 
+ * Lambda[j] by evaluating Lambda at successive values of alpha.
+ *
  * This can be tested with the decoder's equations case.
  */
 
 
-void 
+void
 Find_Roots (struct ReedSolomon_Instance* rs)
 {
-  int sum, r, k, npar = rs->npar;	
+  int sum, r, k, npar = rs->npar;
   rs->NErrors = 0;
   int* Lambda = rs->Lambda;
   int* ErrorLocs = rs->ErrorLocs;
-  
+
   for (r = 1; r < 256; r++) {
     sum = 0;
     /* evaluate lambda at r */
     for (k = 0; k < npar+1; k++) {
       sum ^= gmult(gexp[(k*r)%255], Lambda[k]);
     }
-    if (sum == 0) { 
-	    ErrorLocs[rs->NErrors] = (255-r); rs->NErrors++; 
+    if (sum == 0) {
+	    ErrorLocs[rs->NErrors] = (255-r); rs->NErrors++;
 	    if (DEBUG) fprintf(stderr, "Root found at r = %d, (255-r) = %d\n", r, (255-r));
     }
   }
 }
 
-/* Combined Erasure And Error Magnitude Computation 
- * 
+/* Combined Erasure And Error Magnitude Computation
+ *
  * Pass in the codeword, its size in bytes, as well as
  * an array of any known erasure locations, along the number
  * of these erasures.
- * 
+ *
  * Evaluate Omega(actually Psi)/Lambda' at the roots
- * alpha^(-i) for error locs i. 
+ * alpha^(-i) for error locs i.
  *
  * Returns 1 if everything ok, or 0 if an out-of-bounds error is found
  *
  */
 
 int
-correct_errors_erasures (unsigned char codeword[], 
+correct_errors_erasures (unsigned char codeword[],
 			 int csize,
 			 int nerasures,
-			 int erasures[], 
+			 int erasures[],
        struct ReedSolomon_Instance* rs)
 {
   int r, i, j, err, npar = rs->npar, max_deg = rs->max_deg, NErrors = rs->NErrors;
@@ -272,16 +272,16 @@ correct_errors_erasures (unsigned char codeword[],
   int* Lambda = rs->Lambda;
 
   /* If you want to take advantage of erasure correction, be sure to
-     set NErasures and ErasureLocs[] with the locations of erasures. 
+     set NErasures and ErasureLocs[] with the locations of erasures.
      */
   rs->NErasures = nerasures;
   for (i = 0; i < rs->NErasures; i++) ErasureLocs[i] = erasures[i];
 
   Modified_Berlekamp_Massey(rs);
   Find_Roots(rs);
-  
+
   NErrors = rs->NErrors;
-  if ((NErrors <= npar) && NErrors > 0) { 
+  if ((NErrors <= npar) && NErrors > 0) {
 
     /* first check for illegal error locs */
     for (r = 0; r < NErrors; r++) {
@@ -297,18 +297,18 @@ correct_errors_erasures (unsigned char codeword[],
       /* evaluate Omega at alpha^(-i) */
 
       num = 0;
-      for (j = 0; j < max_deg; j++) 
+      for (j = 0; j < max_deg; j++)
 	num ^= gmult(Omega[j], gexp[((255-i)*j)%255]);
-      
+
       /* evaluate Lambda' (derivative) at alpha^(-i) ; all odd powers disappear */
       denom = 0;
       for (j = 1; j < max_deg; j += 2) {
 	denom ^= gmult(Lambda[j], gexp[((255-i)*(j-1)) % 255]);
       }
-      
+
       err = gmult(num, ginv(denom));
       if (DEBUG) fprintf(stderr, "Error magnitude %#x at loc %d\n", err, csize-i);
-      
+
       codeword[csize-i-1] ^= err;
     }
     return(1);
@@ -318,4 +318,3 @@ correct_errors_erasures (unsigned char codeword[],
     return(0);
   }
 }
-

@@ -4,7 +4,6 @@ from networking.nfs import NFSLogger
 
 
 class Sensor_Collector:
-
     def __init__(self, device, logger):
         self.sensor = device
         self.logger = logger
