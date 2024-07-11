@@ -251,6 +251,8 @@ class ZIPA_System:
 
     def create_sensors(self, sensor_configs, collection_mode=False):
         # Create instances of physical sensors based on the configuration provided
+        self.devices = {}
+        self.sensors = {}
         for sensor_name, config in sensor_configs.items():
             if config['is_used']:
                 try:
