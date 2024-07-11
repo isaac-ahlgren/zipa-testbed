@@ -57,12 +57,14 @@ def bytes_to_bitstring(b, length):
         bs = bs[:length]
     return bs
 
-def cmp_bits(b1, b2):
+def cmp_bits(bits1, bits2, length):
+    b1 = bytes_to_bitstring(bits1, length)
+    b2 = bytes_to_bitstring(bits2, length)
     tot = 0
-    for i in range(len(b1)):
+    for i in range(length):
         if b1[i] != b2[i]:
             tot += 1
-    return (tot / len(b1)) * 100
+    return (tot / length) * 100
 
 def get_bit_err(bits1, bits2, key_length):
     bit_err_over_time = []

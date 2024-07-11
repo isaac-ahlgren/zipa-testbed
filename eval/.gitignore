@@ -1,2 +1,3 @@
 *.csv
 __pycache__/
+schurmann/__pycache__/
