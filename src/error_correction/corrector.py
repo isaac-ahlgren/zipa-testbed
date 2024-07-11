@@ -1,4 +1,5 @@
-import random
+# import random
+import secrets
 
 import numpy as np
 from cryptography.hazmat.primitives import hashes
@@ -17,7 +18,8 @@ class Fuzzy_Commitment:
 
     def commit_witness(self, witness):
         # Generate secret key
-        secret_key = random.randbytes(self.key_byte_length)
+        # secret_key = random.randbytes(self.key_byte_length)
+        secret_key = secrets.token_bytes(self.key_byte_length)
 
         # Encode secret key
         C = self.error_correction.encode(secret_key)
