@@ -2,35 +2,42 @@ Microphone:
   sample_rate: 48000
   antialias_sample_rate: 20000
   chunk_size: 2000
+  time_collected: 400
   is_used: True
 
 BMP280:
   sample_rate: 50
   chunk_size: 5
+  time_collected: 400
   is_used: True
 
 PIR:
   sample_rate: 2
   chunk_size: 1
+  time_collected: 400
   is_used: True
 
 VEML7700:
   sample_rate: 40
   chunk_size: 4
+  time_collected: 400
   is_used: True
 
 SHT31D:
   sample_rate: 40
   chunk_size: 4
+  time_collected: 400
   is_used: True
 
 VoltKey:
   sample_rate: 2000
   chunk_size: 500
+  time_collected: 400
   is_used: False
 
 TestSensor:
   sample_rate: 44100
   chunk_size: 1024
+  time_collected: 400
   is_used: False
 
