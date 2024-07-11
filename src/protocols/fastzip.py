@@ -74,7 +74,9 @@ class FastZIP_Protocol(ProtocolInterface):
 
     def get_peaks(sig):
         peak_height = np.mean(sorted(sig)[-9:]) * 0.2
-        peaks, _ = FastZIP_Protocol.find_peaks(sig, height=peak_height, distance=0.25*self.sample_rate)
+        peaks, _ = FastZIP_Protocol.find_peaks(
+            sig, height=peak_height, distance=0.25 * self.sample_rate
+        )
         return len(peaks)
 
     def activity_filter(signal, power_thresh, snr_thresh, peak_thresh):
@@ -86,13 +88,13 @@ class FastZIP_Protocol(ProtocolInterface):
 
         # Compute signal power (similar for all sensor types
         power = FastZIP_Protocol.compute_sig_power(signal)
-        
+
         # Find peaks
         peaks = FastZIP_Protocol.get_peaks(signal)
 
         # Compute signal's SNR
         snr = FastZIP_Protocol.compute_snr(signal)
-        
+
         # Check against thresholds to determine if activity is present
         activity_detected = False
         if power > power_thresh and snr > snr_thresh and peaks > peak_thresh:
@@ -143,15 +145,15 @@ class FastZIP_Protocol(ProtocolInterface):
         remove_noise=False,
         normalize=False,
     ):
-
         fp = None
 
         if normalize:
             chunk = normalize_signal(chunk)
 
-        activity = FastZIP_Protocol.activity_filter(chunk, power_thresh, snr_thresh, peak_thresh)
+        activity = FastZIP_Protocol.activity_filter(
+            chunk, power_thresh, snr_thresh, peak_thresh
+        )
         if activity:
-
             if remove_noise:
                 chunk = FastZIP_Protocol.remove_noise(chunk)
 
@@ -160,7 +162,9 @@ class FastZIP_Protocol(ProtocolInterface):
 
             qs_thr = FastZIP_Protocol.compute_qs_thr(chunk, bias)
 
-            pts = FastZIP_Protocol.generate_equidist_points(len(data), n_bits, eqd_delta)
+            pts = FastZIP_Protocol.generate_equidist_points(
+                len(data), n_bits, eqd_delta
+            )
 
             fp = ""
             for pt in pts:
@@ -183,7 +187,6 @@ class FastZIP_Protocol(ProtocolInterface):
         remove_noise_list=None,
         normalize_list=None,
     ):
-
         key = ""
 
         for i in range(len(sensor_data)):

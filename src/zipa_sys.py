@@ -1,14 +1,16 @@
+import inspect
 import json
 import os
+import pkgutil
 import select
 import socket
-import pkgutil
-import inspect
 from multiprocessing import Process
 
 import netifaces as ni
 import yaml
 
+import protocols
+import sensors
 from networking.browser import ZIPA_Service_Browser
 from networking.network import *
 from networking.nfs import NFSLogger
@@ -16,8 +18,6 @@ from protocols.protocol_interface import ProtocolInterface
 from sensors.sensor_collector import Sensor_Collector
 from sensors.sensor_interface import SensorInterface
 from sensors.sensor_reader import Sensor_Reader
-import protocols
-import sensors
 
 # Used to initiate and begin protocol
 HOST = "host    "
