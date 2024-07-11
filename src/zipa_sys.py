@@ -249,7 +249,7 @@ class ZIPA_System:
         return sensor_configs
 
 
-    def create_sensors(self, sensor_configs, time_length, collection_mode=False):
+    def create_sensors(self, sensor_configs, collection_mode=False):
         # Create instances of physical sensors based on the configuration provided
         for sensor_name, config in sensor_configs.items():
             if config['is_used']:
