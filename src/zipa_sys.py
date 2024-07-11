@@ -232,47 +232,49 @@ class ZIPA_System:
                     break
 
     def get_sensor_configs(self, yaml_file):
-        with open(f"{yaml_file}", "r") as f:
-            config_params = yaml.safe_load(f)
-        time_to_collect = config_params["time_collected"]
-        sensors_used = config_params["sensors_used"]
-        sensor_sample_rates = config_params["sensor_sample_rates"]
-        chunk_sizes = config_params["chunk_sizes"]
-        return time_to_collect, sensors_used, sensor_sample_rates, chunk_sizes
+        with open(yaml_file, "r") as f:
+            config = yaml.safe_load(f)
 
-    def create_sensors(
-        self,
-        time_length,
-        sensors_used,
-        sample_rates,
-        chunk_sizes,
-        collection_mode=False,
-    ):
-        # Create instances of physical sensors
-        self.devices = {}
-        self.sensors = {}
+        # Initialize a dictionary to hold configurations for each sensor
+        sensor_configs = {}
 
-        for _, module_name, _ in pkgutil.iter_modules(sensors.__path__):
-            module = __import__(f"sensors.{module_name}", fromlist=module_name)
+        # Iterate through each sensor in the YAML file, extracting necessary information
+        for sensor_name, settings in config.items():
+            sensor_configs[sensor_name] = {
+                'sample_rate': settings.get('sample_rate', None),
+                'chunk_size': settings.get('chunk_size', None),
+                'is_used': settings.get('is_used', False),
+                'time_collected': settings.get('time_collected', None),
+                'antialias_sample_rate': settings.get('antialias_sample_rate', None)  # Optional parameter
+            }
+        print("Sensor configs:", sensor_configs)
 
-            for name, obj in inspect.getmembers(module):
-                if (
-                    inspect.isclass(obj)
-                    and issubclass(obj, SensorInterface)
-                    and obj is not SensorInterface
-                    and sensors_used[name]
-                ):
-                    self.devices[name] = obj(
-                        sample_rates[name],
-                        sample_rates[name] * time_length,
-                        chunk_sizes[name],
+        return sensor_configs
+
+
+    def create_sensors(self, sensor_configs, time_length, collection_mode=False):
+        # Create instances of physical sensors based on the configuration provided
+        for sensor_name, config in sensor_configs.items():
+            if config['is_used']:
+                try:
+                    module = __import__(f"sensors.{sensor_name.lower()}", fromlist=sensor_name)
+                    sensor_class = getattr(module, sensor_name)
+                    if issubclass(sensor_class, SensorInterface):
+                        buffer_size = config['sample_rate'] * config['time_collected']
+                        self.devices[sensor_name] = sensor_class(
+                            config['sample_rate'],
+                            buffer_size,
+                            config['chunk_size'],
+                            config.get('antialias_sample_rate', None)  # Optional parameter only used in Shurmann
+                        )
+                except (ImportError, AttributeError) as e:
+                    if self.logger:
+                        self.logger.error(f"Error loading sensor module {sensor_name}: {e}")
+                    continue
+
+                if collection_mode:
+                    self.sensors[sensor_name] = Sensor_Collector(
+                        self.devices[sensor_name], self.logger
                     )
-
-        if collection_mode:
-            for device in self.devices:
-                self.sensors[device] = Sensor_Collector(
-                    self.devices[device], self.logger
-                )
-        else:
-            for device in self.devices:
-                self.sensors[device] = Sensor_Reader(self.devices[device])
+                else:
+                    self.sensors[sensor_name] = Sensor_Reader(self.devices[sensor_name])
