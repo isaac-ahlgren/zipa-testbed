@@ -19,7 +19,7 @@ class BMP280(SensorInterface):
         self.name = "bmp280"
         self.data_type = np.float32()
         self.buffer = np.empty(
-            (chunk_size,), dtype=np.float32()
+            (self.chunk_size,), dtype=np.float32()
         )  # Initialize buffer for temperature, pressure, altitude
         self.buffer_index = 0
         self.buffer_full = False
