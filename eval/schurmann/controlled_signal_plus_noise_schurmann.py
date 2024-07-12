@@ -9,7 +9,6 @@ from schurmann_tools import (
     ANTIALIASING_FILTER,
     MICROPHONE_SAMPLING_RATE,
     add_gauss_noise,
-    golden_signal,
     schurmann_calc_sample_num,
     schurmann_wrapper_func,
 )
@@ -25,26 +24,44 @@ def controlled_sig_plus_noise_eval(
     sample_num = schurmann_calc_sample_num(
         key_length, window_length, band_length, sr, antialias_freq
     )
-    keys = len(signal) // sample_num
+    index = 0
     for i in range(trials):
-        for j in range(keys):
-            signal_part = signal[j * sample_num : (j + 1) * sample_num]
-            sig1 = add_gauss_noise(signal_part, target_snr)
-            sig2 = add_gauss_noise(signal_part, target_snr)
-            bits1 = schurmann_wrapper_func(
-                sig1, window_length, band_length, sr, antialias_freq
-            )
-            bits2 = schurmann_wrapper_func(
-                sig2, window_length, band_length, sr, antialias_freq
-            )
-            bit_err = cmp_bits(bits1, bits2, key_length)
-            bit_errs.append(bit_err)
+        signal_part, index = wrap_around_read(signal, index, sample_num)
+        print(len(signal_part))
+        print()
+        sig1 = add_gauss_noise(signal_part, target_snr)
+        sig2 = add_gauss_noise(signal_part, target_snr)
+        bits1 = schurmann_wrapper_func(
+            sig1, window_length, band_length, sr, antialias_freq
+        )
+        bits2 = schurmann_wrapper_func(
+            sig2, window_length, band_length, sr, antialias_freq
+        )
+        bit_err = cmp_bits(bits1, bits2, key_length)
+        bit_errs.append(bit_err)
     return bit_errs
 
 
 def load_controlled_signal(file_name):
     sr, data = wavfile.read(file_name)
     return data.astype(np.int64) + 2**16, sr
+
+
+def wrap_around_read(buffer, index, samples_to_read):
+    output = np.array([])
+    while samples_to_read != 0:
+        samples_can_read = len(buffer) - index
+        if samples_can_read <= samples_to_read:
+            buf = buffer[index : index + samples_can_read]
+            output = np.append(output, buf)
+            samples_to_read = samples_to_read - samples_can_read
+            index = 0
+        else:
+            buf = buffer[index : index + samples_to_read]
+            output = np.append(output, buf)
+            index = index + samples_to_read
+            samples_to_read = 0
+    return output, index
 
 
 if __name__ == "__main__":

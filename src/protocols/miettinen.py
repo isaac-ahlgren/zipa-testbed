@@ -39,7 +39,7 @@ class Miettinen_Protocol(ProtocolInterface):
     def gen_key(c, rel_thresh, abs_thresh):
         bits = ""
         for i in range(len(c) - 1):
-            feature1 = np.abs(c[i] / (c[i - 1]) - 1)
+            feature1 = np.abs((c[i] / c[i - 1]) - 1)
             feature2 = np.abs(c[i] - c[i - 1])
             if feature1 > rel_thresh and feature2 > abs_thresh:
                 bits += "1"
@@ -47,13 +47,12 @@ class Miettinen_Protocol(ProtocolInterface):
                 bits += "0"
         return bits
 
-    # TODO: algorithm needs to be testing using real life data
-    def miettinen_algo(self, x, f, w, rel_thresh, abs_thresh):
+    def miettinen_algo(x, f, w, rel_thresh, abs_thresh):
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
-        signal = self.signal_preprocessing(x, f, w)
-        key = self.gen_key(signal, rel_thresh, abs_thresh)
+        signal = Miettinen_Protocol.signal_preprocessing(x, f, w)
+        key = Miettinen_Protocol.gen_key(signal, rel_thresh, abs_thresh)
 
         return bitstring_to_bytes(key)
 
@@ -61,7 +60,7 @@ class Miettinen_Protocol(ProtocolInterface):
         signal = self.sensor.read(
             int(self.time_length * self.sensor.sensor.sample_rate)
         )
-        bits = self.miettinen_algo(
+        bits = Miettinen_Protocol.miettinen_algo(
             signal, self.f, self.w, self.rel_thresh, self.abs_thresh
         )
         return bits, signal
