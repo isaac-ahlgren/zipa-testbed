@@ -3,8 +3,8 @@ import multiprocessing as mp
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes
 
-from protocols.protocol_interface import ProtocolInterface
 from networking.network import *
+from protocols.protocol_interface import ProtocolInterface
 
 OUTLET_FREQ = 60  # Hz
 

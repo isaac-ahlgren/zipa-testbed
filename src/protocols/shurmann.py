@@ -7,7 +7,6 @@ from networking.network import *
 from protocols.protocol_interface import ProtocolInterface
 
 
-# TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
 class Shurmann_Siggs_Protocol(ProtocolInterface):
     def __init__(self, parameters, sensor, logger):
         ProtocolInterface.__init__(self, parameters, sensor, logger)
@@ -73,6 +72,9 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
     def zero_out_antialias_sigs_algo(
         x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
     ):
+        def bitstring_to_bytes(s):
+            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
+
         FFTs = []
         from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
@@ -112,7 +114,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                     bs += "1"
                 else:
                     bs += "0"
-        return bs
+        return bitstring_to_bytes(bs)
 
     def extract_context(self):
         signal = self.sensor.read(self.time_length)

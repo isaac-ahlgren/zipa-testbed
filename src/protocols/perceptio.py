@@ -365,9 +365,7 @@ class Perceptio_Protocol(ProtocolInterface):
             y[i] = a * signal[i] + (1 - a) * y[i - 1]
         return y
 
-
     def get_events(signal, a, bottom_th, top_th, lump_th):
-
         signal = self.ewma(np.abs(signal), a)
 
         # Get events that are within the threshold
@@ -454,14 +452,19 @@ class Perceptio_Protocol(ProtocolInterface):
 
     def gen_fingerprints(grouped_events, k, key_size, Fs):
         from datetime import timedelta
+
         fp = []
         for i in range(k):
             event_list = grouped_events[i]
             key = bytearray()
             for j in range(len(event_list) - 1):
-                interval = (event_list[j][0] - event_list[j+1][0]) / Fs
-                in_microseconds = int(timedelta(seconds=interval) / timedelta(microseconds=1))
-                key += in_microseconds.to_bytes(4, 'big') # Going to treat every interval as a 4 byte integer
+                interval = (event_list[j][0] - event_list[j + 1][0]) / Fs
+                in_microseconds = int(
+                    timedelta(seconds=interval) / timedelta(microseconds=1)
+                )
+                key += in_microseconds.to_bytes(
+                    4, "big"
+                )  # Going to treat every interval as a 4 byte integer
 
             if len(key) >= key_size:
                 key = bytes(key[:key_size])

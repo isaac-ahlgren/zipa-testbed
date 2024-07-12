@@ -63,4 +63,3 @@ BIT16 crchware(BIT16 data, BIT16 genpoly, BIT16 accum)
 	}
 	return (accum);
 }
-

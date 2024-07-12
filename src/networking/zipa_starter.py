@@ -14,7 +14,7 @@ SHURMANN = {
         "parity_symbols": 4,
         "sensor": "Microphone",
         "timeout": 10,
-        "verbose": True
+        "verbose": True,
     },
 }
 
@@ -32,7 +32,7 @@ MIETTINEN = {
         "parity_symbols": 4,
         "sensor": "Microphone",
         "timeout": 10,
-        "verbose": True
+        "verbose": True,
     },
 }
 
@@ -45,7 +45,7 @@ VOLTKEY = {
         "parity_symbols": 4,
         "timeout": 10,
         "sensor": "Voltkey",
-        "verbose": True
+        "verbose": True,
     },
 }
 
@@ -68,9 +68,8 @@ PERCEPTIO = {
         "sensor": "Microphone",
         "time_length": 44_100 * 20,
         "timeout": 10,
-        "verbose": True
+        "verbose": True,
     },
-    
 }
 
 SELECTED_PROTOCOL = SHURMANN
