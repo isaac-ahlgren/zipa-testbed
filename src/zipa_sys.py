@@ -249,31 +249,28 @@ class ZIPA_System:
         return sensor_configs
 
 
+
     def create_sensors(self, sensor_configs, collection_mode=False):
-        # Create instances of physical sensors based on the configuration provided
         self.devices = {}
         self.sensors = {}
         for sensor_name, config in sensor_configs.items():
             if config['is_used']:
                 try:
-                    module = __import__(f"sensors.{sensor_name.lower()}", fromlist=sensor_name)
+                    module = __import__(f"sensors.{sensor_name.lower()}", fromlist=[sensor_name])
                     sensor_class = getattr(module, sensor_name)
                     if issubclass(sensor_class, SensorInterface):
-                        buffer_size = config['sample_rate'] * config['time_collected']
-                        self.devices[sensor_name] = sensor_class(
-                            config['sample_rate'],
-                            buffer_size,
-                            config['chunk_size'],
-                            config.get('antialias_sample_rate', None)  # Optional parameter only used in Shurmann
-                        )
+                        # Pass the entire configuration dictionary to the sensor
+                        self.devices[sensor_name] = sensor_class(config)
                 except (ImportError, AttributeError) as e:
                     if self.logger:
                         self.logger.error(f"Error loading sensor module {sensor_name}: {e}")
                     continue
 
+                # Set up data collectors or readers based on the collection mode
                 if collection_mode:
                     self.sensors[sensor_name] = Sensor_Collector(
                         self.devices[sensor_name], self.logger
                     )
                 else:
                     self.sensors[sensor_name] = Sensor_Reader(self.devices[sensor_name])
+
