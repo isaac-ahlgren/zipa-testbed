@@ -12,38 +12,12 @@ class SensorReader:
         self.poll_process.start()
 
     def poll(self):
-<<<<<<< HEAD
-        full_buffer = False
-        self.mutex.acquire()
-        # First pass when buffer isn't populated with sensor data
-        while not full_buffer:
-            data = self.sensor.extract()
-
-            if self.pointer.value + len(data) >= self.sensor.buffer_size:
-                full_buffer = True
-
-            # Compensating for BMP280's 2D array
-            if np.array(data).ndim > 1:
-                data = data[0]
-
-            for d in data:
-                self.addressable_buffer[self.pointer.value] = d
-                self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
-
-        self.mutex.release()
-
-        # After buffer is full
-        while True:
-            while self.semaphore.get_value() != self.MAX_SENSOR_CLIENTS:
-                pass
-=======
         while True:
             data = self.sensor.read()
 
             for flag, queue in self.queues:
                 if flag.value == 1:
                     queue.put(data)
->>>>>>> 2be29f5fc9acd1ee779a73b60360708314014b28
 
     def add_protocol_queue(self, status_queue):
         # Terminate poll process to synchronize protocol queue
