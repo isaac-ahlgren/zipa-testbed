@@ -16,7 +16,7 @@ class PIR(SensorInterface):
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "pir"
         self.pin = pin
-        self.buffer = np.zeros(buffer_size, dtype=int)  # Store states as 1s and 0s
+        self.buffer = np.zeros(self.buffer_size, dtype=int)  # Store states as 1s and 0s
         self.buffer_index = 0
         self.buffer_full = False
         self.data_type = self.buffer.dtype
