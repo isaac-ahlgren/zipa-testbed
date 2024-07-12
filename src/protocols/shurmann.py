@@ -133,7 +133,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                 self.flag.value = -1
                 break
         # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
-        bits = self.zero_out_antialias_sigs_algo(signal, 20000, self.sensor.sensor.sample_rate, self.window_len, self.band_len)
+        bits = self.zero_out_antialias_sigs_algo(signal, 24000, self.sensor.sensor.sample_rate, self.window_len, self.band_len)
 
         #bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
