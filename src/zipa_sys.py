@@ -242,6 +242,7 @@ class ZIPA_System:
                 'chunk_size': settings.get('chunk_size', None),
                 'is_used': settings.get('is_used', False),
                 'time_collected': settings.get('time_collected', None),
+                'rms_enabled': settings.get('rms_enabled', False),
                 'antialias_sample_rate': settings.get('antialias_sample_rate', None)  # Optional parameter
             }
         print("Sensor configs:", sensor_configs)

@@ -20,11 +20,11 @@ BOOT = b"Booting...\r\n"
 
 
 class Voltkey(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, chunk_size, verbose=False):
+    def __init__(self, config):
         SensorInterface.__init__(self)
-        self.sample_rate = sample_rate
-        self.buffer_size = buffer_size
-        self.chunk_size = chunk_size
+        self.sample_rate = config.get('sample_rate')
+        self.buffer_size = config.get('sample_rate') * config.get('time_collected')
+        self.chunk_size = config.get('chunk_size')
         self.chunks = self.buffer_size // self.chunk_size
         self.name = "voltkey"
         self.buffer = np.zeros(chunk_size, np.float32())

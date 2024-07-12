@@ -8,11 +8,11 @@ from sensors.sensor_interface import SensorInterface
 
 
 class PIR(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, chunk_size, pin=12):
+    def __init__(self, config, pin=12):
         SensorInterface.__init__(self)
-        self.sample_rate = sample_rate
-        self.buffer_size = buffer_size
-        self.chunk_size = chunk_size
+        self.sample_rate = config.get('sample_rate')
+        self.buffer_size = config.get('sample_rate') * config.get('time_collected')
+        self.chunk_size = config.get('chunk_size')
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "pir"
         self.pin = pin

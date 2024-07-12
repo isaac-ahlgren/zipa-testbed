@@ -3,6 +3,7 @@ Microphone:
   antialias_sample_rate: 20000
   chunk_size: 2000
   time_collected: 400
+  rms_enabled: False
   is_used: True
 
 BMP280:
