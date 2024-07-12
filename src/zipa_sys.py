@@ -1,14 +1,16 @@
+import inspect
 import json
 import os
+import pkgutil
 import select
 import socket
-import pkgutil
-import inspect
-from multiprocessing import Process, Pipe
+from multiprocessing import Process
 
 import netifaces as ni
 import yaml
 
+import protocols
+import sensors
 from networking.browser import ZIPA_Service_Browser
 from networking.network import *
 from networking.nfs import NFSLogger
@@ -16,8 +18,6 @@ from protocols.protocol_interface import ProtocolInterface
 from sensors.sensor_collector import Sensor_Collector
 from sensors.sensor_interface import SensorInterface
 from sensors.sensor_reader import SensorReader
-import protocols
-import sensors
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -91,7 +91,6 @@ class ZIPA_System:
             # Set up protocol and associated processes
             self.protocol_threads = []
             self.protocols = []
-
 
     def start(self):
         # If in collection mode, no need to handle any incoming network connections
@@ -215,7 +214,6 @@ class ZIPA_System:
     def create_protocol(self, payload):
         requested_name = payload["name"]
         sensor = payload["parameters"]["sensor"]
-        # sensor_pipe, protocol_pipe = self.pipes[sensor]
 
         if sensor not in self.sensors:
             raise Exception("Sensor not supported")
@@ -255,7 +253,6 @@ class ZIPA_System:
         # Create instances of physical sensors
         self.devices = {}
         self.sensors = {}
-        self.pipes = {}
 
         for _, module_name, _ in pkgutil.iter_modules(sensors.__path__):
             module = __import__(f"sensors.{module_name}", fromlist=module_name)
@@ -280,6 +277,4 @@ class ZIPA_System:
                 )
         else:
             for device in self.devices:
-                # sensor_pipe, protocol_pipe = Pipe()
-                # self.pipes[device] = (sensor_pipe, protocol_pipe)
-                self.sensors[device] = SensorReader(self.devices[device]) # , sensor_pipe)
+                self.sensors[device] = SensorReader(self.devices[device])
