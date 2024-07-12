@@ -18,7 +18,7 @@ class Microphone(SensorInterface):
         self.sample_rate = config.get('sample_rate')
         self.buffer_size = config.get('sample_rate') * config.get('time_collected')
         self.chunk_size = config.get('chunk_size')
-        self.rms_filter_enabled = config.get('rms_enabled')
+        self.rms_filter_enabled = config.get('rms_enabled', False)
         self.antialias_sample_rate = config.get('antialias_sample_rate')
         self.format = pyaudio.paInt32 
         self.pyaud = pyaudio.PyAudio()
