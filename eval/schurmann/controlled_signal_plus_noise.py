@@ -20,20 +20,20 @@ def controlled_sig_plus_noise_eval(
 ):
     bit_errs = []
     signal, sr = load_controlled_signal("../controlled_signal.wav")
-    keys = len(signal) // sample_num
     sample_num = schurmann_calc_sample_num(
         key_length, window_length, band_length, sr, antialias_freq
     )
+    keys = len(signal) // sample_num
     for i in range(trials):
         for j in range(keys):
             signal_part = signal[j * sample_num : (j + 1) * sample_num]
             sig1 = add_gauss_noise(signal_part, target_snr)
             sig2 = add_gauss_noise(signal_part, target_snr)
             bits1 = schurmann_wrapper_func(
-                sig1, window_length, band_length, goldsig_sampling_freq, antialias_freq
+                sig1, window_length, band_length, sr, antialias_freq
             )
             bits2 = schurmann_wrapper_func(
-                sig2, window_length, band_length, goldsig_sampling_freq, antialias_freq
+                sig2, window_length, band_length, sr, antialias_freq
             )
             bit_err = cmp_bits(bits1, bits2, key_length)
             bit_errs.append(bit_err)
@@ -42,7 +42,7 @@ def controlled_sig_plus_noise_eval(
 
 def load_controlled_signal(file_name):
     sr, data = wavfile.read(file_name)
-    return data + 2**16, sr
+    return data.astype(np.int64) + 2**16, sr
 
 
 if __name__ == "__main__":
