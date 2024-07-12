@@ -33,7 +33,7 @@ class Microphone(SensorInterface):
 
         # Data types will switch between using RMS filter or not, mostly because we have to be able to fit all the RMS data into a single datatype
         self.data_type = np.int32()
-        if rms_filter_enabled:
+        if self.rms_filter_enabled:
             self.data_type = np.float64()
 
         self.start_thread()
