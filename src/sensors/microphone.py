@@ -35,7 +35,7 @@ class Microphone(SensorInterface):
         if rms_filter_enabled:
             self.data_type = np.float64()
 
-        self.start_thread()
+        self.start()
 
     def start(self):
         # Start stream, recording for specified time interval

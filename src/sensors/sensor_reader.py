@@ -13,7 +13,7 @@ class SensorReader:
 
     def poll(self):
         while True:
-            data = self.sensor.extract()
+            data = self.sensor.read()
 
             for flag, queue in self.queues:
                 if flag.value == 1:

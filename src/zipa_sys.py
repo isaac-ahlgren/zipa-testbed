@@ -213,7 +213,7 @@ class ZIPA_System:
     def create_protocol(self, payload):
         requested_name = payload["name"]
         sensor = payload["parameters"]["sensor"]
-        sensor_pipe, protocol_pipe = self.pipes[sensor]
+        # sensor_pipe, protocol_pipe = self.pipes[sensor]
 
         if sensor not in self.sensors:
             raise Exception("Sensor not supported")
@@ -229,7 +229,7 @@ class ZIPA_System:
                     and name == requested_name
                 ):
                     self.protocols.append(
-                        obj(payload["parameters"], self.sensors[sensor], protocol_pipe, self.logger)
+                        obj(payload["parameters"], self.sensors[sensor], self.logger)
                     )
                     break
 
