@@ -1,6 +1,6 @@
+import argparse
 import os
 import sys
-import argparse
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 import numpy as np
@@ -41,10 +41,10 @@ def goldsig_eval(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-wl', '--window_length', type=int, default=16537)
-    parser.add_argument('-bl', '--band_length', type=int, default=500)
-    parser.add_argument('-kl', '--key_length', type=int, default=128)
-    parser.add_argument('-t', '--trials', type=int, default=1000)
+    parser.add_argument("-wl", "--window_length", type=int, default=16537)
+    parser.add_argument("-bl", "--band_length", type=int, default=500)
+    parser.add_argument("-kl", "--key_length", type=int, default=128)
+    parser.add_argument("-t", "--trials", type=int, default=1000)
 
     args = parser.parse_args()
     window_length = getattr(args, "window_length")
