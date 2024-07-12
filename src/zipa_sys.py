@@ -278,6 +278,6 @@ class ZIPA_System:
                 )
         else:
             for device in self.devices:
-                sensor_pipe, protocol_pipe = Pipe()
-                self.pipes[device] = (sensor_pipe, protocol_pipe)
-                self.sensors[device] = SensorReader(self.devices[device], sensor_pipe)
+                # sensor_pipe, protocol_pipe = Pipe()
+                # self.pipes[device] = (sensor_pipe, protocol_pipe)
+                self.sensors[device] = SensorReader(self.devices[device]) # , sensor_pipe)

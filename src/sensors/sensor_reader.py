@@ -1,58 +1,40 @@
-from multiprocessing import Process, Lock
-
-import queue
+from multiprocessing import Process
 
 MAX_CLIENTS = 1024
 
 
 class SensorReader:
-    def __init__(self, sensor, pipe):
+    def __init__(self, sensor):
         self.sensor = sensor
-        self.pipe = pipe
         self.queues = []
-        self.mutex = Lock()
         self.sensor.start()
-        self.poll_process = Process(target=self.poll, args=[self.queues], name=sensor.name + " POLL")
+        self.poll_process = Process(target=self.poll, name=sensor.name)
         self.poll_process.start()
 
-    def poll(self, servicing_queues):
+    def poll(self):
         while True:
             data = self.sensor.extract()
 
+            for flag, queue in self.queues:
+                if flag.value == 1:
+                    queue.put(data)
 
-            for status_queue in servicing_queues:
-                status, protocol_queue = status_queue
-
-                if status.value == 1:
-                    try:
-                        protocol_queue.put(data)
-                    except queue.Full:
-                        continue
-
-
-    def add_protocol_queue(self, protocol_queue):
-        if self.poll_process.is_alive():
-            # TODO find better way for gracefully exiting, terminating could mess up shared queue
-            self.poll_process.terminate()
-            self.poll_process.join()
-
-        # Ensure no other object is interactivng with the queues
-        with self.mutex:
-            self.queues.append(protocol_queue)
-
-        self.poll_process = Process(target=self.poll, args=[self.queues], name=self.sensor.name)
+    def add_protocol_queue(self, status_queue):
+        # Terminate poll process to synchronize protocol queue
+        self.poll_process.terminate()
+        self.queues.append(status_queue)
+        # Restart polling process
+        self.poll_process = Process(target=self.poll, name=self.sensor.name)
         self.poll_process.start()
 
     def remove_protocol_queue(self, protocol_queue):
-        if self.poll_process.is_alive():
-            self.poll_process.terminate()
-            self.poll_process.join()
-
-        with self.mutex:
-            index = self.queues.index(protocol_queue)
-            self.queues.pop(index)
-
-        self.poll_process = Process(target=self.poll, args=[self.queues], name=self.sensor.name)
+        # Terminate poll process to synchronize protocol queue
+        self.poll_process.terminate()
+        # Find and remove protocol queue
+        index = self.queues.index(protocol_queue)
+        self.queues.pop(index)
+        # Restart polling process
+        self.poll_process = Process(target=self.poll, name=self.sensor.name)
         self.poll_process.start()
 
 

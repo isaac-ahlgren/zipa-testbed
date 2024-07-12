@@ -10,8 +10,8 @@ import queue
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
 class Shurmann_Siggs_Protocol(ProtocolInterface):
-    def __init__(self, parameters, sensor, pipe, logger):
-        ProtocolInterface.__init__(self, parameters, sensor, pipe, logger)
+    def __init__(self, parameters, sensor, logger):
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "Shurmann_Siggs_Protocol"
         self.wip = False
         self.window_len = parameters["window_len"]
@@ -123,7 +123,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
     def extract_context(self):
         signal = []
         print("Extracting context.")
-        self.send_flag.value = 1
+        self.flag.value = 1
 
         while True:
             try:
@@ -135,7 +135,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                 continue
 
             if len(signal) >= self.time_length:
-                self.send_flag.value = -1
+                self.flag.value = -1
 
                 break
         self.sensor.remove_protocol_queue(self.queue)
