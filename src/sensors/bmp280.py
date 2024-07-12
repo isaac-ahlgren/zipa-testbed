@@ -8,17 +8,18 @@ from sensors.sensor_interface import SensorInterface
 
 
 class BMP280(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, chunk_size):
+    def __init__(self, config):
         # Sensor configuration parameters
         SensorInterface.__init__(self)
-        self.sample_rate = sample_rate
-        self.buffer_size = buffer_size * 3  # Returns Temp, Altitude, and Pressure
-        self.chunk_size = chunk_size * 3
+        self.sample_rate = config.get('sample_rate')
+        self.buffer_size = config.get('sample_rate') * config.get('time_collected') * 3  # Returns Temp, Altitude, and Pressure
+        self.chunk_size = config.get('chunk_size') * 3
+
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "bmp280"
         self.data_type = np.float32()
         self.buffer = np.empty(
-            (chunk_size,), dtype=np.float32()
+            (self.chunk_size,), dtype=np.float32()
         )  # Initialize buffer for temperature, pressure, altitude
         self.buffer_index = 0
         self.buffer_full = False

@@ -1,25 +1,44 @@
-time_collected: 400
-sensors_used:
-  Microphone: True
-  BMP280: True
-  PIR: True
-  VEML7700: True
-  SHT31D: True
-  Voltkey: False
-  TestSensor: False
-sensor_sample_rates:
-  Microphone: 48000
-  BMP280: 50
-  PIR: 2
-  VEML7700: 40
-  SHT31D: 40
-  Voltkey: 2000
-  TestSensor: 44100
-chunk_sizes:
-  Microphone: 2000
-  BMP280: 5
-  PIR: 1
-  VEML7700: 4
-  SHT31D: 4
-  Voltkey: 500
-  TestSensor: 1024
+Microphone:
+  sample_rate: 48000
+  antialias_sample_rate: 20000
+  chunk_size: 2000
+  time_collected: 400
+  rms_enabled: False
+  is_used: True
+
+BMP280:
+  sample_rate: 50
+  chunk_size: 5
+  time_collected: 400
+  is_used: True
+
+PIR:
+  sample_rate: 2
+  chunk_size: 1
+  time_collected: 400
+  is_used: True
+
+VEML7700:
+  sample_rate: 40
+  chunk_size: 4
+  time_collected: 400
+  is_used: True
+
+SHT31D:
+  sample_rate: 40
+  chunk_size: 4
+  time_collected: 400
+  is_used: True
+
+VoltKey:
+  sample_rate: 2000
+  chunk_size: 500
+  time_collected: 400
+  is_used: False
+
+TestSensor:
+  sample_rate: 44100
+  chunk_size: 1024
+  time_collected: 400
+  is_used: False
+

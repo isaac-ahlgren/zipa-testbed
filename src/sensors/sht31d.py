@@ -8,14 +8,14 @@ from sensors.sensor_interface import SensorInterface
 
 
 class SHT31D(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, chunk_size):
+    def __init__(self, config):
         SensorInterface.__init__(self)
-        self.sample_rate = sample_rate
-        self.buffer_size = buffer_size
-        self.chunk_size = chunk_size
+        self.sample_rate = config.get('sample_rate')
+        self.buffer_size = config.get('sample_rate') * config.get('time_collected')
+        self.chunk_size = config.get('chunk_size')
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "sht31d"
-        self.buffer = np.zeros(chunk_size, np.float32())
+        self.buffer = np.zeros(self.chunk_size, np.float32())
         self.buffer_index = 0
         self.buffer_full = False
         self.data_type = self.buffer.dtype
