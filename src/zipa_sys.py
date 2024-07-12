@@ -43,8 +43,9 @@ class ZIPA_System:
         self.id = identity
         self.nfs_dir = nfs_dir
         self.logger = NFSLogger(
-            user="USERNAME",
-            password="PASSWORD",
+            user='',
+            password='',
+            # hi
             host="SERVER IP",
             database="file_log",
             nfs_server_dir=self.nfs_dir,  # Make sure this directory exists and is writable
