@@ -129,8 +129,10 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             if len(signal) >= self.time_length:
                 self.flag.value = -1
                 break
-
-        bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
+        # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
+        bits = self.zero_out_antialias_sigs_algo(20000, self.sensor.sensor.antialias_sample_rate)
+        
+        #bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
 
     def parameters(self, is_host):
