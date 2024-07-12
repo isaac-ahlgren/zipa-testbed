@@ -20,7 +20,6 @@ class SHT31D(SensorInterface):
         self.buffer_full = False
         self.data_type = self.buffer.dtype
         self.sensor = adafruit_sht31d.SHT31D(board.I2C())
-        self.start_thread()
 
     def start(self):
         pass
