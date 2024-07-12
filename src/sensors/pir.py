@@ -22,7 +22,6 @@ class PIR(SensorInterface):
         self.data_type = self.buffer.dtype
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.pin, GPIO.IN)
-        self.start_thread()
 
     def start(self):
         pass

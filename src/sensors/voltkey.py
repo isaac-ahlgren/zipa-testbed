@@ -33,7 +33,6 @@ class Voltkey(SensorInterface):
         self.sensor = serial.Serial(port="/dev/ttyUSB0", baudrate=115200)  # or ttyUSB0
         self.started = mp.Value("i", 0)
         self.mutex = mp.Semaphore()
-        self.start_thread()
 
     def start(self):
         with self.mutex:

@@ -5,6 +5,7 @@ from cryptography.hazmat.primitives import constant_time
 
 from networking.network import *
 from protocols.protocol_interface import ProtocolInterface
+import queue
 
 
 # TODO: Make template for protocols so there is are guaranteed boiler plate functionality in how to initialize it
@@ -72,7 +73,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
 
     
     def zero_out_antialias_sigs_algo(
-        x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
+        self, x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
     ):
         FFTs = []
         from scipy.fft import fft, fftfreq, ifft, irfft, rfft
@@ -115,12 +116,34 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                     bs += "0"
         return bs
 
-    def extract_context(self):
+    def old_extract_context(self):
         signal = self.sensor.read(self.time_length)
         # bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
 
         # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
         bits = self.zero_out_antialias_sigs_algo(20000, self.sensor.sensor.antialias_sample_rate)
+        return bits, signal
+    
+    def extract_context(self):
+        signal = []
+        print("Extracting context.")
+        self.flag.value = 1
+
+        while True:
+            try:
+                print(f"Getting data")
+                data = self.queue.get()
+                print(f"Received data:\n{data}\n")
+                signal.extend(data)
+            except queue.Empty:
+                continue
+
+            if len(signal) >= self.time_length:
+                self.flag.value = -1
+
+                break
+        self.sensor.remove_protocol_queue(self.queue)
+        bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
 
     def parameters(self, is_host):

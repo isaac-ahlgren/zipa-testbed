@@ -24,26 +24,12 @@ class BMP280(SensorInterface):
         self.buffer_full = False
         self.data_type = self.buffer.dtype
         self.bmp = adafruit_bmp280.Adafruit_BMP280_I2C(board.I2C())
-        self.start_thread()
 
     def start(self):
         pass
 
     def stop(self):
         pass
-
-    # commenting out 1d array function
-    # def read(self):
-    #     data = np.empty(self.chunk_size, self.data_type)
-
-    #     for i in range(0, self.chunk_size, 3):
-    #         data[i] = self.bmp.temperature
-    #         data[i + 1] = self.bmp.pressure
-    #         data[i + 2] = self.bmp.altitude
-
-    #         time.sleep(1 / self.sample_rate)
-
-    #     return data
 
     def read(self):
         # rows x columns for pandas readibility

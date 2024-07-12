@@ -13,7 +13,7 @@ class Sensor_Collector:
 
     def poll(self):
         while True:
-            data = self.sensor.extract()
+            data = self.sensor.read()
             self.logger.log_signal(self.sensor.name, data)
 
 

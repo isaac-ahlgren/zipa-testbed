@@ -2,7 +2,7 @@ import json
 import socket
 
 HOST = "host    "
-IP_ADDR = "192.168.1.248"
+IP_ADDR = "192.168.1.187"
 TARGET_IP_ADDR = ("192.168.1.160", 5005)
 
 SHURMANN = {

@@ -19,7 +19,6 @@ class TestSensor(SensorInterface):
         self.data_type = np.float32()
         self.data_type_size = 4
         self.signal_type = signal_type
-        self.start_thread()
 
     def start(self):
         pass

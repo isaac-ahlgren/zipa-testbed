@@ -23,7 +23,6 @@ class VEML7700(SensorInterface):
         self.buffer_full = False
         self.data_type = self.buffer.dtype
         self.light = adafruit_veml7700.VEML7700(board.I2C())
-        self.start_thread()
 
     def start(self):
         pass
