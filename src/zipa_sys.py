@@ -272,5 +272,5 @@ class ZIPA_System:
                         self.devices[sensor_name], self.logger
                     )
                 else:
-                    self.sensors[sensor_name] = Sensor_Reader(self.devices[sensor_name])
+                    self.sensors[sensor_name] = SensorReader(self.devices[sensor_name])
 
