@@ -70,6 +70,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                     bs += "0"
         return bitstring_to_bytes(bs)
 
+    
     def zero_out_antialias_sigs_algo(
         x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
     ):
@@ -116,7 +117,10 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
 
     def extract_context(self):
         signal = self.sensor.read(self.time_length)
-        bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
+        # bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
+
+        # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
+        bits = self.zero_out_antialias_sigs_algo(20000, self.sensor.sensor.antialias_sample_rate)
         return bits, signal
 
     def parameters(self, is_host):
