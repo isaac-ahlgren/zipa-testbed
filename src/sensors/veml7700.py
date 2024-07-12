@@ -17,7 +17,7 @@ class VEML7700(SensorInterface):
         self.chunk_size = config.get('chunk_size')
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.buffer = np.zeros(
-            chunk_size, np.float32()
+            self.chunk_size, np.float32()
         )  # Initialize buffer for lux readings
         self.buffer_index = 0
         self.buffer_full = False
