@@ -18,28 +18,36 @@ from scipy.io import wavfile
 def controlled_sig_plus_noise_eval(
     window_length, band_length, key_length, antialias_freq, target_snr, trials
 ):
-    bit_errs = []
+    legit_bit_errs = []
+    adv_bit_errs = []
 
     signal, sr = load_controlled_signal("../controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal("../adversary_controlled_signal.wav")
     sample_num = schurmann_calc_sample_num(
         key_length, window_length, band_length, sr, antialias_freq
     )
     index = 0
+    adv_index = 0
     for i in range(trials):
         signal_part, index = wrap_around_read(signal, index, sample_num)
-        print(len(signal_part))
-        print()
+        adv_part, adv_index = wrap_around_read(adv_signal, adv_index, sample_num)
         sig1 = add_gauss_noise(signal_part, target_snr)
         sig2 = add_gauss_noise(signal_part, target_snr)
+        adv_sig = add_gauss_noise(adv_part, target_snr)
         bits1 = schurmann_wrapper_func(
             sig1, window_length, band_length, sr, antialias_freq
         )
         bits2 = schurmann_wrapper_func(
             sig2, window_length, band_length, sr, antialias_freq
         )
-        bit_err = cmp_bits(bits1, bits2, key_length)
-        bit_errs.append(bit_err)
-    return bit_errs
+        adv_bits = schurmann_wrapper_func(
+            adv_sig, window_length, band_length, sr, antialias_freq
+        )
+        legit_bit_err = cmp_bits(bits1, bits2, key_length)
+        legit_bit_errs.append(legit_bit_err)
+        adv_bit_err = cmp_bits(bits1, adv_bits, key_length)
+        adv_bit_errs.append(adv_bit_err)
+    return legit_bit_err, adv_bit_err
 
 
 def load_controlled_signal(file_name):
@@ -79,7 +87,8 @@ if __name__ == "__main__":
     snr_level = getattr(args, "snr_level")
     trials = getattr(args, "trials")
 
-    bit_errs = controlled_sig_plus_noise_eval(
+    legit_bit_errs, adv_bit_errs = controlled_sig_plus_noise_eval(
         window_length, band_length, key_length, ANTIALIASING_FILTER, snr_level, trials
     )
-    print(f"Average Bit Error Rate: {np.mean(bit_errs)}")
+    print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
+    print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
