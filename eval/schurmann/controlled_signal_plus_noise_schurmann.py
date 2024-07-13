@@ -47,7 +47,7 @@ def controlled_sig_plus_noise_eval(
         legit_bit_errs.append(legit_bit_err)
         adv_bit_err = cmp_bits(bits1, adv_bits, key_length)
         adv_bit_errs.append(adv_bit_err)
-    return legit_bit_err, adv_bit_err
+    return legit_bit_errs, adv_bit_errs
 
 
 def load_controlled_signal(file_name):
