@@ -55,8 +55,8 @@ class ZIPA_System:
         )
 
         # Set up sensors
-        sensor_configs = (
-            self.get_sensor_configs(os.getcwd() + "/src/sensors/sensor_config.yaml")
+        sensor_configs = self.get_sensor_configs(
+            os.getcwd() + "/src/sensors/sensor_config.yaml"
         )
         self.create_sensors(
             sensor_configs,
@@ -230,47 +230,32 @@ class ZIPA_System:
     def get_sensor_configs(self, yaml_file):
         with open(yaml_file, "r") as f:
             config = yaml.safe_load(f)
-
-        # Initialize a dictionary to hold configurations for each sensor
-        sensor_configs = {}
-
-        # Iterate through each sensor in the YAML file, extracting necessary information
-        for sensor_name, settings in config.items():
-            sensor_configs[sensor_name] = {
-                'sample_rate': settings.get('sample_rate', None),
-                'chunk_size': settings.get('chunk_size', None),
-                'is_used': settings.get('is_used', False),
-                'time_collected': settings.get('time_collected', None),
-                'rms_enabled': settings.get('rms_enabled', False),
-                'antialias_sample_rate': settings.get('antialias_sample_rate', None)  # Optional parameter
-            }
-        print("Sensor configs:", sensor_configs)
-
-        return sensor_configs
-
-
+        print("Sensor configs:", config)
+        return config
 
     def create_sensors(self, sensor_configs, collection_mode=False):
         self.devices = {}
         self.sensors = {}
         for sensor_name, config in sensor_configs.items():
-            if config['is_used']:
+            if config.get("is_used", False):  # Make sure 'is_used' exists and is True
                 try:
-                    module = __import__(f"sensors.{sensor_name.lower()}", fromlist=[sensor_name])
+                    module = __import__(
+                        f"sensors.{sensor_name.lower()}", fromlist=[sensor_name]
+                    )
                     sensor_class = getattr(module, sensor_name)
                     if issubclass(sensor_class, SensorInterface):
                         # Pass the entire configuration dictionary to the sensor
                         self.devices[sensor_name] = sensor_class(config)
                 except (ImportError, AttributeError) as e:
                     if self.logger:
-                        self.logger.error(f"Error loading sensor module {sensor_name}: {e}")
+                        self.logger.error(
+                            f"Error loading sensor module {sensor_name}: {e}"
+                        )
                     continue
 
-                # Set up data collectors or readers based on the collection mode
                 if collection_mode:
                     self.sensors[sensor_name] = Sensor_Collector(
                         self.devices[sensor_name], self.logger
                     )
                 else:
                     self.sensors[sensor_name] = SensorReader(self.devices[sensor_name])
-
