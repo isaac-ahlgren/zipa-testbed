@@ -11,23 +11,6 @@ NONC = "nonce   "
 PRAM = "preamble"
 SUCC = "success "
 FAIL = "failed  "
-# Error Messages
-VERBOSE_MESSAGES = {
-    "ACK_SEND": "Sending ACK.\n",
-    "ACK_WAIT": "Waiting for ACK from host.\n",
-    "ACK_ALL": "ACKing participating devices.\n",
-    "ACK_SUCCESS": "Successfully ACKed participating devices.\n",
-    "ACK_TIMEOUT": "No ACK recieved within the specified time limit. Aborting.\n",
-    "COMM_WAIT": "Waiting for commitment from host.\n",
-    "COMM_SEND": "Sending commitment.\n",
-    "COMM_WITNESS": "Committing witness.\n",
-    "COMM_TIMEOUT": (
-        "No commitment recieved within the specified" "time limit. Aborting.\n"
-    ),
-    "NONC_TIMEOUT": (
-        "No nonce message recieved within the specified time limit." "Aborting.\n"
-    ),
-}
 
 
 def send_status(connection, status):
@@ -49,7 +32,7 @@ def status_standby(connection, timeout):
         timestamp = time.time()
         command = connection.recv(8)
 
-        if command is None:
+        if command == None:
             continue
         elif command == SUCC.encode():
             status = True
@@ -76,7 +59,7 @@ def ack_standby(connection, timeout):
         timestamp = time.time()
         command = connection.recv(8)
 
-        if command is None:
+        if command == None:
             continue
         elif command == ACKN.encode():
             acknowledged = True
@@ -90,7 +73,7 @@ def send_commit(commitments, hashes, device):
     number_of_commitments = len(commitments).to_bytes(4, byteorder="big")
     com_length = len(commitments[0]).to_bytes(4, byteorder="big")
 
-    if hashes is not None:
+    if hashes != None:
         hash_length = len(hashes[0])
     else:
         hash_length = 0
@@ -163,7 +146,7 @@ def dh_exchange_standby(connection, timeout):
         timestamp = time.time()
         message = connection.recv(12)
 
-        if message is None:
+        if message == None:
             continue
         else:
             command = message[:8]
@@ -191,7 +174,7 @@ def get_nonce_msg_standby(connection, timeout):
         timestamp = time.time()
         message = connection.recv(12)
 
-        if message is None:
+        if message == None:
             continue
         else:
             command = message[:8]
@@ -228,7 +211,7 @@ def get_preamble(connection, timeout):
         timestamp = time.time()
         message = connection.recv(12)  # 8 byte command + 4 byte payload size
 
-        if message is None:
+        if message == None:
             continue
         else:
             command = message[:8]
