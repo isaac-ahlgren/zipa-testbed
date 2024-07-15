@@ -4,14 +4,14 @@ from cryptography.hazmat.primitives import constant_time, hmac
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
-from networking.network import *
+from networking.network import dh_exchange, dh_exchange_standby, send_nonce_msg
 
 ec_curve = ec.SECP384R1()
 
 
 def send_nonce_msg_to_device(
     connection,
-    recieved_nonce_msg,
+    recv_nonce_msg,
     derived_key,
     prederived_key_hash,
     nonce_byte_size,
@@ -21,8 +21,8 @@ def send_nonce_msg_to_device(
 
     # Concatenate nonces together
     pd_hash_len = len(prederived_key_hash)
-    recieved_nonce = recieved_nonce_msg[pd_hash_len : pd_hash_len + nonce_byte_size]
-    concat_nonce = nonce + recieved_nonce
+    recv_nonce = recv_nonce_msg[pd_hash_len : pd_hash_len + nonce_byte_size]
+    concat_nonce = nonce + recv_nonce
 
     # Create tag of Nonce
     mac = hmac.HMAC(derived_key, hash_func)
@@ -83,7 +83,7 @@ def verify_mac_from_host(
 
 
 def verify_mac_from_device(
-    recieved_nonce_msg,
+    recv_nonce_msg,
     derived_key,
     prederived_key_hash,
     nonce_byte_size,
@@ -93,20 +93,20 @@ def verify_mac_from_device(
 
     # Retrieve nonce used by device
     pd_hash_len = len(prederived_key_hash)
-    recieved_nonce = recieved_nonce_msg[pd_hash_len : pd_hash_len + nonce_byte_size]
+    recv_nonce = recv_nonce_msg[pd_hash_len : pd_hash_len + nonce_byte_size]
 
     # Generate new MAC tag for the nonce with respect to the derived key
     mac = hmac.HMAC(derived_key, hash_func)
-    mac.update(recieved_nonce)
+    mac.update(recv_nonce)
     generated_tag = mac.finalize()
 
-    recieved_tag = recieved_nonce_msg[pd_hash_len + nonce_byte_size :]
+    recieved_tag = recv_nonce_msg[pd_hash_len + nonce_byte_size :]
     if constant_time.bytes_eq(generated_tag, recieved_tag):
         success = True
     return success
 
 
-def diffie_hellman(socket, timeout, verbose=True):
+def diffie_hellman(socket, timeout=30, verbose=True):
     # Generate initial private key for Diffie-Helman
     initial_private_key = ec.generate_private_key(ec_curve)
 
@@ -126,7 +126,7 @@ def diffie_hellman(socket, timeout, verbose=True):
 
     other_public_key_bytes = dh_exchange_standby(socket, timeout)
 
-    if other_public_key_bytes == None:
+    if other_public_key_bytes is None:
         if verbose:
             print("No initial key for Diffie-Helman recieved - early exit\n")
         return

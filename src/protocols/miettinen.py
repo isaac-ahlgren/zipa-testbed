@@ -1,8 +1,23 @@
+import queue
+
 import numpy as np
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
-from networking.network import *
-from protocols.common_protocols import *
+from networking.network import (
+    VERBOSE_MESSAGES,
+    ack,
+    ack_standby,
+    commit_standby,
+    get_nonce_msg_standby,
+    send_commit,
+)
+from protocols.common_protocols import (
+    diffie_hellman,
+    send_nonce_msg_to_device,
+    send_nonce_msg_to_host,
+    verify_mac_from_device,
+    verify_mac_from_host,
+)
 from protocols.protocol_interface import ProtocolInterface
 
 
@@ -58,9 +73,19 @@ class Miettinen_Protocol(ProtocolInterface):
         return bitstring_to_bytes(key)
 
     def extract_context(self):
-        signal = self.sensor.read(
-            int(self.time_length * self.sensor.sensor.sample_rate)
-        )
+        signal = []
+
+        while True:
+            try:
+                data = self.queue.get()
+                signal.extend(data)
+            except queue.Empty:
+                continue
+
+            if len(signal) >= int(self.time_length * self.sensor.sensor.sample_rate):
+                self.flag.value = -1
+                break
+
         bits = self.miettinen_algo(
             signal, self.f, self.w, self.rel_thresh, self.abs_thresh
         )
@@ -96,20 +121,21 @@ class Miettinen_Protocol(ProtocolInterface):
 
         # Sending ack that they are ready to begin
         if self.verbose:
-            print("\nSending ACK")
+            print(VERBOSE_MESSAGES["ACK_SEND"])
         ack(host_socket)
 
-        # Wait for ack from host to being context extract, quit early if no response within time
+        # Wait for ack from host to being context extract,
+        # quit early if no response within time
         if self.verbose:
-            print("\nWaiting for ACK from host")
+            print(VERBOSE_MESSAGES["ACK_WAIT"])
 
         if not ack_standby(host_socket, self.timeout):
             if self.verbose:
-                print("No ACK recieved within time limit - early exit\n")
+                print(VERBOSE_MESSAGES["ACK_TIMEOUT"])
             return
 
         # Shared key generated
-        shared_key = self.diffie_hellman(host_socket)
+        shared_key = diffie_hellman(host_socket)
 
         current_key = shared_key
         successes = 0
@@ -120,14 +146,14 @@ class Miettinen_Protocol(ProtocolInterface):
             # Sending ack that they are ready to begin
 
             if self.verbose:
-                print("Waiting for ACK from host.\n")
+                print(VERBOSE_MESSAGES["ACK_WAIT"])
             if not ack_standby(host_socket, self.timeout):
                 if self.verbose:
-                    print("No ACK recieved within time limit - early exit.\n\n")
+                    print(VERBOSE_MESSAGES["ACK_TIMEOUT"])
                 return
 
             if self.verbose:
-                print("Sending ACK\n")
+                print(VERBOSE_MESSAGES["ACK_SEND"])
             ack(host_socket)
 
             success = False
@@ -137,7 +163,7 @@ class Miettinen_Protocol(ProtocolInterface):
 
             # Wait for Commitment
             if self.verbose:
-                print("Waiting for commitment from host\n")
+                print(VERBOSE_MESSAGES["COMM_WAIT"])
             commitments, hs = commit_standby(host_socket, self.timeout)
 
             commitment = commitments[0]
@@ -145,7 +171,7 @@ class Miettinen_Protocol(ProtocolInterface):
             # Early exist if no commitment recieved in time
             if not commitment:
                 if self.verbose:
-                    print("No commitment recieved within time limit - early exit\n")
+                    print(VERBOSE_MESSAGES["COMM_TIMEOUT"])
                 return
 
             if self.verbose:
@@ -179,7 +205,7 @@ class Miettinen_Protocol(ProtocolInterface):
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
                 if self.verbose:
-                    print("No nonce message recieved within time limit - early exit")
+                    print(VERBOSE_MESSAGES["NONC_TIMEOUT"])
                 return
 
             # If hashes are equal, then it was successful
@@ -248,15 +274,15 @@ class Miettinen_Protocol(ProtocolInterface):
 
         if not ack_standby(device_socket, self.timeout):
             if self.verbose:
-                print("No ACK recieved within time limit - early exit.\n\n")
+                print(VERBOSE_MESSAGES["ACK_TIMEOUT"])
             return
 
         if self.verbose:
-            print("ACKing participating device")
+            print(VERBOSE_MESSAGES["ACK_ALL"])
         ack(device_socket)
 
         # Shared key generated
-        shared_key = self.diffie_hellman(device_socket)
+        shared_key = diffie_hellman(device_socket)
 
         current_key = shared_key
         total_iterations = 0
@@ -271,18 +297,18 @@ class Miettinen_Protocol(ProtocolInterface):
 
             if not ack_standby(device_socket, self.timeout):
                 if self.verbose:
-                    print("No ACK recieved within time limit - early exit.\n\n")
+                    print(VERBOSE_MESSAGES["ACK_TIMEOUT"])
                 return
 
             if self.verbose:
-                print("Successfully ACKed participating device\n")
+                print(VERBOSE_MESSAGES["ACK_SUCCESS"])
 
             # Extract key from sensor
             witness, signal = self.extract_context()
 
             # Commit Secret
             if self.verbose:
-                print("Commiting Witness")
+                print(VERBOSE_MESSAGES["COMM_WITNESS"])
             prederived_key, commitment = self.re.commit_witness(witness)
 
             if self.verbose:
@@ -290,7 +316,7 @@ class Miettinen_Protocol(ProtocolInterface):
                 print()
 
             if self.verbose:
-                print("Sending commitment")
+                print(VERBOSE_MESSAGES["COMM_SEND"])
                 print()
 
             send_commit([commitment], None, device_socket)
@@ -306,11 +332,11 @@ class Miettinen_Protocol(ProtocolInterface):
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
                 if self.verbose:
-                    print("No nonce message recieved within time limit - early exit")
-                    print()
+                    print(VERBOSE_MESSAGES["NONC_TIMEOUT"])
                 return
 
-            # Derive new key using previous key and new prederived key from fuzzy commitment
+            # Derive new key using previous key and new prederived key
+            # from fuzzy commitment
             kdf = HKDF(
                 algorithm=self.hash_func, length=self.key_length, salt=None, info=None
             )
@@ -382,7 +408,8 @@ class Miettinen_Protocol(ProtocolInterface):
         self.count += 1
 
 
-"""###TESTING CODE###
+"""
+###TESTING CODE###
 import socket
 def device(prot):
     print("device")
@@ -407,7 +434,12 @@ if __name__ == "__main__":
     import multiprocessing as mp
     from test_sensor import Test_Sensor
     from sensor_reader import Sensor_Reader
-    prot = Miettinen_Protocol(Sensor_Reader(Test_Sensor(44100, 44100*400, 1024)),
+    prot = Miettinen_Protocol(
+        Sensor_Reader(
+            Test_Sensor(
+                44100,
+                44100*400,
+                1024)),
         8,
         4,
         1,
@@ -421,4 +453,5 @@ if __name__ == "__main__":
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
-    d.start()"""
+    d.start()
+"""
