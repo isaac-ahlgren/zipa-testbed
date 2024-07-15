@@ -75,6 +75,11 @@ PERCEPTIO = {
 SELECTED_PROTOCOL = SHURMANN
 
 if __name__ == "__main__":
+    """
+    Main execution function that prepares and sends protocol configuration data over a TCP socket.
+    This function sets up a socket, connects to a specified target IP address, and sends the selected
+    protocol configuration.
+    """
     # Pack up message
     bytestream = json.dumps(SELECTED_PROTOCOL).encode("utf8")
     length = len(bytestream).to_bytes(4, byteorder="big")
