@@ -14,7 +14,7 @@ class SHT31D(SensorInterface):
         self.buffer_size = config.get('sample_rate') * config.get('time_collected')
         self.chunk_size = config.get('chunk_size')
         self.chunks = int(self.buffer_size / self.chunk_size)
-        self.name = "sht31d"
+        self.name = "SHT31D"
         self.buffer = np.zeros(self.chunk_size, np.float32())
         self.buffer_index = 0
         self.buffer_full = False

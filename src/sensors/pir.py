@@ -14,7 +14,7 @@ class PIR(SensorInterface):
         self.buffer_size = config.get('sample_rate') * config.get('time_collected')
         self.chunk_size = config.get('chunk_size')
         self.chunks = int(self.buffer_size / self.chunk_size)
-        self.name = "pir"
+        self.name = "PIR"
         self.pin = pin
         self.buffer = np.zeros(self.buffer_size, dtype=int)  # Store states as 1s and 0s
         self.buffer_index = 0

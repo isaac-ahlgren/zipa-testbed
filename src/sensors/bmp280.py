@@ -16,7 +16,7 @@ class BMP280(SensorInterface):
         self.chunk_size = config.get('chunk_size') * 3
 
         self.chunks = int(self.buffer_size / self.chunk_size)
-        self.name = "bmp280"
+        self.name = "BMP280"
         self.data_type = np.float32()
         self.buffer = np.empty(
             (self.chunk_size,), dtype=np.float32()

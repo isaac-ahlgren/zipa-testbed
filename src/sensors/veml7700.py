@@ -10,7 +10,7 @@ from sensors.sensor_interface import SensorInterface
 class VEML7700(SensorInterface):
     def __init__(self, config):
         SensorInterface.__init__(self)
-        self.name = "lux"
+        self.name = "VEML7700"
         # Sensor configuration parameters
         self.sample_rate = config.get('sample_rate')
         self.buffer_size = config.get('sample_rate') * config.get('time_collected')
