@@ -46,9 +46,9 @@ class ProtocolInterface:
 
     def host_protocol_single_threaded(self, device_socket):
         raise NotImplementedError
-    
+
     def extract_context(self):
         raise NotImplementedError
-    
+
     def parameters(self, is_host):
         raise NotImplementedError

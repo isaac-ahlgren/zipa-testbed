@@ -33,7 +33,7 @@ class NFSLogger:
 
         """
         if isinstance(signal, float):
-            signal = [signal] 
+            signal = [signal]
 
         # Dependant on selection in main.py
         if self.use_local_dir:
