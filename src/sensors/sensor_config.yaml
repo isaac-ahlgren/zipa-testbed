@@ -1,6 +1,6 @@
 Microphone:
   sample_rate: 48000
-  antialias_sample_rate: 20000
+  antialias_sample_rate: 24000
   chunk_size: 2000
   time_collected: 400
   rms_enabled: False
