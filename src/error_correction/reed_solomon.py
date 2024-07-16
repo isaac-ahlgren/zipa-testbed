@@ -1,13 +1,14 @@
 import ctypes
 import os
 import random
+from typing import List, Tuple
 
 import numpy as np
 
 
 # Currently built to assume block size will be 8 bits
 class ReedSolomonObj:
-    def __init__(self, n, k):
+    def __init__(self, n: int, k: int) -> None:
         if k > n:
             raise Exception("k has to be this relation to n, k <= n")
         if n > 255:

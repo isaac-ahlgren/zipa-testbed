@@ -1,12 +1,13 @@
 # import random
 import secrets
+from typing import Tuple, Optional
 
 import numpy as np
 from cryptography.hazmat.primitives import hashes
 
 
 class Fuzzy_Commitment:
-    def __init__(self, error_correction_obj, key_byte_length):
+    def __init__(self, error_correction_obj: object, key_byte_length: int) -> None:
         self.key_byte_length = key_byte_length
         self.error_correction = error_correction_obj
 
@@ -16,7 +17,7 @@ class Fuzzy_Commitment:
             output[i] = bytes1[i] ^ bytes2[i]
         return output
 
-    def commit_witness(self, witness):
+    def commit_witness(self, witness: bytearray) -> Tuple[bytes, bytearray]:
         # Generate secret key
         # secret_key = random.randbytes(self.key_byte_length)
         secret_key = secrets.token_bytes(self.key_byte_length)
@@ -28,7 +29,7 @@ class Fuzzy_Commitment:
         commitment = self.xor_bytes(C, witness)
         return secret_key, commitment
 
-    def decommit_witness(self, commitment, witness):
+    def decommit_witness(self, commitment: bytearray, witness: bytearray) -> Optional[bytes]:
         # Decommit by XORing the commitment and the witness
         C = self.xor_bytes(commitment, witness)
 
