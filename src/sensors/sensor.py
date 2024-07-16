@@ -7,7 +7,19 @@ import numpy as np
 # MAIN TEST FOR THIS:
 # you want multiple processes (threads) to read from the buffer at the same time during
 class Sensor:
+    """
+    A sensor manager class that handles reading data from a sensor device into a shared memory space
+    for concurrent access by multiple processes. This class uses semaphores and mutexes to manage
+    access and ensure data integrity.
+
+    :param device: An instance of a device with attributes like sample_rate, name, buffer_size, and data_type.
+    """
     def __init__(self, device):
+        """
+        Initializes the Sensor object with a given device.
+
+        :param device: The device object which must have properties like sample_rate, name, buffer_size, and data_type.
+        """
         self.sensor = device
         self.sample_rate = device.sample_rate
         self.name = device.name
@@ -30,6 +42,9 @@ class Sensor:
         self.sensor.start()
 
     def poll(self):
+        """
+        Continuously polls data from the sensor device and stores it in shared memory.
+        """
         while True:
             while self.semaphore.get_value() != self.MAX_SENSOR_CLIENTS:
                 pass
@@ -44,6 +59,11 @@ class Sensor:
             self.mutex.release()
 
     def read(self):
+        """
+        Reads data from the shared memory where the sensor data is stored.
+
+        :return: A numpy array containing the buffered sensor data.
+        """
         data = np.empty((self.sensor.buffer_size,), dtype=self.sensor.data_type)
 
         print("Checking if mutex lock is still in play...")

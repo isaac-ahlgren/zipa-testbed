@@ -4,7 +4,20 @@ from networking.nfs import NFSLogger
 
 
 class Sensor_Collector:
+    """
+    A class designed to manage sensor data collection in a multiprocessing environment, logging the
+    collected data using NFSLogger.
+
+    :param device: The sensor device from which data is to be collected.
+    :param logger: An instance of NFSLogger to log the collected sensor data.
+    """
     def __init__(self, device, logger):
+        """
+        Initializes the Sensor_Collector with a specified sensor device and logger.
+
+        :param device: The sensor device from which data is to be collected.
+        :param logger: An NFSLogger to handle logging the collected data.
+        """
         self.sensor = device
         self.logger = logger
         self.sensor.start()
@@ -12,6 +25,10 @@ class Sensor_Collector:
         self.poll_process.start()
 
     def poll(self):
+        """
+        Continuously polls data from the sensor and logs it using the configured NFSLogger.
+        This function runs in a separate process.
+        """
         while True:
             data = self.sensor.read()
             self.logger.log_signal(self.sensor.name, data)
