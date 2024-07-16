@@ -1,4 +1,4 @@
-import struct
+# import struct
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
@@ -55,7 +55,7 @@ class Perceptio_Protocol(ProtocolInterface):
             # Check if other device also succeeded
             status = status_standby(socket, self.timeout)
 
-            if status == None:
+            if status is None:
                 events_detected = status
             else:
                 events_detected = events_detected and status
@@ -113,7 +113,7 @@ class Perceptio_Protocol(ProtocolInterface):
             # Extract bits from sensor
             witnesses, signal, status = self.extract_context(host_socket)
 
-            if status == None:
+            if status is None:
                 if self.verbose:
                     print(
                         "Other device did not respond during extraction - early exit\n"
@@ -139,12 +139,12 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("Uncommiting with witnesses\n")
             key = self.find_commitment(commitments, hs, witnesses)
 
-            success = key != None
+            success = key is not None
             send_status(host_socket, success)
 
             # TODO: Fails to uncommit only sometimes which is weird
             # Commitment failed, try again
-            if key == None:
+            if key is None:
                 if self.verbose:
                     print(
                         "Witnesses failed to uncommit any commitment - alerting other device for a retry\n"
@@ -246,7 +246,7 @@ class Perceptio_Protocol(ProtocolInterface):
             # Extract bits from sensor
             witnesses, signal, status = self.extract_context(device_socket)
 
-            if status == None:
+            if status is None:
                 if self.verbose:
                     print(
                         "Other device did not respond during extraction - early exit\n"
@@ -272,11 +272,11 @@ class Perceptio_Protocol(ProtocolInterface):
 
             # Check up on other devices status
             status = status_standby(device_socket, self.timeout)
-            if status == None:
+            if status is None:
                 if self.verbose:
                     print("No status recieved within time limit - early exit.\n\n")
                 return
-            elif status == False:
+            elif status is False:
                 if self.verbose:
                     print(
                         "Other device did not uncommit with witnesses - trying again\n"
@@ -560,7 +560,7 @@ class Perceptio_Protocol(ProtocolInterface):
         )
 
 
-###TESTING CODE###
+# TESTING CODE ###
 import socket
 
 

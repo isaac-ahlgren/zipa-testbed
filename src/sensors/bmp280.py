@@ -11,9 +11,11 @@ class BMP280(SensorInterface):
     def __init__(self, config):
         # Sensor configuration parameters
         SensorInterface.__init__(self)
-        self.sample_rate = config.get('sample_rate')
-        self.buffer_size = config.get('sample_rate') * config.get('time_collected') * 3  # Returns Temp, Altitude, and Pressure
-        self.chunk_size = config.get('chunk_size') * 3
+        self.sample_rate = config.get("sample_rate")
+        self.buffer_size = (
+            config.get("sample_rate") * config.get("time_collected") * 3
+        )  # Returns Temp, Altitude, and Pressure
+        self.chunk_size = config.get("chunk_size") * 3
 
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "bmp280"

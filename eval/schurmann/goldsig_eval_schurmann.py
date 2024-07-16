@@ -38,7 +38,11 @@ def goldsig_eval(
             signal, window_length, band_length, goldsig_sampling_freq, antialias_freq
         )
         adv_bits = schurmann_wrapper_func(
-            adv_signal, window_length, band_length, goldsig_sampling_freq, antialias_freq
+            adv_signal,
+            window_length,
+            band_length,
+            goldsig_sampling_freq,
+            antialias_freq,
         )
         legit_bit_err = cmp_bits(bits1, bits2, key_length)
         legit_bit_errs.append(legit_bit_err)
@@ -70,4 +74,3 @@ if __name__ == "__main__":
     )
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
-

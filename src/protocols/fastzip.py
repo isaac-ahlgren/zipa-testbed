@@ -84,7 +84,8 @@ class FastZIP_Protocol(ProtocolInterface):
         signal = np.copy(signal)
 
         # Initialize metrics
-        power, snr, n_peaks = 0, 0, 0
+        power, snr = 0, 0
+        # n_peaks = 0
 
         # Compute signal power (similar for all sensor types
         power = FastZIP_Protocol.compute_sig_power(signal)
@@ -118,7 +119,7 @@ class FastZIP_Protocol(ProtocolInterface):
             return -1, 0
 
         # Store equidistant points
-        eqd_points = []
+        eqd_rand_points = []
 
         # Generate equdistant points
         for i in range(0, ceil(chunk_len / eqd_delta)):
@@ -197,22 +198,22 @@ class FastZIP_Protocol(ProtocolInterface):
             peak_thresh = peak_thresh_list[i]
             bias = bias_list[i]
 
-            if ewma_filter_list == None:
+            if ewma_filter_list is None:
                 ewma_filter = False
             else:
                 ewma_filter = ewma_filter_list[i]
 
-            if alpha_list == None:
+            if alpha_list is None:
                 alpha = 0.015
             else:
                 alpha = alpha_list[i]
 
-            if remove_noise_list == None:
+            if remove_noise_list is None:
                 remove_noise = False
             else:
                 remove_noise = remove_noise_list[i]
 
-            if normalize_list == None:
+            if normalize_list is None:
                 normalize = False
             else:
                 normalize = normalize[i]
@@ -230,7 +231,7 @@ class FastZIP_Protocol(ProtocolInterface):
                 normalize=normalize,
             )
 
-            if bits != None:
+            if bits is not None:
                 key += bits
         return key
 

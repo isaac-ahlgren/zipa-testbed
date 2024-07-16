@@ -32,7 +32,7 @@ def status_standby(connection, timeout):
         timestamp = time.time()
         command = connection.recv(8)
 
-        if command == None:
+        if command is None:
             continue
         elif command == SUCC.encode():
             status = True
@@ -59,7 +59,7 @@ def ack_standby(connection, timeout):
         timestamp = time.time()
         command = connection.recv(8)
 
-        if command == None:
+        if command is None:
             continue
         elif command == ACKN.encode():
             acknowledged = True
@@ -73,7 +73,7 @@ def send_commit(commitments, hashes, device):
     number_of_commitments = len(commitments).to_bytes(4, byteorder="big")
     com_length = len(commitments[0]).to_bytes(4, byteorder="big")
 
-    if hashes != None:
+    if hashes is not None:
         hash_length = len(hashes[0])
     else:
         hash_length = 0
@@ -146,7 +146,7 @@ def dh_exchange_standby(connection, timeout):
         timestamp = time.time()
         message = connection.recv(12)
 
-        if message == None:
+        if message is None:
             continue
         else:
             command = message[:8]
@@ -174,7 +174,7 @@ def get_nonce_msg_standby(connection, timeout):
         timestamp = time.time()
         message = connection.recv(12)
 
-        if message == None:
+        if message is None:
             continue
         else:
             command = message[:8]
@@ -211,7 +211,7 @@ def get_preamble(connection, timeout):
         timestamp = time.time()
         message = connection.recv(12)  # 8 byte command + 4 byte payload size
 
-        if message == None:
+        if message is None:
             continue
         else:
             command = message[:8]

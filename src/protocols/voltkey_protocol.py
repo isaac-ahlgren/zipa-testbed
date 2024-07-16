@@ -305,9 +305,10 @@ def host(protocol):
 if __name__ == "__main__":
     import time
 
-    from networking.nfs import NFSLogger
+    # from networking.nfs import NFSLogger
     from sensors.sensor_reader import Sensor_Reader
-    from sensors.test_sensor import TestSensor
+
+    # from sensors.test_sensor import TestSensor
     from sensors.voltkey import Voltkey
 
     print("Testing VoltKey protocol.\n")

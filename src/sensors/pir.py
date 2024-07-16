@@ -1,4 +1,4 @@
-import multiprocessing
+# import multiprocessing
 import time
 
 import numpy as np
@@ -10,9 +10,9 @@ from sensors.sensor_interface import SensorInterface
 class PIR(SensorInterface):
     def __init__(self, config, pin=12):
         SensorInterface.__init__(self)
-        self.sample_rate = config.get('sample_rate')
-        self.buffer_size = config.get('sample_rate') * config.get('time_collected')
-        self.chunk_size = config.get('chunk_size')
+        self.sample_rate = config.get("sample_rate")
+        self.buffer_size = config.get("sample_rate") * config.get("time_collected")
+        self.chunk_size = config.get("chunk_size")
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "pir"
         self.pin = pin

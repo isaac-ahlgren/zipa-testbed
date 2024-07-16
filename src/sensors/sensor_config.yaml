@@ -41,4 +41,3 @@ TestSensor:
   chunk_size: 1024
   time_collected: 400
   is_used: False
-

@@ -3,10 +3,10 @@ import sys
 
 sys.path.insert(1, os.getcwd() + "/../src/")
 
-import math
+# import math
 import random
 
-import numpy as np
+# import numpy as np
 import pandas as pd
 from eval_tools import *
 
@@ -81,14 +81,14 @@ def experiment(data_from_devices, ids, iterations, max_samples, Fs):
     for i in range(iterations):
         cluster_size_to_check = random.randint(
             min_cluster_size_to_check, max_cluster_size_to_check
-        )
-        top_th = random.uniform(top_th_min, top_th_max)
-        bottom_th = random.uniform(bottom_th_min, top_th)
-        lump_th = random.randint(lump_th_min, lump_th_max)
-        a = random.uniform(a_min, a_max)
+        )  # nosec
+        top_th = random.uniform(top_th_min, top_th_max)  # nosec
+        bottom_th = random.uniform(bottom_th_min, top_th)  # nosec
+        lump_th = random.randint(lump_th_min, lump_th_max)  # nosec
+        a = random.uniform(a_min, a_max)  # nosec
 
         device_bits = []
-        samples_per_key = None
+    # samples_per_key = None
         for sf in data_from_devices:
             keys_generated, events = generate_bits(
                 sf,

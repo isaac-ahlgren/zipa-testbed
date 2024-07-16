@@ -18,7 +18,6 @@ class Sensor_Collector:
 
 
 if __name__ == "__main__":
-
     def sen_thread(sen):
         p = mp.Process(target=sen.poll)
         p.start()
@@ -30,7 +29,7 @@ if __name__ == "__main__":
         ts,
         NFSLogger(
             user="USERNAME",
-            password="PASSWORD",
+            password="PASSWORD",  # nosec
             host="SERVER IP",
             database="file_log",
             nfs_server_dir="/mnt/data",  # Make sure this directory exists and is writable

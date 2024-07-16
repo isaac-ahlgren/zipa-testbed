@@ -5,9 +5,8 @@ import sys
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 import numpy as np
 from eval_tools import cmp_bits
-from schurmann_tools import (
+from schurmann_tools import (  # MICROPHONE_SAMPLING_RATE,
     ANTIALIASING_FILTER,
-    MICROPHONE_SAMPLING_RATE,
     add_gauss_noise,
     schurmann_calc_sample_num,
     schurmann_wrapper_func,

@@ -1,15 +1,18 @@
 # Currently hardcoded for the rms_db column of the audio data
 import multiprocessing as mp
 import os
-import struct
+
+# import struct
 from datetime import datetime as dt
 
 import chardet
-import matplotlib.pyplot as plt
+
+# import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import skfuzzy as fuzz
-from scipy.signal import chirp, spectrogram
+
+# from scipy.signal import chirp, spectrogram
 from skfuzzy.cluster import cmeans
 from sklearn.decomposition import PCA
 from tsfresh import extract_features
@@ -151,7 +154,7 @@ class IoTCupid_Protocol:
         n_features = extracted_features.shape[1]
         print("Number of features extracted:", n_features)
         print("Number of events:", len(events))
-        n_components = min(feature_dim, n_features)
+        # n_components = min(feature_dim, n_features)
 
         pca = PCA(n_components=feature_dim)
         reduced_dim = pca.fit_transform(extracted_features)

@@ -26,7 +26,6 @@ class Sensor_Reader:
         self.poll_process.start()
 
     def poll(self):
-
         full_buffer = False
         self.mutex.acquire()
         # First pass when buffer isn't populated with sensor data
@@ -48,7 +47,6 @@ class Sensor_Reader:
 
         # After buffer is full
         while True:
-
             while self.semaphore.get_value() != self.MAX_SENSOR_CLIENTS:
                 pass
 

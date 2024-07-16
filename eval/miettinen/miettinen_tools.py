@@ -12,6 +12,7 @@ from protocols.miettinen import Miettinen_Protocol
 
 MICROPHONE_SAMPLING_RATE = 48000
 
+
 def miettinen_wrapper_func(arr, f, w, rel_thresh, abs_thresh):
     return Miettinen_Protocol.miettinen_algo(arr, f, w, rel_thresh, abs_thresh)
 
@@ -30,9 +31,7 @@ def adversary_signal(sample_num, fs):
     return output
 
 
-def miettinen_calc_sample_num(
-    key_length, w, f
-):
+def miettinen_calc_sample_num(key_length, w, f):
     return (w + f) * (key_length + 1)
 
 
