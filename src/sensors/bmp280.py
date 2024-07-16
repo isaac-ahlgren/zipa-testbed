@@ -9,6 +9,11 @@ from sensors.sensor_interface import SensorInterface
 
 
 class BMP280(SensorInterface):
+    """
+    A sensor interface for the BMP280 sensor, which measures temperature, pressure, and altitude.
+
+    :param config: Configuration dictionary that includes sample rate, time collected, and chunk size.
+    """
     def __init__(self, config: Dict[str, Any]) -> None:
         # Sensor configuration parameters
         SensorInterface.__init__(self)
@@ -28,12 +33,23 @@ class BMP280(SensorInterface):
         self.bmp = adafruit_bmp280.Adafruit_BMP280_I2C(board.I2C())
 
     def start(self) -> None:
+        """
+        Start the sensor (method to be implemented if sensor requires activation).
+        """
         pass
 
     def stop(self) -> None:
+        """
+        Stop the sensor (method to be implemented if sensor requires deactivation).
+        """
         pass
 
     def read(self) -> np.ndarray:
+        """
+        Reads data from the BMP280 sensor. This method collects temperature, pressure, and altitude data.
+
+        :return: A numpy array containing the sensor readings formatted as [temperature, pressure, altitude].
+        """
         # rows x columns for pandas readibility
         data = np.empty((self.chunk_size, 3), self.data_type)
 

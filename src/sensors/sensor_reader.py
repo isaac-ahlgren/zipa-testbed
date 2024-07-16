@@ -5,7 +5,18 @@ MAX_CLIENTS = 1024
 
 
 class SensorReader:
+    """
+    Manages a sensor and distributes its data to multiple queues. It is designed to handle data polling in a separate process
+    and can dynamically add or remove queues that other processes or threads use to receive sensor data.
+
+    :param sensor: The sensor object from which data is to be read. The sensor must implement the `start` and `read` methods.
+    """
     def __init__(self, sensor: Any) -> None:
+        """
+        Initializes the SensorReader with a given sensor.
+
+        :param sensor: The sensor object to be managed.
+        """
         self.sensor = sensor
         self.queues: List[Tuple[Value, Queue]] = []
         self.sensor.start()
@@ -13,6 +24,9 @@ class SensorReader:
         self.poll_process.start()
 
     def poll(self) -> None:
+        """
+        Constantly polls the sensor for data and sends this data to all active queues whose flags are set to active (1).
+        """
         while True:
             data = self.sensor.read()
 
@@ -21,6 +35,11 @@ class SensorReader:
                     queue.put(data)
 
     def add_protocol_queue(self, status_queue: Tuple[Value, Queue]) -> None:
+        """
+        Adds a new queue to the SensorReader for data distribution and restarts the polling process.
+
+        :param status_queue: A tuple containing a multiprocessing Value as a flag and a multiprocessing Queue.
+        """
         # Terminate poll process to synchronize protocol queue
         self.poll_process.terminate()
         self.queues.append(status_queue)
@@ -29,6 +48,11 @@ class SensorReader:
         self.poll_process.start()
 
     def remove_protocol_queue(self, protocol_queue: Tuple[Value, Queue]) -> None:
+        """
+        Removes a specified queue from the SensorReader and restarts the polling process.
+
+        :param protocol_queue: The queue tuple to be removed.
+        """
         # Terminate poll process to synchronize protocol queue
         self.poll_process.terminate()
         # Find and remove protocol queue

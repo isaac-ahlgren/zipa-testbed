@@ -9,6 +9,13 @@ from error_correction.reed_solomon import ReedSolomonObj
 
 class ProtocolInterface:
     def __init__(self, parameters: dict, sensor: Any, logger: Any) -> None:
+        """
+        A base class for defining communication protocol interfaces that handle data processing and communication using a sensor.
+
+        :param parameters: Dictionary of configuration parameters for the protocol.
+        :param sensor: The sensor object that gathers the data.
+        :param logger: Logger object for recording protocol-related information.
+        """
         self.verbose = parameters["verbose"]
         self.sensor = sensor
         self.logger = logger
@@ -26,12 +33,23 @@ class ProtocolInterface:
         self.sensor.add_protocol_queue((self.flag, self.queue))
 
     def hash_function(self, bytes_data: bytes) -> bytes:
+        """
+        Computes a cryptographic hash of the given bytes.
+
+        :param bytes: Bytes to be hashed.
+        :return: The hash of the input bytes.
+        """
         hash_func = hashes.Hash(self.hash_func)
         hash_func.update(bytes)
 
         return hash_func.finalize()
 
-    def host_protocol(self, device_sockets: List[Any]) -> None:
+    def host_protocol(self, device_sockets: List[socket.socket]) -> None:
+        """
+        Initiates the host protocol for each connected device socket in a separate process.
+
+        :param device_sockets: A list of sockets, each connected to a different device.
+        """
         # Log current paramters to the NFS server
         self.logger.log([("parameters", "txt", self.parameters(True))])
 
@@ -42,14 +60,37 @@ class ProtocolInterface:
             p.start()
 
     # Must be implemented on a protocol basis
-    def device_protocol(self, host: Any) -> None:
+    def device_protocol(self, host: socket.socket) -> None:
+        """
+        Abstract method for device-side protocol logic. This method must be implemented by subclasses.
+
+        :param host: The host connection or socket.
+        :raises NotImplementedError: If the subclass does not implement this method.
+        """
         raise NotImplementedError
 
-    def host_protocol_single_threaded(self, device_socket: Any) -> None:
+    def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
+        """
+        Abstract method for running the host protocol in a single-threaded manner for a single device. This method must be implemented by subclasses.
+
+        :param device_socket: The socket connection to the host.
+        :raises NotImplementedError: If the subclass does not implement this method.
+        """
         raise NotImplementedError
 
-    def extract_context(self) -> Tuple[bytes, Any]:
+    def extract_context(self) -> Tuple[bytes, List[float]]:
+        """
+        Abstract method for extracting relevant context or data during the protocol execution. This method must be implemented by subclasses.
+
+        :raises NotImplementedError: If the subclass does not implement this method.
+        """
         raise NotImplementedError
 
     def parameters(self, is_host: bool) -> str:
+        """
+        Abstract method for retrieving the parameters of the protocol. This method must be implemented by subclasses.
+
+        :param is_host: Boolean indicating whether the parameters should be formatted for the host.
+        :raises NotImplementedError: If the subclass does not implement this method.
+        """
         raise NotImplementedError

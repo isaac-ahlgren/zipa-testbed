@@ -16,6 +16,12 @@ FAIL = "failed  "
 
 
 def send_status(connection: socket.socket, status: bool) -> None:
+    """
+    Sends a success or failure status over a connection.
+
+    :param connection: The network connection over which to send the status.
+    :param status: The boolean status indicating success (True) or failure (False).
+    """
     if status:
         msg = SUCC
     else:
@@ -24,6 +30,13 @@ def send_status(connection: socket.socket, status: bool) -> None:
 
 
 def status_standby(connection: socket.socket, timeout: int) -> Optional[bool]:
+    """
+    Waits for a success or failure status message within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for a status.
+    :returns: True if success, False if failure, None if timeout.
+    """
     status = None
     reference = time.time()
     timestamp = reference
@@ -47,10 +60,22 @@ def status_standby(connection: socket.socket, timeout: int) -> Optional[bool]:
 
 
 def ack(connection: socket.socket) -> None:
+    """
+    Sends an acknowledgement message over a connection.
+
+    :param connection: The network connection over which to send the acknowledgement.
+    """
     connection.send(ACKN.encode())
 
 
 def ack_standby(connection: socket.socket, timeout: int) -> bool:
+    """
+    Waits for an acknowledgement within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for an acknowledgement.
+    :returns: True if acknowledged, False if timeout occurred.
+    """
     acknowledged = False
     reference = time.time()
     timestamp = reference
@@ -71,6 +96,13 @@ def ack_standby(connection: socket.socket, timeout: int) -> bool:
 
 
 def send_commit(commitments: List[bytes], hashes: List[bytes], device: socket.socket) -> None:
+    """
+    Sends commitments along with their corresponding hashes over a network connection.
+
+    :param commitments: List of commitments to be sent.
+    :param hashes: List of hashes corresponding to the commitments.
+    :param device: The network connection to send data over.
+    """
     # Prepare number of commitments and their lengths
     number_of_commitments = len(commitments).to_bytes(4, byteorder="big")
     com_length = len(commitments[0]).to_bytes(4, byteorder="big")
@@ -91,6 +123,13 @@ def send_commit(commitments: List[bytes], hashes: List[bytes], device: socket.so
 
 
 def commit_standby(connection: socket.socket, timeout: int) -> Tuple[Optional[List[bytes]], Optional[List[bytes]]]:
+    """
+    Waits for commitments and their hashes to be received within a specified timeout.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the data.
+    :returns: A tuple (commitments, hashes) if received, None otherwise.
+    """
     reference = time.time()
     timestamp = reference
     commitments = None
@@ -133,12 +172,24 @@ def commit_standby(connection: socket.socket, timeout: int) -> Tuple[Optional[Li
 
 
 def dh_exchange(connection: socket.socket, key: bytes) -> None:
+    """
+    Sends a Diffie-Hellman key over a network connection.
+
+    :param connection: The network connection to send the key over.
+    :param key: The key to be sent.
+    """
     key_size = len(key).to_bytes(4, byteorder="big")
     message = DHKY.encode() + key_size + key
     connection.send(message)
 
-
 def dh_exchange_standby(connection: socket.socket, timeout: int) -> Optional[bytes]:
+    """
+    Waits to receive a Diffie-Hellman key within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the key.
+    :returns: The received key if successful, None otherwise.
+    """
     reference = time.time()
     timestamp = reference
     key = None
@@ -161,12 +212,25 @@ def dh_exchange_standby(connection: socket.socket, timeout: int) -> Optional[byt
 
 
 def send_nonce_msg(connection: socket.socket, nonce: bytes) -> None:
+    """
+    Sends a nonce message over a network connection.
+
+    :param connection: The network connection to send the nonce over.
+    :param nonce: The nonce to send.
+    """
     nonce_size = len(nonce).to_bytes(4, byteorder="big")
     message = NONC.encode() + nonce_size + nonce
     connection.send(message)
 
 
 def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[bytes]:
+    """
+    Waits to receive a nonce within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the nonce.
+    :returns: The received nonce if successful, None otherwise.
+    """
     reference = time.time()
     timestamp = reference
     nonce = None
@@ -186,41 +250,3 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
                 break
 
     return nonce
-
-
-def send_preamble(connenction: socket.socket, preamble: List[float]) -> None:
-    """
-    Used in VoltKey protocol. Client device sends first
-    sinusoidal period to the host for synchronization.
-    """
-    message = {"preamble": preamble.tolist()}
-    payload = json.dumps(message).encode("utf8")
-    payload_size = len(payload).to_bytes(4, byteorder="big")
-    message = PRAM.encode() + payload_size + payload
-
-    connenction.send(message)
-
-
-def get_preamble(connection: socket.socket, timeout: int) -> Optional[List[float]]:
-    """
-    Used in VoltKey protocol. Host device recieves preamble
-    from client to synchronize dataset.
-    """
-    reference = timestamp = time.time()
-    preamble = None
-
-    while (timestamp - reference) < timeout:
-        timestamp = time.time()
-        message = connection.recv(12)  # 8 byte command + 4 byte payload size
-
-        if message == None:
-            continue
-        else:
-            command = message[:8]
-            if command == PRAM.encode():
-                message_size = int.from_bytes(message[8:], byteorder="big")
-                message = json.loads(connection.recv(message_size))
-                preamble = message["preamble"]
-                break
-
-    return preamble

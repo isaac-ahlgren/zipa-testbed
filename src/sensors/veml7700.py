@@ -9,7 +9,19 @@ from sensors.sensor_interface import SensorInterface
 
 
 class VEML7700(SensorInterface):
+    """
+    A sensor interface for the VEML7700, a high accuracy ambient light sensor. This class manages
+    the configuration and data collection from the VEML7700 sensor, storing lux readings in a buffer.
+
+    :param config: Configuration dictionary that includes sample rate, time collected, and chunk size.
+    """
     def __init__(self, config: Dict[str, Any]) -> None:
+        """
+        Initializes the VEML7700 sensor interface with configuration settings.
+
+        :param config: A dictionary containing configuration parameters such as sample rate, time collected,
+                       and chunk size for data reading.
+        """
         SensorInterface.__init__(self)
         self.name = "VEML7700"
         # Sensor configuration parameters
@@ -26,12 +38,23 @@ class VEML7700(SensorInterface):
         self.light = adafruit_veml7700.VEML7700(board.I2C())
 
     def start(self) -> None:
+        """
+        Start the sensor (not implemented as VEML7700 has no specific start requirements).
+        """
         pass
 
     def stop(self) -> None:
+        """
+        Stop the sensor (not implemented as VEML7700 has no specific stop requirements).
+        """
         pass
 
     def read(self) -> np.ndarray:
+        """
+        Reads lux data from the VEML7700 sensor and returns it as a NumPy array.
+
+        :return: A NumPy array containing lux readings from the sensor.
+        """
         data = np.empty(self.chunk_size, self.data_type)
 
         for i in range(self.chunk_size):

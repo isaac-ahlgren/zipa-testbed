@@ -13,6 +13,17 @@ from protocols.protocol_interface import ProtocolInterface
 
 class Perceptio_Protocol(ProtocolInterface):
     def __init__(self, parameters: dict, sensor: Any, logger: any) -> None:
+        """
+        Implements a specific protocol to handle data communication and processing based on the ProtocolInterface.
+    
+        :param parameters: Dictionary containing various protocol-specific parameters.
+        :param sensor: Sensor object used to collect data.
+        :param logger: Logger object for logging various protocol activities and data.
+    
+        The protocol manages the initialization and execution of data processing tasks, using sensor input and specified parameters.
+        It is capable of handling multiple iterations and configurations, making it suitable for experimental and operational environments.
+        """
+
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "FastZIP_Protocol"
         self.wip = True
@@ -31,6 +42,12 @@ class Perceptio_Protocol(ProtocolInterface):
         self.count = 0
 
     def extract_context(self, socket: socket.socket) -> Tuple[List[bytes], np.ndarray, bool]:
+        """
+        Extract context from sensor data and check for events.
+
+        :param socket: Communication socket.
+        :return: A tuple of fingerprints, the signal data, and a boolean indicating if events were detected.
+        """
         events_detected = False
         for i in range(self.max_no_events_detected):
             signal = self.sensor.read(self.time_length)
@@ -71,6 +88,12 @@ class Perceptio_Protocol(ProtocolInterface):
 
     #  TODO: Fix why this does not save correctly to drive
     def parameters(self, is_host: bool) -> str:
+        """
+        Generate a string of current protocol parameters.
+
+        :param is_host: Boolean indicating if the current device is the host.
+        :return: Formatted string of parameters.
+        """
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
         parameters += f"sensor: {self.sensor.sensor.name}\n"
         parameters += f"key_length: {self.key_length}\n"
@@ -83,6 +106,15 @@ class Perceptio_Protocol(ProtocolInterface):
         parameters += f"time_length: {self.time_length}\n"
 
     def device_protocol(self, host_socket: socket.socket) -> None:
+        """
+        Conducts the device protocol over a given socket.
+
+        :param host_socket: The socket connected to the host.
+        This method handles the protocol's main loop including sending ACKs, extracting context,
+        receiving commitments, and performing key confirmation until the desired number of successes
+        is reached or the maximum number of iterations is exhausted. Logs the result of the protocol
+        engagement including the number of successful key exchanges.
+        """
         host_socket.setblocking(1)
 
         if self.verbose:
@@ -222,6 +254,16 @@ class Perceptio_Protocol(ProtocolInterface):
         )
 
     def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
+        """
+        Manages the host-side protocol in a single-threaded manner using a specific device socket.
+
+        :param device_socket: Socket connected to the client device.
+        This method handles the host-side logic for establishing a secure connection
+        and confirming keys with a single client. It oversees the entire protocol process
+        including sending and receiving acknowledgments, extracting context, committing witnesses,
+        and verifying keys until the desired success threshold is reached or the maximum iterations are exhausted.
+        """
+
         device_ip_addr, device_port = device_socket.getpeername()
 
         # Exit early if no devices to pair with
@@ -354,11 +396,24 @@ class Perceptio_Protocol(ProtocolInterface):
         )
 
     def hash_function(self, bytes: bytes) -> bytes:
+        """
+        Computes a cryptographic hash of the given byte sequence.
+
+        :param bytes: Bytes to be hashed.
+        :return: The hash of the input bytes.
+        """
         hash_func = hashes.Hash(self.hash_func)
         hash_func.update(bytes)
         return hash_func.finalize()
 
     def ewma(signal: np.ndarray, a: float) -> np.ndarray:
+        """
+        Computes the exponentially weighted moving average (EWMA) of a signal.
+
+        :param signal: The input signal as a NumPy array.
+        :param a: The smoothing factor used in the EWMA calculation.
+        :return: The EWMA of the signal as a NumPy array.
+        """
         y = np.zeros(len(signal))
 
         y[0] = a * signal[0]
@@ -367,6 +422,16 @@ class Perceptio_Protocol(ProtocolInterface):
         return y
 
     def get_events(signal: np.ndarray, a: float, bottom_th: float, top_th: float, lump_th: int) -> List[Tuple[int, int]]:
+        """
+        Identifies events in a signal based on thresholds and lumping criteria.
+
+        :param signal: The input signal.
+        :param a: Smoothing factor for the EWMA.
+        :param bottom_th: Lower threshold for event detection.
+        :param top_th: Upper threshold for event detection.
+        :param lump_th: Threshold for lumping close events together.
+        :return: A list of tuples representing the start and end indices of each detected event.
+        """
         signal = self.ewma(np.abs(signal), a)
 
         # Get events that are within the threshold
@@ -397,6 +462,13 @@ class Perceptio_Protocol(ProtocolInterface):
         return events
 
     def get_event_features(events: List[Tuple[int, int]], signal: np.ndarray) -> List[Tuple[int, float]]:
+        """
+        Extracts features from each event in a signal.
+
+        :param events: List of tuples with start and end indices for each event.
+        :param signal: The original signal from which events were detected.
+        :return: A list of tuples containing the length and maximum amplitude of each event.
+        """
         event_features = []
         for i in range(len(events)):
             length = events[i][1] - events[i][0]
@@ -405,6 +477,14 @@ class Perceptio_Protocol(ProtocolInterface):
         return event_features
 
     def kmeans_w_elbow_method(event_features: List[Tuple[int, float]], cluster_sizes_to_check: int, cluster_th: float) -> Tuple[np.ndarray, int]:
+        """
+        Applies K-means clustering to event features to determine optimal cluster count using the elbow method.
+
+        :param event_features: List of event features.
+        :param cluster_sizes_to_check: Maximum number of clusters to consider.
+        :param cluster_th: Threshold for determining the elbow point in clustering.
+        :return: Cluster labels and the determined number of clusters.
+        """
         if len(event_features) < cluster_sizes_to_check:
             # Handle the case where the number of samples is less than the desired number of clusters
             if self.verbose:
@@ -446,12 +526,29 @@ class Perceptio_Protocol(ProtocolInterface):
         return labels, k
 
     def group_events(events: List[Tuple[int, int]], labels: np.ndarray, k: int) -> List[List[Tuple[int, int]]]:
+        """
+        Groups detected events according to their cluster labels.
+
+        :param events: List of detected events.
+        :param labels: Cluster labels for each event.
+        :param k: Number of clusters.
+        :return: A list of lists, where each sublist contains events belonging to the same cluster.
+        """
         event_groups = [[] for i in range(k)]
         for i in range(len(events)):
             event_groups[labels[i]].append(events[i])
         return event_groups
 
     def gen_fingerprints(grouped_events: List[List[Tuple[int, int]]], k: int, key_size: int, Fs: int) -> List[bytes]:
+        """
+        Generates fingerprints from grouped events by calculating the time intervals between them.
+
+        :param grouped_events: List of event groups.
+        :param k: Number of clusters.
+        :param key_size: Desired key size in bytes.
+        :param Fs: Sampling frequency of the original signal.
+        :return: List of generated fingerprints.
+        """
         from datetime import timedelta
 
         fp = []
@@ -484,6 +581,20 @@ class Perceptio_Protocol(ProtocolInterface):
         top_th: float,
         lump_th: int,
         ) -> Tuple[List[bytes], List[Tuple[int, int]]]:
+        """
+        Processes a signal to extract events, features, and generate fingerprints using k-means clustering.
+
+        :param signal: The input signal to process.
+        :param key_size: The size of the key or fingerprint to be generated.
+        :param Fs: Sampling frequency of the signal.
+        :param a: Smoothing factor used in EWMA for processing the signal.
+        :param cluster_sizes_to_check: Maximum number of clusters to evaluate.
+        :param cluster_th: Threshold to determine the elbow in k-means clustering.
+        :param bottom_th: Lower threshold for event detection.
+        :param top_th: Upper threshold for event detection.
+        :param lump_th: Threshold for lumping close events together.
+        :return: A tuple containing the generated fingerprints and the grouped events.
+        """
         events = Perceptio_Protocol.get_events(signal, a, bottom_th, top_th, lump_th)
         if len(events) < 2:
             # Needs two events in order to calculate interevent timings
@@ -504,6 +615,13 @@ class Perceptio_Protocol(ProtocolInterface):
         return fps, grouped_events
 
     def host_verify_mac(self, keys: List[bytes], received_nonce_msg: bytes) -> Optional[bytes]:
+        """
+        Verifies the MAC received from a device against the derived keys.
+
+        :param keys: List of keys to verify against.
+        :param received_nonce_msg: The nonce message received from the device to verify.
+        :return: The derived key if verification is successful, otherwise None.
+        """
         key_found = None
         for i in range(len(keys)):
             kdf = HKDF(
@@ -524,6 +642,14 @@ class Perceptio_Protocol(ProtocolInterface):
         return key_found
 
     def find_commitment(self, commitments: List[bytes], hashes: List[bytes], fingerprints: List[bytes]) -> Optional[bytes]:
+        """
+        Attempts to match commitments with fingerprints based on their hash values.
+
+        :param commitments: List of commitments to check against.
+        :param hashes: Corresponding hashes of the commitments.
+        :param fingerprints: Fingerprints to verify the commitments with.
+        :return: The found key if a commitment is successfully matched, otherwise None.
+        """
         key = None
         for i in range(len(fingerprints)):
             for j in range(len(commitments)):
@@ -537,6 +663,12 @@ class Perceptio_Protocol(ProtocolInterface):
         return key
 
     def generate_commitments(self, witnesses: List[bytes]) -> Tuple[List[bytes], List[bytes], List[bytes]]:
+        """
+        Generates commitments for a list of witnesses.
+
+        :param witnesses: List of witnesses to generate commitments for.
+        :return: A tuple containing the list of commitments, the keys used for commitments, and their hashes.
+        """
         commitments = []
         keys = []
         hs = []
@@ -550,6 +682,16 @@ class Perceptio_Protocol(ProtocolInterface):
     def checkpoint_log(
         self, witnesses: List[bytes], commitments: List[bytes], success: bool, signal: np.ndarray, iterations: int, ip_addr: Optional[str] = None
     ) -> None:
+        """
+        Logs various protocol states and data at a checkpoint.
+
+        :param witnesses: Witness data involved in the protocol.
+        :param commitments: Commitments involved in the protocol.
+        :param success: Success status of the protocol iteration.
+        :param signal: The signal data associated with the current checkpoint.
+        :param iterations: The iteration count at the checkpoint.
+        :param ip_addr: Optional IP address associated with the log entry.
+        """
         self.logger.log(
             [
                 ("witness", "txt", witnesses),
@@ -567,6 +709,12 @@ import socket
 
 
 def device(prot: Perceptio_Protocol) -> None:
+    """
+    Sets up a device-side communication for the protocol.
+
+    :param prot: An instance of the Perceptio_Protocol class to manage the device side of the connection.
+    This function configures the socket settings, connects to a specified server, and initiates the device protocol.
+    """
     print("device")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -576,6 +724,12 @@ def device(prot: Perceptio_Protocol) -> None:
 
 
 def host(prot: Perceptio_Protocol) -> None:
+    """
+    Sets up a host-side communication for the protocol.
+
+    :param prot: An instance of the Perceptio_Protocol class to manage the host side of the connection.
+    This function configures the server socket settings, accepts incoming connections, and initiates the host protocol.
+    """
     print("host")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)

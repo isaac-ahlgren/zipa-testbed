@@ -9,7 +9,19 @@ from sensors.sensor_interface import SensorInterface
 
 
 class SHT31D(SensorInterface):
+    """
+    A sensor interface for the SHT31D, a high-accuracy temperature and humidity sensor. This class manages
+    reading humidity data from the sensor and buffers it for consumption.
+
+    :param config: Configuration dictionary that includes sample rate, time collected, and chunk size.
+    """
     def __init__(self, config: dict[str, Any]) -> None:
+        """
+        Initializes the SHT31D sensor interface with configuration settings.
+
+        :param config: A dictionary with configuration settings such as sample rate, time collected,
+                       and chunk size for data reading.
+        """
         SensorInterface.__init__(self)
         self.sample_rate: int = config.get('sample_rate')
         self.buffer_size: int = config.get('sample_rate') * config.get('time_collected')
@@ -23,12 +35,23 @@ class SHT31D(SensorInterface):
         self.sensor = adafruit_sht31d.SHT31D(board.I2C())
 
     def start(self) -> None:
+        """
+        Start the sensor (placeholder for actual start commands if necessary).
+        """
         pass
 
     def stop(self) -> None:
+        """
+        Stop the sensor (placeholder for actual stop commands if necessary).
+        """
         pass
 
     def read(self) -> np.ndarray:
+        """
+        Reads humidity data from the sensor and returns it as a NumPy array.
+
+        :return: A NumPy array containing humidity readings from the sensor.
+        """
         data = np.empty(self.chunk_size, self.data_type)
 
         for i in range(self.chunk_size):

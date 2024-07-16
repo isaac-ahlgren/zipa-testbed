@@ -12,6 +12,13 @@ from sensors.sensor_interface import SensorInterface
 
 
 class Microphone(SensorInterface):
+    """
+    A sensor interface for capturing audio data via a microphone using the PyAudio library.
+    This class can be configured to apply an RMS filter to the audio data, which affects the sampling rate.
+
+    :param config: Dictionary containing configuration parameters such as sample rate, time collected, chunk size, and RMS filter enable.
+    """
+
     def __init__(self, config: Dict[str, Any]) -> None:
         # When the RMS filter is enabled, the true sampling rate will be sample_rate/chunk_size.
         # Each chunk size will be converted into one sample by performing RMS on the chunk.
@@ -41,20 +48,37 @@ class Microphone(SensorInterface):
         self.start()
 
     def start(self) -> None:
+        """
+        Starts the audio stream to begin capturing data.
+        """
         # Start stream, recording for specified time interval
         self.stream.start_stream()
 
     def stop(self) -> None:
+        """
+        Stops the audio stream and marks the buffer as not ready for data collection.
+        """
         self.buffer_ready.value = False
         self.stream.stop_stream()
 
     def calc_rms(self, signal: np.ndarray) -> np.ndarray:
+        """
+        Calculates the Root Mean Square (RMS) of the signal, a measure of the magnitude of a varying quantity.
+
+        :param signal: The audio signal from which to calculate RMS.
+        :return: RMS value as a numpy array.
+        """
         return np.array(
             np.sqrt(np.mean(signal.astype(np.int64()) ** 2)) / self.chunk_size,
             dtype=np.float64,
         )
 
     def read(self) -> np.ndarray:
+        """
+        Reads data from the microphone stream, applies RMS filtering if enabled, and returns the processed data.
+
+        :return: Audio data as a numpy array.
+        """
         output = self.stream.read(self.chunk_size)
         buf = np.frombuffer(output, dtype=np.int32)
         if self.rms_filter_enabled:

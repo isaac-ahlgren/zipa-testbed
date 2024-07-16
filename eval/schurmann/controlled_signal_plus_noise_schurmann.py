@@ -21,8 +21,8 @@ def controlled_sig_plus_noise_eval(
     legit_bit_errs = []
     adv_bit_errs = []
 
-    signal, sr = load_controlled_signal("../controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal("../adversary_controlled_signal.wav")
+    signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal("../../data/adversary_controlled_signal.wav")
     sample_num = schurmann_calc_sample_num(
         key_length, window_length, band_length, sr, antialias_freq
     )
