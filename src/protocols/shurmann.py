@@ -1,6 +1,6 @@
 import math
 import queue
-from typing import Tuple, List, Optional
+from typing import List, Optional, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
@@ -108,6 +108,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         :param bands: Number of frequency bands to consider.
         :return: A bit string converted to bytes.
         """
+
         def bitstring_to_bytes(s: str) -> bytes:
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
@@ -155,22 +156,18 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
     def extract_context(self) -> Tuple[bytes, List[float]]:
         """
         Extracts and processes the signal data from the sensor until the specified sample length is reached.
-        
+
         :return: Tuple containing the processed bits and the raw signal array.
         """
         signal = self.get_signal()
         # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
-<<<<<<< HEAD
-        bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(signal, self.sensor.sensor.antialias_sample_rate, self.sensor.sensor.sample_rate, self.window_len, self.band_len)
-=======
-        bits = self.zero_out_antialias_sigs_algo(
+        bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
             signal,
             self.sensor.sensor.antialias_sample_rate,
             self.sensor.sensor.sample_rate,
             self.window_len,
             self.band_len,
         )
->>>>>>> precommit_check
 
         # bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal

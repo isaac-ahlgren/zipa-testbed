@@ -1,13 +1,13 @@
 # TODO compare with Seemoo lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/Miettinen.ipynb
 import multiprocessing as mp
 import os
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes, hmac
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
-from typing import Any, Dict, List, Optional, Tuple, Union
 
 from error_correction.corrector import Fuzzy_Commitment
 from error_correction.reed_solomon import ReedSolomonObj
@@ -78,7 +78,9 @@ class Miettinen_Protocol:
 
         self.verbose = verbose
 
-    def signal_preprocessing(self, signal: np.ndarray, no_snap_shot_width: int, snap_shot_width: int) -> np.ndarray:
+    def signal_preprocessing(
+        self, signal: np.ndarray, no_snap_shot_width: int, snap_shot_width: int
+    ) -> np.ndarray:
         """
         Processes the given signal into chunks based on specified snapshot widths and calculates the average of each chunk.
 
@@ -119,7 +121,6 @@ class Miettinen_Protocol:
                 bits += "0"
         return bits
 
-
     def miettinen_algo(self, x: np.ndarray) -> bytes:
         """
         Main algorithm for key generation using signal processing and threshold-based key derivation.
@@ -131,6 +132,7 @@ class Miettinen_Protocol:
         :param abs_thresh: The absolute threshold for feature extraction in key generation.
         :return: A byte string of the generated key.
         """
+
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
@@ -147,7 +149,9 @@ class Miettinen_Protocol:
         signal = self.sensor.read(
             int(self.time_length * self.sensor.sensor.sample_rate)
         )
-        bits = Miettinen_Protocol.miettinen_algo(signal, self.f, self.w, self.rel_thresh, self.abs_thresh)
+        bits = Miettinen_Protocol.miettinen_algo(
+            signal, self.f, self.w, self.rel_thresh, self.abs_thresh
+        )
         return bits, signal
 
     def parameters(self, is_host: bool) -> str:
@@ -504,7 +508,7 @@ class Miettinen_Protocol:
         self.count += 1
 
     # TODO: Refactor by putting in common_protocols.py, then change all references to this version to the common_protocols.py version
-    def diffie_hellman(self, socket: socket.socket) -> bytes: 
+    def diffie_hellman(self, socket: socket.socket) -> bytes:
         """
         Performs the Diffie-Hellman key exchange over a given socket to securely generate a shared secret.
 
@@ -558,7 +562,11 @@ class Miettinen_Protocol:
 
     # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
     def send_nonce_msg_to_device(
-        self, connection: socket.socket, recieved_nonce_msg: bytes, derived_key: bytes, prederived_key_hash: bytes
+        self,
+        connection: socket.socket,
+        recieved_nonce_msg: bytes,
+        derived_key: bytes,
+        prederived_key_hash: bytes,
     ) -> bytes:
         """
         Sends a nonce message to a device, including a HMAC tag for verification.
@@ -591,7 +599,9 @@ class Miettinen_Protocol:
         return nonce
 
     # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
-    def send_nonce_msg_to_host(self, connection: socket.socket, prederived_key_hash: bytes, derived_key: bytes) -> bytes:
+    def send_nonce_msg_to_host(
+        self, connection: socket.socket, prederived_key_hash: bytes, derived_key: bytes
+    ) -> bytes:
         """
         Sends a nonce message to the host, including a HMAC tag for verification.
 
@@ -616,7 +626,9 @@ class Miettinen_Protocol:
         return nonce
 
     # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
-    def verify_mac_from_host(self, recieved_nonce_msg: bytes, generated_nonce: bytes, derived_key: bytes) -> bool:
+    def verify_mac_from_host(
+        self, recieved_nonce_msg: bytes, generated_nonce: bytes, derived_key: bytes
+    ) -> bool:
         """
         Verifies the HMAC tag received from the host.
 
@@ -640,7 +652,9 @@ class Miettinen_Protocol:
         return success
 
     # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
-    def verify_mac_from_device(self, recieved_nonce_msg: bytes, derived_key: bytes, prederived_key_hash: bytes) -> bool:
+    def verify_mac_from_device(
+        self, recieved_nonce_msg: bytes, derived_key: bytes, prederived_key_hash: bytes
+    ) -> bool:
         """
         Verifies the HMAC tag received from a device.
 

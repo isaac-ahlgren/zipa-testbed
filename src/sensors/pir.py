@@ -16,6 +16,7 @@ class PIR(SensorInterface):
     :param config: Dictionary containing configuration parameters such as sample rate, time collected, and chunk size.
     :param pin: GPIO pin number to which the PIR sensor is connected (defaults to 12).
     """
+
     def __init__(self, config: Dict[str, Any], pin: int = 12) -> None:
         SensorInterface.__init__(self)
         self.sample_rate = config.get("sample_rate")

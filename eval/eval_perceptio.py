@@ -88,7 +88,7 @@ def experiment(data_from_devices, ids, iterations, max_samples, Fs):
         a = random.uniform(a_min, a_max)  # nosec
 
         device_bits = []
-    # samples_per_key = None
+        # samples_per_key = None
         for sf in data_from_devices:
             keys_generated, events = generate_bits(
                 sf,

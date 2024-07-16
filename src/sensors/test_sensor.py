@@ -1,7 +1,7 @@
 import time
+from typing import Any
 
 import numpy as np
-from typing import Any
 
 from sensors.sensor_interface import SensorInterface
 
@@ -14,6 +14,7 @@ class TestSensor(SensorInterface):
     :param config: Configuration dictionary with keys 'sample_rate', 'time_collected', and 'chunk_size'.
     :param signal_type: Type of signal to generate ('sine' for sine wave, 'random' for random noise). Default is 'sine'.
     """
+
     def __init__(self, config: dict[str, Any], signal_type: str = "sine") -> None:
         """
         Initializes the TestSensor with given configurations and signal type.
@@ -22,9 +23,9 @@ class TestSensor(SensorInterface):
         :param signal_type: The type of signal this sensor should generate ('sine' or 'random').
         """
         SensorInterface.__init__(self)
-        self.sample_rate: int = config.get('sample_rate')
-        self.buffer_size: int = config.get('sample_rate') *config.get('time_collected')
-        self.chunk_size: int = config.get('chunk_size')
+        self.sample_rate: int = config.get("sample_rate")
+        self.buffer_size: int = config.get("sample_rate") * config.get("time_collected")
+        self.chunk_size: int = config.get("chunk_size")
         self.name: str = "test_sensor"
         self.time: int = 0
         self.buffer_ready: bool = False

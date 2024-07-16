@@ -1,5 +1,6 @@
 from typing import Any
 
+
 class SensorInterface:
     """
     An abstract base class for sensors that outlines the mandatory methods that need to be implemented
@@ -9,6 +10,7 @@ class SensorInterface:
     This class is meant to be inherited by sensor-specific classes that define actual hardware interaction
     logic tailored to their specific requirements.
     """
+
     def __init__(self) -> None:
         """
         Initializes the SensorInterface. This constructor is typically called by constructors of
@@ -20,7 +22,7 @@ class SensorInterface:
     # start, stop, read, must be implemented on a sensor basis
     def start(self) -> None:
         """
-        Starts the sensor operation. This method needs to be overridden by derived classes to include 
+        Starts the sensor operation. This method needs to be overridden by derived classes to include
         logic to initiate the sensor's data collection.
 
         :raises NotImplementedError: If the method is not implemented by the derived class.

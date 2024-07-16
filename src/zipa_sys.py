@@ -39,6 +39,7 @@ class ZIPA_System:
     :param collection_mode: Boolean flag to run the system in data collection only mode.
     :param only_locally_store: Boolean flag to indicate if logs should only be stored locally.
     """
+
     def __init__(
         self,
         identity: str,
@@ -85,7 +86,9 @@ class ZIPA_System:
             self.port = 5005
 
             # Create a reusable TCP socket through IPv4 broadcasting on the network
-            self.socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket: socket.socket = socket.socket(
+                socket.AF_INET, socket.SOCK_STREAM
+            )
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             # Bind socket to the specified socket and IPv4 address that runs continuously
@@ -275,7 +278,9 @@ class ZIPA_System:
         print("Sensor configs:", config)
         return config
 
-    def create_sensors(self, sensor_configs: Dict[str, Any], collection_mode: bool = False) -> None:
+    def create_sensors(
+        self, sensor_configs: Dict[str, Any], collection_mode: bool = False
+    ) -> None:
         """
         Creates sensor instances based on provided configurations.
 

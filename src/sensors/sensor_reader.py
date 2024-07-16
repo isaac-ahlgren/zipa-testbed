@@ -11,6 +11,7 @@ class SensorReader:
 
     :param sensor: The sensor object from which data is to be read. The sensor must implement the `start` and `read` methods.
     """
+
     def __init__(self, sensor: Any) -> None:
         """
         Initializes the SensorReader with a given sensor.

@@ -1,6 +1,6 @@
 # import random
 import secrets
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 # import numpy as np
 # from cryptography.hazmat.primitives import hashes
@@ -64,7 +64,9 @@ class Fuzzy_Commitment:
         commitment = self.xor_bytes(C, witness)
         return secret_key, commitment
 
-    def decommit_witness(self, commitment: bytearray, witness: bytearray) -> Optional[bytes]:
+    def decommit_witness(
+        self, commitment: bytearray, witness: bytearray
+    ) -> Optional[bytes]:
         """
         Decommit the witness using the commitment and the original witness value.
 

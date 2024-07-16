@@ -128,7 +128,9 @@ class FastZIP_Protocol(ProtocolInterface):
         )
         return len(peaks)
 
-    def activity_filter(signal: np.ndarray, power_thresh: float, snr_thresh: float, peak_thresh: int) -> bool:
+    def activity_filter(
+        signal: np.ndarray, power_thresh: float, snr_thresh: float, peak_thresh: int
+    ) -> bool:
         """
         Filters signals based on power, SNR, and peak thresholds to detect activity.
 
@@ -177,7 +179,9 @@ class FastZIP_Protocol(ProtocolInterface):
 
         return np.median(chunk_cpy) + bias
 
-    def generate_equidist_points(self, chunk_len: int, step: int, eqd_delta: int) -> Tuple[np.ndarray, int]:
+    def generate_equidist_points(
+        self, chunk_len: int, step: int, eqd_delta: int
+    ) -> Tuple[np.ndarray, int]:
         """
         Generates equidistant points within a data chunk.
 

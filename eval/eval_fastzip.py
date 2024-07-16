@@ -1,15 +1,12 @@
+import math
 import os
+import random
 import sys
 
-sys.path.insert(1, os.getcwd() + "/../src/")
-
-import math
-import random
-
-# import numpy as np
 import pandas as pd
 from eval_tools import *
 
+sys.path.insert(1, os.getcwd() + "/../src/")
 from protocols.shurmann.fastzip import FastZIP_Protocol
 
 

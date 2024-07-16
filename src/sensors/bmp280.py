@@ -14,6 +14,7 @@ class BMP280(SensorInterface):
 
     :param config: Configuration dictionary that includes sample rate, time collected, and chunk size.
     """
+
     def __init__(self, config: Dict[str, Any]) -> None:
         # Sensor configuration parameters
         SensorInterface.__init__(self)

@@ -11,6 +11,7 @@ class Sensor_Collector:
     :param device: The sensor device from which data is to be collected.
     :param logger: An instance of NFSLogger to log the collected sensor data.
     """
+
     def __init__(self, device: SensorInterface, logger: NFSLogger) -> None:
         """
         Initializes the Sensor_Collector with a specified sensor device and logger.
@@ -35,6 +36,7 @@ class Sensor_Collector:
 
 
 if __name__ == "__main__":
+
     def sen_thread(sen: Sensor_Collector) -> None:
         p = mp.Process(target=sen.poll)
         p.start()

@@ -25,7 +25,9 @@ def controlled_signal_plus_noise_eval(
     legit_bit_errs = []
     adv_bit_errs = []
     signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal("../../data/adversary_controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
+    )
     w_in_samples = int(w * sr)
     f_in_samples = int(f * sr)
     sample_num = miettinen_calc_sample_num(

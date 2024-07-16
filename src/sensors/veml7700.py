@@ -1,9 +1,9 @@
 import time
+from typing import Any, Dict
 
 import adafruit_veml7700
 import board
 import numpy as np
-from typing import Any, Dict
 
 from sensors.sensor_interface import SensorInterface
 
@@ -15,6 +15,7 @@ class VEML7700(SensorInterface):
 
     :param config: Configuration dictionary that includes sample rate, time collected, and chunk size.
     """
+
     def __init__(self, config: Dict[str, Any]) -> None:
         """
         Initializes the VEML7700 sensor interface with configuration settings.

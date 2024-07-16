@@ -4,7 +4,6 @@ import socket
 from multiprocessing.shared_memory import SharedMemory
 from typing import List
 
-
 from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
 
 # from multiprocessing.shared_memory import SharedMemory
@@ -70,6 +69,7 @@ class ZIPA_Service_Listener(ServiceListener):
     :param ip_addr: The IP address of the device running this listener.
     :type ip_addr: str
     """
+
     def __init__(self, ip_addr: str) -> None:
         """
         Initializes the listener with the local device's IP address.

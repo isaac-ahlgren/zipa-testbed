@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional, Any
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
@@ -14,11 +14,11 @@ class Perceptio_Protocol(ProtocolInterface):
     def __init__(self, parameters: dict, sensor: Any, logger: any) -> None:
         """
         Implements a specific protocol to handle data communication and processing based on the ProtocolInterface.
-    
+
         :param parameters: Dictionary containing various protocol-specific parameters.
         :param sensor: Sensor object used to collect data.
         :param logger: Logger object for logging various protocol activities and data.
-    
+
         The protocol manages the initialization and execution of data processing tasks, using sensor input and specified parameters.
         It is capable of handling multiple iterations and configurations, making it suitable for experimental and operational environments.
         """
@@ -40,7 +40,9 @@ class Perceptio_Protocol(ProtocolInterface):
         self.nonce_byte_size = 16
         self.count = 0
 
-    def extract_context(self, socket: socket.socket) -> Tuple[List[bytes], np.ndarray, bool]:
+    def extract_context(
+        self, socket: socket.socket
+    ) -> Tuple[List[bytes], np.ndarray, bool]:
         """
         Extract context from sensor data and check for events.
 
@@ -420,7 +422,9 @@ class Perceptio_Protocol(ProtocolInterface):
             y[i] = a * signal[i] + (1 - a) * y[i - 1]
         return y
 
-    def get_events(signal: np.ndarray, a: float, bottom_th: float, top_th: float, lump_th: int) -> List[Tuple[int, int]]:
+    def get_events(
+        signal: np.ndarray, a: float, bottom_th: float, top_th: float, lump_th: int
+    ) -> List[Tuple[int, int]]:
         """
         Identifies events in a signal based on thresholds and lumping criteria.
 
@@ -460,7 +464,9 @@ class Perceptio_Protocol(ProtocolInterface):
 
         return events
 
-    def get_event_features(events: List[Tuple[int, int]], signal: np.ndarray) -> List[Tuple[int, float]]:
+    def get_event_features(
+        events: List[Tuple[int, int]], signal: np.ndarray
+    ) -> List[Tuple[int, float]]:
         """
         Extracts features from each event in a signal.
 
@@ -475,7 +481,11 @@ class Perceptio_Protocol(ProtocolInterface):
             event_features.append((length, max_amplitude))
         return event_features
 
-    def kmeans_w_elbow_method(event_features: List[Tuple[int, float]], cluster_sizes_to_check: int, cluster_th: float) -> Tuple[np.ndarray, int]:
+    def kmeans_w_elbow_method(
+        event_features: List[Tuple[int, float]],
+        cluster_sizes_to_check: int,
+        cluster_th: float,
+    ) -> Tuple[np.ndarray, int]:
         """
         Applies K-means clustering to event features to determine optimal cluster count using the elbow method.
 
@@ -524,7 +534,9 @@ class Perceptio_Protocol(ProtocolInterface):
 
         return labels, k
 
-    def group_events(events: List[Tuple[int, int]], labels: np.ndarray, k: int) -> List[List[Tuple[int, int]]]:
+    def group_events(
+        events: List[Tuple[int, int]], labels: np.ndarray, k: int
+    ) -> List[List[Tuple[int, int]]]:
         """
         Groups detected events according to their cluster labels.
 
@@ -538,7 +550,9 @@ class Perceptio_Protocol(ProtocolInterface):
             event_groups[labels[i]].append(events[i])
         return event_groups
 
-    def gen_fingerprints(grouped_events: List[List[Tuple[int, int]]], k: int, key_size: int, Fs: int) -> List[bytes]:
+    def gen_fingerprints(
+        grouped_events: List[List[Tuple[int, int]]], k: int, key_size: int, Fs: int
+    ) -> List[bytes]:
         """
         Generates fingerprints from grouped events by calculating the time intervals between them.
 
@@ -579,7 +593,7 @@ class Perceptio_Protocol(ProtocolInterface):
         bottom_th: float,
         top_th: float,
         lump_th: int,
-        ) -> Tuple[List[bytes], List[Tuple[int, int]]]:
+    ) -> Tuple[List[bytes], List[Tuple[int, int]]]:
         """
         Processes a signal to extract events, features, and generate fingerprints using k-means clustering.
 
@@ -613,7 +627,9 @@ class Perceptio_Protocol(ProtocolInterface):
 
         return fps, grouped_events
 
-    def host_verify_mac(self, keys: List[bytes], received_nonce_msg: bytes) -> Optional[bytes]:
+    def host_verify_mac(
+        self, keys: List[bytes], received_nonce_msg: bytes
+    ) -> Optional[bytes]:
         """
         Verifies the MAC received from a device against the derived keys.
 
@@ -640,7 +656,9 @@ class Perceptio_Protocol(ProtocolInterface):
                 break
         return key_found
 
-    def find_commitment(self, commitments: List[bytes], hashes: List[bytes], fingerprints: List[bytes]) -> Optional[bytes]:
+    def find_commitment(
+        self, commitments: List[bytes], hashes: List[bytes], fingerprints: List[bytes]
+    ) -> Optional[bytes]:
         """
         Attempts to match commitments with fingerprints based on their hash values.
 
@@ -661,7 +679,9 @@ class Perceptio_Protocol(ProtocolInterface):
                     break
         return key
 
-    def generate_commitments(self, witnesses: List[bytes]) -> Tuple[List[bytes], List[bytes], List[bytes]]:
+    def generate_commitments(
+        self, witnesses: List[bytes]
+    ) -> Tuple[List[bytes], List[bytes], List[bytes]]:
         """
         Generates commitments for a list of witnesses.
 
@@ -679,7 +699,13 @@ class Perceptio_Protocol(ProtocolInterface):
         return commitments, keys, hs
 
     def checkpoint_log(
-        self, witnesses: List[bytes], commitments: List[bytes], success: bool, signal: np.ndarray, iterations: int, ip_addr: Optional[str] = None
+        self,
+        witnesses: List[bytes],
+        commitments: List[bytes],
+        success: bool,
+        signal: np.ndarray,
+        iterations: int,
+        ip_addr: Optional[str] = None,
     ) -> None:
         """
         Logs various protocol states and data at a checkpoint.

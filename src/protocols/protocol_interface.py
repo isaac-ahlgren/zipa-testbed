@@ -1,5 +1,5 @@
-from multiprocessing import Process, Queue, Value, Lock
-from typing import List, Tuple, Any, Union
+from multiprocessing import Lock, Process, Queue, Value
+from typing import Any, List, Tuple, Union
 
 from cryptography.hazmat.primitives import hashes
 
@@ -22,7 +22,7 @@ class ProtocolInterface:
         self.queue = Queue()
         self.flag = Value("i", 0)
         self.key_length = parameters["key_length"]
-        self.time_length = None # To be calculated in implementation
+        self.time_length = None  # To be calculated in implementation
         self.parity_symbols = parameters["parity_symbols"]
         self.commitment_length = self.parity_symbols + self.key_length
         self.mutex = Lock()

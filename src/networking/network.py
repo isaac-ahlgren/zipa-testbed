@@ -1,7 +1,7 @@
 import json
+import socket
 import time
 from typing import List, Optional, Tuple, Union
-import socket
 
 # Commands
 HOST = "host    "
@@ -95,7 +95,9 @@ def ack_standby(connection: socket.socket, timeout: int) -> bool:
     return acknowledged
 
 
-def send_commit(commitments: List[bytes], hashes: List[bytes], device: socket.socket) -> None:
+def send_commit(
+    commitments: List[bytes], hashes: List[bytes], device: socket.socket
+) -> None:
     """
     Sends commitments along with their corresponding hashes over a network connection.
 
@@ -122,7 +124,9 @@ def send_commit(commitments: List[bytes], hashes: List[bytes], device: socket.so
     device.send(message)
 
 
-def commit_standby(connection: socket.socket, timeout: int) -> Tuple[Optional[List[bytes]], Optional[List[bytes]]]:
+def commit_standby(
+    connection: socket.socket, timeout: int
+) -> Tuple[Optional[List[bytes]], Optional[List[bytes]]]:
     """
     Waits for commitments and their hashes to be received within a specified timeout.
 
@@ -181,6 +185,7 @@ def dh_exchange(connection: socket.socket, key: bytes) -> None:
     key_size = len(key).to_bytes(4, byteorder="big")
     message = DHKY.encode() + key_size + key
     connection.send(message)
+
 
 def dh_exchange_standby(connection: socket.socket, timeout: int) -> Optional[bytes]:
     """

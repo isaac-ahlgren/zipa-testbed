@@ -82,7 +82,12 @@ class NFSLogger:
         df = pd.DataFrame(signal)
         df.to_csv(file_name, mode="a", header=False, index=False)
 
-    def log(self, data_tuples: List[Tuple[str, str, Union[str, bytes, List[bytes]]]], count: Optional[int] = None, ip_addr: Optional[str] = None) -> None:
+    def log(
+        self,
+        data_tuples: List[Tuple[str, str, Union[str, bytes, List[bytes]]]],
+        count: Optional[int] = None,
+        ip_addr: Optional[str] = None,
+    ) -> None:
         """
         Logs arbitrary data from various sources as specified in `data_tuples`. Data can be strings, bytes, or CSV-formatted.
 
@@ -133,7 +138,14 @@ class NFSLogger:
             if not self.local_dir:
                 self._log_to_mysql([filename])
 
-    def create_filename(self, directory: str, name: str, count: Optional[int], ip_addr: Optional[str], file_ext: str) -> str:
+    def create_filename(
+        self,
+        directory: str,
+        name: str,
+        count: Optional[int],
+        ip_addr: Optional[str],
+        file_ext: str,
+    ) -> str:
         """
         Creates a filename with a timestamp, name, count, and IP address.
 

@@ -1,9 +1,9 @@
 import time
+from typing import Any
 
 import adafruit_sht31d
 import board
 import numpy as np
-from typing import Any
 
 from sensors.sensor_interface import SensorInterface
 
@@ -15,6 +15,7 @@ class SHT31D(SensorInterface):
 
     :param config: Configuration dictionary that includes sample rate, time collected, and chunk size.
     """
+
     def __init__(self, config: dict[str, Any]) -> None:
         """
         Initializes the SHT31D sensor interface with configuration settings.
@@ -23,9 +24,9 @@ class SHT31D(SensorInterface):
                        and chunk size for data reading.
         """
         SensorInterface.__init__(self)
-        self.sample_rate: int = config.get('sample_rate')
-        self.buffer_size: int = config.get('sample_rate') * config.get('time_collected')
-        self.chunk_size: int = config.get('chunk_size')
+        self.sample_rate: int = config.get("sample_rate")
+        self.buffer_size: int = config.get("sample_rate") * config.get("time_collected")
+        self.chunk_size: int = config.get("chunk_size")
         self.chunks: int = int(self.buffer_size / self.chunk_size)
         self.name: str = "SHT31D"
         self.buffer: np.ndarray = np.zeros(self.chunk_size, np.float32())

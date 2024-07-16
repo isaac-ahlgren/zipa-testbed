@@ -1,19 +1,12 @@
-# Currently hardcoded for the rms_db column of the audio data
 import multiprocessing as mp
 import os
-
-# import struct
 from datetime import datetime as dt
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import chardet
-
-# import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import skfuzzy as fuzz
-
-# from scipy.signal import chirp, spectrogram
 from skfuzzy.cluster import cmeans
 from sklearn.decomposition import PCA
 from tsfresh import extract_features
@@ -59,7 +52,7 @@ class IoTCupid_Protocol:
         timeout: int,
         logger: Any,
         verbose: bool = True,
-        ) -> None:
+    ) -> None:
         """
         Initializes the IoTCupid protocol with necessary parameters and configurations.
         """
@@ -106,7 +99,9 @@ class IoTCupid_Protocol:
     def host_protocol_single_threaded(self, device_socket: Any) -> None:
         pass
 
-    def ewma_filter(self, dataframe: pd.DataFrame, column_name: str, alpha: float = 0.15) -> pd.DataFrame:
+    def ewma_filter(
+        self, dataframe: pd.DataFrame, column_name: str, alpha: float = 0.15
+    ) -> pd.DataFrame:
         """
         Applies Exponential Weighted Moving Average filtering to a specified column in a DataFrame.
 
@@ -122,7 +117,9 @@ class IoTCupid_Protocol:
         )
         return dataframe
 
-    def compute_derivative(self, signal: pd.DataFrame, window_size: int) -> pd.DataFrame:
+    def compute_derivative(
+        self, signal: pd.DataFrame, window_size: int
+    ) -> pd.DataFrame:
         """
         Computes the derivative of a signal based on a specified window size.
 
@@ -149,7 +146,9 @@ class IoTCupid_Protocol:
         print("Derivative dataframe:", derivative_df)
         return derivative_df
 
-    def detect_events(self, derivatives: pd.DataFrame, bottom_th: float, top_th: float, agg_th: int) -> List[Tuple[int, int]]:
+    def detect_events(
+        self, derivatives: pd.DataFrame, bottom_th: float, top_th: float, agg_th: int
+    ) -> List[Tuple[int, int]]:
         """
         Detects events based on derivative thresholds and aggregation criteria.
 
@@ -182,7 +181,9 @@ class IoTCupid_Protocol:
 
         return events
 
-    def get_event_features(self, events: List[Tuple[int, int]], sensor_data: np.ndarray, feature_dim: int) -> np.ndarray:
+    def get_event_features(
+        self, events: List[Tuple[int, int]], sensor_data: np.ndarray, feature_dim: int
+    ) -> np.ndarray:
         """
         Extracts features from event data using TSFresh for dimensionality reduction with PCA.
 
@@ -219,10 +220,12 @@ class IoTCupid_Protocol:
 
         return reduced_dim
 
-    def fuzzy_cmeans_w_elbow_method(self, features: np.ndarray, max_clusters: int, m: float, cluster_th: float) -> Tuple[bp.ndarray, np.ndarray, int, List[float]]:
+    def fuzzy_cmeans_w_elbow_method(
+        self, features: np.ndarray, max_clusters: int, m: float, cluster_th: float
+    ) -> Tuple[bp.ndarray, np.ndarray, int, List[float]]:
         """
         Performs fuzzy C-means clustering with an elbow method to determine the optimal number of clusters.
-    
+
         :param features: The dataset to cluster.
         :param max_clusters: The maximum number of clusters to test.
         :param m: The fuzziness parameter for the C-means algorithm.
@@ -258,7 +261,9 @@ class IoTCupid_Protocol:
 
         return cntr, u, optimal_clusters, fpcs
 
-    def calculate_cluster_dispersion(self, features: np.ndarray, u: np.ndarray, cntr: np.ndarray) -> float:
+    def calculate_cluster_dispersion(
+        self, features: np.ndarray, u: np.ndarray, cntr: np.ndarray
+    ) -> float:
         """
         Calculates the dispersion of clusters based on membership values and distances to cluster centers.
 
@@ -301,7 +306,9 @@ class IoTCupid_Protocol:
 
         return best_m
 
-    def group_events(self, events: List[Tuple[int, int]], u: np.ndarray) -> List[List[Tuple[int, int]]]:
+    def group_events(
+        self, events: List[Tuple[int, int]], u: np.ndarray
+    ) -> List[List[Tuple[int, int]]]:
         """
         Groups detected events based on their highest membership values from fuzzy clustering.
 
@@ -316,7 +323,9 @@ class IoTCupid_Protocol:
             event_groups[label].append(event)
         return event_groups
 
-    def calculate_inter_event_timings(self, grouped_events: List[List[Tuple[int, int]]]) -> Dict[int, np.ndarray]:
+    def calculate_inter_event_timings(
+        self, grouped_events: List[List[Tuple[int, int]]]
+    ) -> Dict[int, np.ndarray]:
         """
         Calculates the timings between consecutive events within each group.
 
@@ -332,7 +341,9 @@ class IoTCupid_Protocol:
                 inter_event_timings[cluster_id] = intervals
         return inter_event_timings
 
-    def encode_timings_to_bits(self, inter_event_timings: Dict[int, np.ndarray], quantization_factor: int = 100) -> Dict[int, str]:
+    def encode_timings_to_bits(
+        self, inter_event_timings: Dict[int, np.ndarray], quantization_factor: int = 100
+    ) -> Dict[int, str]:
         """
         Encodes the inter-event timings into binary strings by quantizing and converting to binary.
 
@@ -372,7 +383,7 @@ class IoTCupid_Protocol:
         bottom_th: float,
         top_th: float,
         agg_th: int,
-        ) -> Tuple[Dict[int, str], List[Tuple[int, int]]]: 
+    ) -> Tuple[Dict[int, str], List[Tuple[int, int]]]:
         """
         Main function of the IoTCupid Protocol, integrating several preprocessing and analysis steps
         to generate encoded timings from raw sensor data.
@@ -466,6 +477,7 @@ def load_sensor_data(directory: str) -> pd.DataFrame:
 
     return full_data
 
+
 def extract_column_values_raw(df: pd.DataFrame, column_name: str) -> np.ndarray:
     """
     Extracts values from a specified column in a DataFrame, similar to `extract_column_values` but intended for direct use outside of class methods.
@@ -477,11 +489,7 @@ def extract_column_values_raw(df: pd.DataFrame, column_name: str) -> np.ndarray:
     return df[column_name].values
 
 
-<<<<<<< HEAD
 def detect_encoding(file_path: str) -> Optional[str]:
-=======
-def detect_encoding(file_path):
->>>>>>> refs/remotes/origin/main
     """
     Detects the encoding of a file using chardet.
 
@@ -494,7 +502,8 @@ def detect_encoding(file_path):
         print(f"Detected encoding: {encoding} (confidence: {result['confidence']})")
         return encoding
 
-def get_timestamps(files_directory: str) -> List[Tuple[dt, Any]]: 
+
+def get_timestamps(files_directory: str) -> List[Tuple[dt, Any]]:
     """
     Retrieves timestamps from event files in a directory.
 
@@ -531,7 +540,10 @@ def get_timestamps(files_directory: str) -> List[Tuple[dt, Any]]:
     events.sort(key=lambda x: x[0])
     return events
 
-def get_all_event_time_stamps(directory: str, relative_file_paths: List[str], event_name: List[str]) -> Dict[str, List[Tuple[dt, Any]]]:
+
+def get_all_event_time_stamps(
+    directory: str, relative_file_paths: List[str], event_name: List[str]
+) -> Dict[str, List[Tuple[dt, Any]]]:
     """
     Retrieves timestamps from multiple event files located in different directories specified by relative paths.
     Each event file is expected to contain timestamped entries which are collected into a dictionary.

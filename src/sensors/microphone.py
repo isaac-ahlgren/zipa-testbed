@@ -1,7 +1,6 @@
 import time
 from typing import Any, Dict
 
-
 import numpy as np
 import pyaudio
 
@@ -20,13 +19,13 @@ class Microphone(SensorInterface):
         # When the RMS filter is enabled, the true sampling rate will be sample_rate/chunk_size.
         # Each chunk size will be converted into one sample by performing RMS on the chunk.
         SensorInterface.__init__(self)
-        self.name = "Microphone"        
-        self.sample_rate = config.get('sample_rate')
-        self.buffer_size = config.get('sample_rate') * config.get('time_collected')
-        self.chunk_size = config.get('chunk_size')
-        self.rms_filter_enabled = config.get('rms_enabled', False)
-        self.antialias_sample_rate = config.get('antialias_sample_rate')
-        self.format = pyaudio.paInt32 
+        self.name = "Microphone"
+        self.sample_rate = config.get("sample_rate")
+        self.buffer_size = config.get("sample_rate") * config.get("time_collected")
+        self.chunk_size = config.get("chunk_size")
+        self.rms_filter_enabled = config.get("rms_enabled", False)
+        self.antialias_sample_rate = config.get("antialias_sample_rate")
+        self.format = pyaudio.paInt32
         self.pyaud = pyaudio.PyAudio()
         self.spl_sample_rate = self.sample_rate // self.chunk_size
         self.stream = self.pyaud.open(
