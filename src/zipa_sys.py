@@ -25,6 +25,17 @@ STRT = "start   "
 
 
 class ZIPA_System:
+    """
+    A comprehensive system that integrates sensor data acquisition and protocol handling
+    in a networked environment. It supports running in collection mode for data gathering
+    or in a normal mode that includes handling network protocol interactions.
+
+    :param identity: The identity of this instance in the network.
+    :param service: The service type identifier for network broadcasting.
+    :param nfs_dir: Directory path for NFS logging.
+    :param collection_mode: Boolean flag to run the system in data collection only mode.
+    :param only_locally_store: Boolean flag to indicate if logs should only be stored locally.
+    """
     def __init__(
         self,
         identity,
@@ -33,6 +44,9 @@ class ZIPA_System:
         collection_mode=False,
         only_locally_store=False,
     ):
+        """
+        Initializes the ZIPA System with necessary configurations for sensors, protocols, and network settings.
+        """
         self.collection_mode = collection_mode
 
         # Create data directory if it does not already exist
@@ -87,6 +101,10 @@ class ZIPA_System:
             self.protocols = []
 
     def start(self):
+        """
+        Starts the ZIPA System, either in collection mode or normal mode, and initializes network listening
+        and protocol processing.
+        """
         # If in collection mode, no need to handle any incoming network connections
         if self.collection_mode:
             return
@@ -125,6 +143,12 @@ class ZIPA_System:
                 failed.close()
 
     def service_request(self, data, incoming):
+        """
+        Handles incoming service requests from connected devices over the network.
+
+        :param data: Data received from the network.
+        :param incoming: The incoming socket connection.
+        """
         # Retrieve command, JSON object size, JSON object
         command = data.decode()
         length = int.from_bytes(incoming.recv(4), byteorder="big")
@@ -176,6 +200,12 @@ class ZIPA_System:
                     )
 
     def initialize_protocol(self, parameters):
+        """
+        Initializes a protocol by sending configurations to all potential participant devices.
+
+        :param parameters: Parameters for initializing the protocol.
+        :return: List of connected participant devices.
+        """
         print(
             f"Initializing {parameters['name']} protocol on all participating devices."
         )
@@ -206,6 +236,11 @@ class ZIPA_System:
         return participants
 
     def create_protocol(self, payload):
+        """
+        Dynamically loads and creates a protocol instance based on the specified payload.
+
+        :param payload: The configuration payload for the protocol.
+        """
         requested_name = payload["name"]
         sensor = payload["parameters"]["sensor"]
 
@@ -228,12 +263,24 @@ class ZIPA_System:
                     break
 
     def get_sensor_configs(self, yaml_file):
+        """
+        Loads sensor configuration from a YAML file.
+
+        :param yaml_file: Path to the YAML configuration file.
+        :return: Sensor configuration dictionary.
+        """
         with open(yaml_file, "r") as f:
             config = yaml.safe_load(f)
         print("Sensor configs:", config)
         return config
 
     def create_sensors(self, sensor_configs, collection_mode=False):
+        """
+        Creates sensor instances based on provided configurations.
+
+        :param sensor_configs: Dictionary of sensor configurations.
+        :param collection_mode: Boolean indicating if the system is in data collection mode.
+        """
         self.devices = {}
         self.sensors = {}
         for sensor_name, config in sensor_configs.items():
