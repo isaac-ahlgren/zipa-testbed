@@ -5,6 +5,7 @@ import pkgutil
 import select
 import socket
 from multiprocessing import Process
+from typing import Any, Dict, List, Union
 
 import netifaces as ni
 import yaml
@@ -27,22 +28,22 @@ STRT = "start   "
 class ZIPA_System:
     def __init__(
         self,
-        identity,
-        service,
-        nfs_dir,
-        collection_mode=False,
-        only_locally_store=False,
+        identity: str,
+        service: str,
+        nfs_dir: str,
+        collection_mode: bool = False,
+        only_locally_store: bool = False,
     ):
-        self.collection_mode = collection_mode
+        self.collection_mode: bool = collection_mode
 
         # Create data directory if it does not already exist
         if not os.path.exists("./local_data"):
             os.mkdir("./local_data")
 
         # Set up Logger
-        self.id = identity
-        self.nfs_dir = nfs_dir
-        self.logger = NFSLogger(
+        self.id: str = identity
+        self.nfs_dir: str = nfs_dir
+        self.logger: NFSLogger = NFSLogger(
             user="",
             password="",
             # hi
@@ -55,7 +56,7 @@ class ZIPA_System:
         )
 
         # Set up sensors
-        sensor_configs = self.get_sensor_configs(
+        sensor_configs: Dict[str, Any] = self.get_sensor_configs(
             os.getcwd() + "/src/sensors/sensor_config.yaml"
         )
         self.create_sensors(
@@ -70,7 +71,7 @@ class ZIPA_System:
             self.port = 5005
 
             # Create a reusable TCP socket through IPv4 broadcasting on the network
-            self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.socket: socket.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             # Bind socket to the specified socket and IPv4 address that runs continuously
@@ -79,14 +80,14 @@ class ZIPA_System:
             self.socket.listen()
 
             # Set up a discovery for the protocol
-            self.discoverable = [self.socket]
-            self.browser = ZIPA_Service_Browser(self.ip, service)
+            self.discoverable: List[socket.socket] = [self.socket]
+            self.browser: ZIPA_Service_Browser = ZIPA_Service_Browser(self.ip, service)
 
             # Set up protocol and associated processes
-            self.protocol_threads = []
-            self.protocols = []
+            self.protocol_threads: List[Process] = []
+            self.protocols: List[ProtocolInterface] = []
 
-    def start(self):
+    def start(self) -> None:
         # If in collection mode, no need to handle any incoming network connections
         if self.collection_mode:
             return
@@ -124,7 +125,7 @@ class ZIPA_System:
                 self.discoverable.remove(failed)
                 failed.close()
 
-    def service_request(self, data, incoming):
+    def service_request(self, data: bytes, incoming: socket.socket) -> None:
         # Retrieve command, JSON object size, JSON object
         command = data.decode()
         length = int.from_bytes(incoming.recv(4), byteorder="big")
@@ -175,7 +176,7 @@ class ZIPA_System:
                         f"Requested protocol is not ready for use. Skipping {protocol.name}.\n"
                     )
 
-    def initialize_protocol(self, parameters):
+    def initialize_protocol(self, parameters: Dict[str, Any]) -> List[socket.socket]:
         print(
             f"Initializing {parameters['name']} protocol on all participating devices."
         )
@@ -205,7 +206,7 @@ class ZIPA_System:
 
         return participants
 
-    def create_protocol(self, payload):
+    def create_protocol(self, payload: Dict[str, Any]) -> None:
         requested_name = payload["name"]
         sensor = payload["parameters"]["sensor"]
 
@@ -227,13 +228,13 @@ class ZIPA_System:
                     )
                     break
 
-    def get_sensor_configs(self, yaml_file):
+    def get_sensor_configs(self, yaml_file: str) -> Dict[str, Any]:
         with open(yaml_file, "r") as f:
             config = yaml.safe_load(f)
         print("Sensor configs:", config)
         return config
 
-    def create_sensors(self, sensor_configs, collection_mode=False):
+    def create_sensors(self, sensor_configs: Dict[str, Any], collection_mode: bool = False) -> None:
         self.devices = {}
         self.sensors = {}
         for sensor_name, config in sensor_configs.items():
