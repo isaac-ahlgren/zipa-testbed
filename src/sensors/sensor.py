@@ -1,5 +1,6 @@
 import multiprocessing as mp
 from multiprocessing import shared_memory
+from typing import List
 
 import numpy as np
 
@@ -7,7 +8,7 @@ import numpy as np
 # MAIN TEST FOR THIS:
 # you want multiple processes (threads) to read from the buffer at the same time during
 class Sensor:
-    def __init__(self, device):
+    def __init__(self, device: 'DeviceInterface') -> None:
         self.sensor = device
         self.sample_rate = device.sample_rate
         self.name = device.name
@@ -29,7 +30,7 @@ class Sensor:
         self.mutex = mp.Semaphore()
         self.sensor.start()
 
-    def poll(self):
+    def poll(self) -> None:
         while True:
             while self.semaphore.get_value() != self.MAX_SENSOR_CLIENTS:
                 pass
@@ -43,7 +44,7 @@ class Sensor:
                 self.pointer.value = (self.pointer.value + 1) % self.sensor.buffer_size
             self.mutex.release()
 
-    def read(self):
+    def read(self) -> np.ndarray:
         data = np.empty((self.sensor.buffer_size,), dtype=self.sensor.data_type)
 
         print("Checking if mutex lock is still in play...")

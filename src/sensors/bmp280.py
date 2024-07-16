@@ -1,4 +1,5 @@
 import time
+from typing import Any, Dict
 
 import adafruit_bmp280
 import board
@@ -8,7 +9,7 @@ from sensors.sensor_interface import SensorInterface
 
 
 class BMP280(SensorInterface):
-    def __init__(self, config):
+    def __init__(self, config: Dict[str, Any]) -> None:
         # Sensor configuration parameters
         SensorInterface.__init__(self)
         self.sample_rate = config.get('sample_rate')
@@ -26,13 +27,13 @@ class BMP280(SensorInterface):
         self.data_type = self.buffer.dtype
         self.bmp = adafruit_bmp280.Adafruit_BMP280_I2C(board.I2C())
 
-    def start(self):
+    def start(self) -> None:
         pass
 
-    def stop(self):
+    def stop(self) -> None:
         pass
 
-    def read(self):
+    def read(self) -> np.ndarray:
         # rows x columns for pandas readibility
         data = np.empty((self.chunk_size, 3), self.data_type)
 

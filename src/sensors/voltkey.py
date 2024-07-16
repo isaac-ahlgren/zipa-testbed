@@ -4,6 +4,7 @@ import time
 import numpy as np
 import serial
 import serial.threaded
+from typing import Any, Dict
 
 from sensors.sensor_interface import SensorInterface
 
@@ -20,7 +21,7 @@ BOOT = b"Booting...\r\n"
 
 
 class Voltkey(SensorInterface):
-    def __init__(self, config):
+    def __init__(self, config: Dict[str, Any], verbose: bool = False) -> None:
         SensorInterface.__init__(self)
         self.sample_rate = config.get('sample_rate')
         self.buffer_size = config.get('sample_rate') * config.get('time_collected')
@@ -34,7 +35,7 @@ class Voltkey(SensorInterface):
         self.started = mp.Value("i", 0)
         self.mutex = mp.Semaphore()
 
-    def start(self):
+    def start(self) -> None:
         with self.mutex:
             serial_message = b""
 
@@ -89,7 +90,7 @@ class Voltkey(SensorInterface):
             serial_message = self.sensor.read_until(EOL)
             self.started.value = 1
 
-    def stop(self):
+    def stop(self) -> None:
         serial_message = b""
 
         with self.mutex:
@@ -103,7 +104,7 @@ class Voltkey(SensorInterface):
                 if self.verbose:
                     print(f"Recieved from sensor: {serial_message}")
 
-    def read(self):
+    def read(self) -> np.ndarray:
         # Read doesn't get mutex lock until sensor's started
         if self.started.value == 0:
             time.sleep(0.1)

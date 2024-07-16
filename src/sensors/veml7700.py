@@ -3,12 +3,13 @@ import time
 import adafruit_veml7700
 import board
 import numpy as np
+from typing import Any, Dict
 
 from sensors.sensor_interface import SensorInterface
 
 
 class VEML7700(SensorInterface):
-    def __init__(self, config):
+    def __init__(self, config: Dict[str, Any]) -> None:
         SensorInterface.__init__(self)
         self.name = "VEML7700"
         # Sensor configuration parameters
@@ -24,13 +25,13 @@ class VEML7700(SensorInterface):
         self.data_type = self.buffer.dtype
         self.light = adafruit_veml7700.VEML7700(board.I2C())
 
-    def start(self):
+    def start(self) -> None:
         pass
 
-    def stop(self):
+    def stop(self) -> None:
         pass
 
-    def read(self):
+    def read(self) -> np.ndarray:
         data = np.empty(self.chunk_size, self.data_type)
 
         for i in range(self.chunk_size):

@@ -1,32 +1,33 @@
 import time
 
 import numpy as np
+from typing import Any
 
 from sensors.sensor_interface import SensorInterface
 
 
 class TestSensor(SensorInterface):
-    def __init__(self, config, signal_type="sine"):
+    def __init__(self, config: dict[str, Any], signal_type: str = "sine") -> None:
         SensorInterface.__init__(self)
-        self.sample_rate = config.get('sample_rate')
-        self.buffer_size = config.get('sample_rate') *config.get('time_collected')
-        self.chunk_size = config.get('chunk_size')
-        self.name = "test_sensor"
-        self.time = 0
-        self.buffer_ready = False
-        self.ready_buffer = None
-        self.buffer = None
-        self.data_type = np.float32()
-        self.data_type_size = 4
-        self.signal_type = signal_type
+        self.sample_rate: int = config.get('sample_rate')
+        self.buffer_size: int = config.get('sample_rate') *config.get('time_collected')
+        self.chunk_size: int = config.get('chunk_size')
+        self.name: str = "test_sensor"
+        self.time: int = 0
+        self.buffer_ready: bool = False
+        self.ready_buffer: np.ndarray = None
+        self.buffer: np.ndarray = None
+        self.data_type: np.dtype = np.float32()
+        self.data_type_size: int = 4
+        self.signal_type: str = signal_type
 
-    def start(self):
+    def start(self) -> None:
         pass
 
-    def stop(self):
+    def stop(self) -> None:
         pass
 
-    def read(self):
+    def read(self) -> np.ndarray:
         time.sleep(self.chunk_size / self.sample_rate)
         output = np.zeros(self.chunk_size, dtype=self.data_type)
 

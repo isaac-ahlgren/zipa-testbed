@@ -1,17 +1,18 @@
-from multiprocessing import Process
+from multiprocessing import Process, Queue, Value
+from typing import Any, List, Tuple
 
 MAX_CLIENTS = 1024
 
 
 class SensorReader:
-    def __init__(self, sensor):
+    def __init__(self, sensor: Any) -> None:
         self.sensor = sensor
-        self.queues = []
+        self.queues: List[Tuple[Value, Queue]] = []
         self.sensor.start()
         self.poll_process = Process(target=self.poll, name=sensor.name)
         self.poll_process.start()
 
-    def poll(self):
+    def poll(self) -> None:
         while True:
             data = self.sensor.read()
 
@@ -19,7 +20,7 @@ class SensorReader:
                 if flag.value == 1:
                     queue.put(data)
 
-    def add_protocol_queue(self, status_queue):
+    def add_protocol_queue(self, status_queue: Tuple[Value, Queue]) -> None:
         # Terminate poll process to synchronize protocol queue
         self.poll_process.terminate()
         self.queues.append(status_queue)
@@ -27,7 +28,7 @@ class SensorReader:
         self.poll_process = Process(target=self.poll, name=self.sensor.name)
         self.poll_process.start()
 
-    def remove_protocol_queue(self, protocol_queue):
+    def remove_protocol_queue(self, protocol_queue: Tuple[Value, Queue]) -> None:
         # Terminate poll process to synchronize protocol queue
         self.poll_process.terminate()
         # Find and remove protocol queue

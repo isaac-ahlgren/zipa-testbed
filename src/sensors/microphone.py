@@ -3,6 +3,7 @@ import os
 import time
 import wave
 from multiprocessing import shared_memory
+from typing import Any, Dict
 
 import numpy as np
 import pyaudio
@@ -11,7 +12,7 @@ from sensors.sensor_interface import SensorInterface
 
 
 class Microphone(SensorInterface):
-    def __init__(self, config):
+    def __init__(self, config: Dict[str, Any]) -> None:
         # When the RMS filter is enabled, the true sampling rate will be sample_rate/chunk_size.
         # Each chunk size will be converted into one sample by performing RMS on the chunk.
         SensorInterface.__init__(self)
@@ -39,21 +40,21 @@ class Microphone(SensorInterface):
 
         self.start()
 
-    def start(self):
+    def start(self) -> None:
         # Start stream, recording for specified time interval
         self.stream.start_stream()
 
-    def stop(self):
+    def stop(self) -> None:
         self.buffer_ready.value = False
         self.stream.stop_stream()
 
-    def calc_rms(self, signal):
+    def calc_rms(self, signal: np.ndarray) -> np.ndarray:
         return np.array(
             np.sqrt(np.mean(signal.astype(np.int64()) ** 2)) / self.chunk_size,
             dtype=np.float64,
         )
 
-    def read(self):
+    def read(self) -> np.ndarray:
         output = self.stream.read(self.chunk_size)
         buf = np.frombuffer(output, dtype=np.int32)
         if self.rms_filter_enabled:

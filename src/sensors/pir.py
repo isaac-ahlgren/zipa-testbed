@@ -1,5 +1,6 @@
 import multiprocessing
 import time
+from typing import Any, Dict
 
 import numpy as np
 import RPi.GPIO as GPIO
@@ -8,7 +9,7 @@ from sensors.sensor_interface import SensorInterface
 
 
 class PIR(SensorInterface):
-    def __init__(self, config, pin=12):
+    def __init__(self, config: Dict[str, Any], pin: int = 12) -> None:
         SensorInterface.__init__(self)
         self.sample_rate = config.get('sample_rate')
         self.buffer_size = config.get('sample_rate') * config.get('time_collected')
@@ -23,13 +24,13 @@ class PIR(SensorInterface):
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.pin, GPIO.IN)
 
-    def start(self):
+    def start(self) -> None:
         pass
 
-    def stop(self):
+    def stop(self) -> None:
         pass
 
-    def read(self):
+    def read(self) -> np.ndarray:
         data = np.empty(self.chunk_size, self.data_type)
 
         for i in range(self.chunk_size):

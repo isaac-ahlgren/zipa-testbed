@@ -4,14 +4,14 @@ from networking.nfs import NFSLogger
 
 
 class Sensor_Collector:
-    def __init__(self, device, logger):
+    def __init__(self, device: SensorInterface, logger: NFSLogger) -> None:
         self.sensor = device
         self.logger = logger
         self.sensor.start()
         self.poll_process = mp.Process(target=self.poll, name=device.name)
         self.poll_process.start()
 
-    def poll(self):
+    def poll(self) -> None:
         while True:
             data = self.sensor.read()
             self.logger.log_signal(self.sensor.name, data)
@@ -19,7 +19,7 @@ class Sensor_Collector:
 
 if __name__ == "__main__":
 
-    def sen_thread(sen):
+    def sen_thread(sen: Sensor_Collector) -> None:
         p = mp.Process(target=sen.poll)
         p.start()
 
