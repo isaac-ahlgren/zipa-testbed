@@ -9,6 +9,15 @@ from protocols.protocol_interface import ProtocolInterface
 
 
 class Shurmann_Siggs_Protocol(ProtocolInterface):
+    """
+    Implements a signal processing protocol to extract features using Fourier transforms
+    and derive cryptographic keys or commitments based on the extracted features.
+
+    :param parameters: Configuration parameters including window length, band length, and other protocol-specific settings.
+    :param sensor: Sensor object used to collect data samples.
+    :param logger: Logger object for logging protocol operations and data.
+    """
+
     def __init__(self, parameters, sensor, logger):
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "Shurmann_Siggs_Protocol"
@@ -29,6 +38,14 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         )
 
     def sigs_algo(self, x1, window_len=10000, bands=1000):
+        """
+        Signal processing algorithm that computes a bit string based on the energy difference between bands of Fourier transforms.
+
+        :param x1: Input signal array.
+        :param window_len: Length of the window for Fourier transform.
+        :param bands: Number of frequency bands to consider.
+        :return: A bit string converted to bytes based on the energy differences.
+        """
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
@@ -73,6 +90,16 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
     def zero_out_antialias_sigs_algo(
         self, x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
     ):
+        """
+        Similar to sigs_algo but zeroes out frequencies above the anti-aliasing frequency before computing the bit string.
+
+        :param x1: Input signal array.
+        :param antialias_freq: Anti-aliasing frequency threshold.
+        :param sampling_freq: Sampling frequency of the input signal.
+        :param window_len: Length of the window for Fourier transform.
+        :param bands: Number of frequency bands to consider.
+        :return: A bit string converted to bytes.
+        """
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
         
@@ -118,6 +145,11 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         return bitstring_to_bytes(bs)
 
     def extract_context(self):
+        """
+        Extracts and processes the signal data from the sensor until the specified sample length is reached.
+        
+        :return: Tuple containing the processed bits and the raw signal array.
+        """
         signal = []
         self.flag.value = 1
 
@@ -138,6 +170,12 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         return bits, signal
 
     def parameters(self, is_host):
+        """
+        Returns a formatted string of protocol parameters for logging purposes.
+
+        :param is_host: Boolean indicating if the host's parameters are to be returned.
+        :return: Formatted string of parameters.
+        """
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
         parameters += f"sensor: {self.sensor.sensor.name}\n"
         parameters += f"key_length: {self.key_length}\n"
@@ -147,6 +185,11 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         parameters += f"time_length: {self.time_length}\n"
 
     def device_protocol(self, host):
+        """
+        Executes the device side protocol which involves sending and receiving data to/from the host.
+
+        :param host: Socket connection to the host.
+        """
         host.setblocking(1)
         if self.verbose:
             print(f"Iteration {str(self.count)}.\n")
@@ -215,6 +258,11 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         self.count += 1
 
     def host_protocol_single_threaded(self, device_socket):
+        """
+        Manages the protocol operations for a single device connection in a threaded environment.
+
+        :param device_socket: The socket connection to a single device.
+        """
         # Exit early if no devices to pair with
         if not ack_standby(device_socket, self.timeout):
             if self.verbose:
