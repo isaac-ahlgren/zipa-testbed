@@ -12,6 +12,7 @@ from miettinen_tools import (
 )
 from scipy.io import wavfile
 
+
 def controlled_signal_plus_noise_eval(
     w,
     f,
@@ -23,13 +24,15 @@ def controlled_signal_plus_noise_eval(
 ):
     legit_bit_errs = []
     adv_bit_errs = []
-    
+
     signal, sr = load_controlled_signal("../controlled_signal.wav")
     adv_signal, sr = load_controlled_signal("../adversary_controlled_signal.wav")
     w_in_samples = int(w * sr)
     f_in_samples = int(f * sr)
     sample_num = miettinen_calc_sample_num(
-        key_length, w_in_samples, f_in_samples,
+        key_length,
+        w_in_samples,
+        f_in_samples,
     )
     index = 0
     adv_index = 0
@@ -59,25 +62,23 @@ def load_controlled_signal(file_name):
     sr, data = wavfile.read(file_name)
     return data.astype(np.int64) + 2**16, sr
 
+
 def wrap_around_read(buffer, index, samples_to_read):
     output = np.array([])
     while samples_to_read != 0:
         samples_can_read = len(buffer) - index
         if samples_can_read <= samples_to_read:
-            buf = buffer[
-                    index : index + samples_can_read
-                    ]
+            buf = buffer[index : index + samples_can_read]
             output = np.append(output, buf)
             samples_to_read -= samples_can_read
             index = 0
         else:
-            buf = buffer[
-                index : index + samples_to_read
-            ]
+            buf = buffer[index : index + samples_to_read]
             output = np.append(output, buf)
             index = index + samples_to_read
             samples_to_read = 0
     return output, index
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

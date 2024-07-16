@@ -1,4 +1,4 @@
-import math
+# import math
 import os
 import sys
 
@@ -22,11 +22,13 @@ def golden_signal(sample_num, fs):
         output[i] = np.sin(2 * np.pi / fs * i) + 1
     return output
 
+
 def adversary_signal(sample_num, fs):
     output = np.zeros(sample_num)
     for i in range(sample_num):
         output[i] = np.sin(2 * (8000) * np.pi / fs * i)
     return output
+
 
 def miettinen_calc_sample_num(
     key_length, w, f

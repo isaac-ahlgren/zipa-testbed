@@ -1,4 +1,4 @@
-from multiprocessing import Process, Queue, Value, Lock
+from multiprocessing import Lock, Process, Queue, Value
 
 from cryptography.hazmat.primitives import hashes
 
