@@ -474,7 +474,7 @@ def extract_column_values_raw(df, column_name):
 
 
 def detect_encoding(file_path):
-     """
+    """
     Detects the encoding of a file using chardet.
 
     :param file_path: Path to the file whose encoding is to be detected.
