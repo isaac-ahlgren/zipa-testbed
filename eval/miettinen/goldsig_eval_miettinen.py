@@ -28,7 +28,9 @@ def goldsig_eval(
     legit_bit_errs = []
     adv_bit_errs = []
     sample_num = miettinen_calc_sample_num(
-        key_length, w_in_samples, f_in_samples,
+        key_length,
+        w_in_samples,
+        f_in_samples,
     )
     signal = golden_signal(sample_num, goldsig_sampling_freq)
     adv_signal = adversary_signal(sample_num, goldsig_sampling_freq)

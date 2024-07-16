@@ -1,9 +1,6 @@
-import multiprocessing as mp
-import os
 import time
-import wave
-from multiprocessing import shared_memory
 from typing import Any, Dict
+
 
 import numpy as np
 import pyaudio

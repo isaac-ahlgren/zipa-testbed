@@ -4,13 +4,15 @@ import sys
 sys.path.insert(1, os.getcwd() + "/../../src/")
 
 import math
-import random
 
 import numpy as np
 import pandas as pd
 from eval_tools import *
 
 from protocols.shurmann import Shurmann_Siggs_Protocol
+
+# import random
+
 
 MICROPHONE_SAMPLING_RATE = 48000
 ANTIALIASING_FILTER = 18000
@@ -54,9 +56,9 @@ def experiment(data_from_devices, ids, iterations, max_samples):
     file_name = f"shurmann_dev1_{ids[0]}_dev2_{ids[1]}.csv"
 
     # Min and Max values are arbitrary but somewhat relistic potential choices window_length
-    min_window_length = 5000
-    max_window_length = 48000 * 5
-    min_band_length = 1
+    # min_window_length = 5000
+    # max_window_length = 48000 * 5
+    # min_band_length = 1
 
     for i in range(iterations):
         window_length = 16537  # random.randint(min_window_length, max_window_length)

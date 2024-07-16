@@ -2,8 +2,8 @@
 import secrets
 from typing import Tuple, Optional
 
-import numpy as np
-from cryptography.hazmat.primitives import hashes
+# import numpy as np
+# from cryptography.hazmat.primitives import hashes
 
 
 class Fuzzy_Commitment:

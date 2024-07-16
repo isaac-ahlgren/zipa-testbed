@@ -78,4 +78,3 @@ if __name__ == "__main__":
     )
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
-

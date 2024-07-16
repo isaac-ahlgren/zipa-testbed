@@ -1,4 +1,4 @@
-import multiprocessing
+# import multiprocessing
 import time
 from typing import Any, Dict
 
@@ -18,9 +18,9 @@ class PIR(SensorInterface):
     """
     def __init__(self, config: Dict[str, Any], pin: int = 12) -> None:
         SensorInterface.__init__(self)
-        self.sample_rate = config.get('sample_rate')
-        self.buffer_size = config.get('sample_rate') * config.get('time_collected')
-        self.chunk_size = config.get('chunk_size')
+        self.sample_rate = config.get("sample_rate")
+        self.buffer_size = config.get("sample_rate") * config.get("time_collected")
+        self.chunk_size = config.get("chunk_size")
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.name = "PIR"
         self.pin = pin

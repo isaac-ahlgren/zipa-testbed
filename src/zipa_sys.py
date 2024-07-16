@@ -11,9 +11,11 @@ import netifaces as ni
 import yaml
 
 import protocols
-import sensors
+
+# import sensors
 from networking.browser import ZIPA_Service_Browser
-from networking.network import *
+
+# pre-commit run --all | grep -v "line too long" | grep -v "undefined" | grep -v "whitespace"from networking.network import *
 from networking.nfs import NFSLogger
 from protocols.protocol_interface import ProtocolInterface
 from sensors.sensor_collector import Sensor_Collector
@@ -60,15 +62,13 @@ class ZIPA_System:
         self.logger: NFSLogger = NFSLogger(
             user="",
             password="",
-            # hi
             host="SERVER IP",
             database="file_log",
             nfs_server_dir=self.nfs_dir,  # Make sure this directory exists and is writable
             local_dir="./local_data/",
             identifier="DEVICE IDENTIFIER",  # Could be IP address or any unique identifier
             use_local_dir=only_locally_store,
-        )
-
+        )  # nosec
         # Set up sensors
         sensor_configs: Dict[str, Any] = self.get_sensor_configs(
             os.getcwd() + "/src/sensors/sensor_config.yaml"

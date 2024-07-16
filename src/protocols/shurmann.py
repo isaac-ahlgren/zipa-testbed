@@ -53,7 +53,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         FFTs = []
-        from scipy.fft import fft, fftfreq, ifft, irfft, rfft
+        # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
         if window_len == 0:
             window_len = len(x)
@@ -81,7 +81,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
 
         bs = ""
 
-        count = 0
+        # count = 0
         for i in range(1, len(FFTs)):
             for j in range(0, len(bands_lst[i]) - 1):
                 if E[(i, j)] - E[(i, j + 1)] - (E[(i - 1, j)] - E[(i - 1, j + 1)]) > 0:
@@ -110,9 +110,9 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         """
         def bitstring_to_bytes(s: str) -> bytes:
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
-        
+
         FFTs = []
-        from scipy.fft import fft, fftfreq, ifft, irfft, rfft
+        # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
         if window_len == 0:
             window_len = len(x)
@@ -160,9 +160,19 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         """
         signal = self.get_signal()
         # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
+<<<<<<< HEAD
         bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(signal, self.sensor.sensor.antialias_sample_rate, self.sensor.sensor.sample_rate, self.window_len, self.band_len)
+=======
+        bits = self.zero_out_antialias_sigs_algo(
+            signal,
+            self.sensor.sensor.antialias_sample_rate,
+            self.sensor.sensor.sample_rate,
+            self.window_len,
+            self.band_len,
+        )
+>>>>>>> precommit_check
 
-        #bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
+        # bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
 
     def parameters(self, is_host: bool) -> str:

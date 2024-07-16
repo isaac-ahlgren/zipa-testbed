@@ -6,7 +6,7 @@ sys.path.insert(1, os.getcwd() + "/../src/")
 import math
 import random
 
-import numpy as np
+# import numpy as np
 import pandas as pd
 from eval_tools import *
 
@@ -43,8 +43,8 @@ def experiment(data_from_devices, ids, iterations, max_samples):
     min_band_length = 1
 
     for i in range(iterations):
-        window_length = random.randint(min_window_length, max_window_length)
-        band_len = random.randint(min_band_length, window_length // 2)
+        window_length = random.randint(min_window_length, max_window_length)  # nosec
+        band_len = random.randint(min_band_length, window_length // 2)  # nosec
 
         device_bits = []
         samples_per_key = None

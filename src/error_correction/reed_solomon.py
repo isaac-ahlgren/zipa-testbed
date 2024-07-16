@@ -5,6 +5,8 @@ from typing import List, Tuple
 
 import numpy as np
 
+# import random
+
 
 # Currently built to assume block size will be 8 bits
 class ReedSolomonObj:

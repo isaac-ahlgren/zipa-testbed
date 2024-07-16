@@ -530,7 +530,7 @@ class Miettinen_Protocol:
 
         other_public_key_bytes = dh_exchange_standby(socket, self.timeout)
 
-        if other_public_key_bytes == None:
+        if other_public_key_bytes is None:
             if self.verbose:
                 print("No initial key for Diffie-Helman recieved - early exit\n")
             return

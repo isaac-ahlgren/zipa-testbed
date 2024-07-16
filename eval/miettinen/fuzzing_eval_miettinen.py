@@ -3,10 +3,10 @@ import sys
 
 sys.path.insert(1, os.getcwd() + "/../src/")
 
-import math
+# import math
 import random
 
-import numpy as np
+# import numpy as np
 import pandas as pd
 from eval_tools import *
 
@@ -45,10 +45,10 @@ def experiment(data_from_devices, ids, iterations, max_samples):
     max_abs_thresh = 30
 
     for i in range(iterations):
-        f = random.randint(min_f, max_f)
-        w = random.randint(min_w, max_w)
-        rel_thresh = random.uniform(min_rel_thresh, max_rel_thresh)
-        abs_thresh = random.uniform(min_abs_thresh, max_abs_thresh)
+        f = random.randint(min_f, max_f)  # nosec
+        w = random.randint(min_w, max_w)  # nosec
+        rel_thresh = random.uniform(min_rel_thresh, max_rel_thresh)  # nosec
+        abs_thresh = random.uniform(min_abs_thresh, max_abs_thresh)  # nosec
 
         device_bits = []
         samples_per_key = None

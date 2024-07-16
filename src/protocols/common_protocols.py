@@ -7,7 +7,6 @@ from networking.network import *
 
 
 def send_nonce_msg_to_device(
-<<<<<<< HEAD
     connection: Any,
     recieved_nonce_msg: bytes,
     derived_key: bytes,
@@ -15,14 +14,6 @@ def send_nonce_msg_to_device(
     nonce_byte_size: int,
     hash_func: hashes.HashAlgorithm,
 ) -> bytes:
-=======
-    connection,
-    recieved_nonce_msg,
-    derived_key,
-    prederived_key_hash,
-    nonce_byte_size,
-    hash_func,
-):
     """
     Sends a nonce message to a device, including a HMAC tag for verification.
 
@@ -34,7 +25,6 @@ def send_nonce_msg_to_device(
     :param hash_func: The hash function to use for HMAC.
     :returns: The nonce generated in this function.
     """
->>>>>>> main
     nonce = os.urandom(nonce_byte_size)
 
     # Concatenate nonces together
@@ -56,20 +46,12 @@ def send_nonce_msg_to_device(
 
 
 def send_nonce_msg_to_host(
-<<<<<<< HEAD
     connection: Any,
     prederived_key_hash: bytes,
     derived_key: bytes,
     nonce_byte_size: int,
     hash_func: hashes.HashAlgorithm,
 ) -> bytes:
-=======
-    connection,
-    prederived_key_hash,
-    derived_key,
-    nonce_byte_size,
-    hash_func,
-):
     """
     Sends a nonce message to the host, including a HMAC tag for verification.
 
@@ -80,7 +62,6 @@ def send_nonce_msg_to_host(
     :param hash_func: The hash function to use for HMAC.
     :returns: The nonce generated in this function.
     """
->>>>>>> main
     # Generate Nonce
     nonce = os.urandom(nonce_byte_size)
 
@@ -98,20 +79,12 @@ def send_nonce_msg_to_host(
 
 
 def verify_mac_from_host(
-<<<<<<< HEAD
     recieved_nonce_msg: bytes,
     generated_nonce: bytes,
     derived_key: bytes,
     nonce_byte_size: int,
     hash_func: hashes.HashAlgorithm,
 ) -> bool:
-=======
-    recieved_nonce_msg,
-    generated_nonce,
-    derived_key,
-    nonce_byte_size,
-    hash_func,
-):
     """
     Verifies the HMAC tag received from the host.
 
@@ -122,7 +95,6 @@ def verify_mac_from_host(
     :param hash_func: The hash function used for HMAC.
     :returns: True if the verification is successful, False otherwise.
     """
->>>>>>> main
     success = False
 
     recieved_nonce = recieved_nonce_msg[0:nonce_byte_size]
@@ -139,20 +111,12 @@ def verify_mac_from_host(
 
 
 def verify_mac_from_device(
-<<<<<<< HEAD
     recieved_nonce_msg: bytes,
     derived_key: bytes,
     prederived_key_hash: bytes,
     nonce_byte_size: int,
     hash_func: hashes.HashAlgorithm,
 ) -> bool:
-=======
-    recieved_nonce_msg,
-    derived_key,
-    prederived_key_hash,
-    nonce_byte_size,
-    hash_func,
-):
     """
     Verifies the HMAC tag received from a device.
 
@@ -163,7 +127,6 @@ def verify_mac_from_device(
     :param hash_func: The hash function used for HMAC.
     :returns: True if the verification is successful, False otherwise.
     """
->>>>>>> main
     success = False
 
     # Retrieve nonce used by device

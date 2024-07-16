@@ -30,7 +30,9 @@ def goldsig_plus_noise_eval(
     legit_bit_errs = []
     adv_bit_errs = []
     sample_num = miettinen_calc_sample_num(
-        key_length, w_in_samples, f_in_samples,
+        key_length,
+        w_in_samples,
+        f_in_samples,
     )
     signal = golden_signal(sample_num, goldsig_sampling_freq)
     adv_signal = adversary_signal(sample_num, goldsig_sampling_freq)
@@ -45,7 +47,7 @@ def goldsig_plus_noise_eval(
             sig2, f_in_samples, w_in_samples, rel_thresh, abs_thresh
         )
         adv_bits = miettinen_wrapper_func(
-            adv_sig,  f_in_samples, w_in_samples, rel_thresh, abs_thresh
+            adv_sig, f_in_samples, w_in_samples, rel_thresh, abs_thresh
         )
         legit_bit_err = cmp_bits(bits1, bits2, key_length)
         legit_bit_errs.append(legit_bit_err)

@@ -1,4 +1,3 @@
-import multiprocessing as mp
 from typing import Any
 
 class SensorInterface:

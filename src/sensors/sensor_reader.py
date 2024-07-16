@@ -75,18 +75,18 @@ if __name__ == "__main__":
         process.start()
 
     def getter_thread(sensor):
-        print(f"[GETTER] In getter thread.")
+        print("[GETTER] In getter thread.")
         pipe = sensor_reader.create_pipe()
-        print(f"[GETTER] Pipe created.")
+        print("[GETTER] Pipe created.")
         data = []
         for i in range(100):
-            print(f"[GETTER] Sending message through pipe.")
+            print("[GETTER] Sending message through pipe.")
             pipe.send(1)
             received_data = pipe.recv()  # Corrected to use recv() to receive data
             data.append(received_data)
-            print(f"[GETTER] Received data.")
+            print("[GETTER] Received data.")
             print(data)
-        print(f"[GETTER] Sending message through pipe.")
+        print("[GETTER] Sending message through pipe.")
         pipe.send(-1)
         print(f"[GETTER] Data extracted:\n{data}\n")
         exit()
