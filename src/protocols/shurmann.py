@@ -158,19 +158,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         
         :return: Tuple containing the processed bits and the raw signal array.
         """
-        signal = []
-        self.flag.value = 1
-
-        while True:
-            try:
-                data = self.queue.get()
-                signal.extend(data)
-            except queue.Empty:
-                continue
-
-            if len(signal) >= self.time_length:
-                self.flag.value = -1
-                break
+        signal = self.get_signal()
         # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
         bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(signal, self.sensor.sensor.antialias_sample_rate, self.sensor.sensor.sample_rate, self.window_len, self.band_len)
 

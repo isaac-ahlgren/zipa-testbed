@@ -474,7 +474,11 @@ def extract_column_values_raw(df: pd.DataFrame, column_name: str) -> np.ndarray:
     return df[column_name].values
 
 
+<<<<<<< HEAD
 def detect_encoding(file_path: str) -> Optional[str]:
+=======
+def detect_encoding(file_path):
+>>>>>>> refs/remotes/origin/main
     """
     Detects the encoding of a file using chardet.
 

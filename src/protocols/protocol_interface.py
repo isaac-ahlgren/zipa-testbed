@@ -22,6 +22,7 @@ class ProtocolInterface:
         self.queue = Queue()
         self.flag = Value("i", 0)
         self.key_length = parameters["key_length"]
+        self.time_length = None # To be calculated in implementation
         self.parity_symbols = parameters["parity_symbols"]
         self.commitment_length = self.parity_symbols + self.key_length
         self.mutex = Lock()
@@ -58,6 +59,31 @@ class ProtocolInterface:
         for device in device_sockets:
             p = Process(target=self.host_protocol_single_threaded, args=[device])
             p.start()
+
+    def get_signal(self):
+        """
+        Collects and returns signal data from a sensor until a specified time
+        length is reached.
+
+        This method reads data from a sensor queue, accumulating it until the
+        time length condition is met. It starts collecting data when
+
+        :return: List of collected signal data.
+        """
+        signal = []
+        self.flag.value = 1
+
+        while self.flag.value == 1:
+            try:
+                data = self.queue.get()
+                signal.extend(data)
+            except queue.Empty:
+                continue
+
+            if len(signal) >= self.time_length:
+                self.flag.value = -1
+
+        return signal
 
     # Must be implemented on a protocol basis
     def device_protocol(self, host: socket.socket) -> None:
