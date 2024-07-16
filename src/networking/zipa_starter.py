@@ -1,11 +1,14 @@
 import json
 import socket
+from typing import Any, Dict, Tuple
 
-HOST = "host    "
-IP_ADDR = "192.168.1.187"
-TARGET_IP_ADDR = ("192.168.1.160", 5005)
+HOST: str = "host    "
+IP_ADDR: str = "192.168.1.187"
+TARGET_IP_ADDR: Tuple[str, int] = ("192.168.1.160", 5005)
 
-SHURMANN = {
+ProtocolParameters = Dict[str, Any]
+
+SHURMANN: Dict[str, ProtocolParameters] = {
     "name": "Shurmann_Siggs_Protocol",
     "parameters": {
         "window_len": 10000,
@@ -18,7 +21,7 @@ SHURMANN = {
     },
 }
 
-MIETTINEN = {
+MIETTINEN: Dict[str, ProtocolParameters] = {
     "name": "Miettinen_Protocol",
     "parameters": {
         "f": 5,
@@ -36,7 +39,7 @@ MIETTINEN = {
     },
 }
 
-VOLTKEY = {
+VOLTKEY: Dict[str, ProtocolParameters] = {
     "name": "VoltkeyProtocol",
     "parameters": {
         "periods": 16,
@@ -49,7 +52,7 @@ VOLTKEY = {
     },
 }
 
-PERCEPTIO = {
+PERCEPTIO: Dict[str, ProtocolParameters] = {
     "name": "Perceptio_Protocol",
     "parameters": {
         "a": 0.3,
@@ -72,7 +75,7 @@ PERCEPTIO = {
     },
 }
 
-SELECTED_PROTOCOL = SHURMANN
+SELECTED_PROTOCOL: Dict[str, ProtocolParameters] = SHURMANN
 
 if __name__ == "__main__":
     # Pack up message

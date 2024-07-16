@@ -2,12 +2,13 @@ import ipaddress
 import multiprocessing as mp
 import socket
 from multiprocessing.shared_memory import SharedMemory
+from typing import List
 
 from zeroconf import ServiceBrowser, ServiceListener, Zeroconf
 
 
 class ZIPA_Service_Browser:
-    def __init__(self, ip_addr, service_to_browse):
+    def __init__(self, ip_addr: str, service_to_browse: str) -> None:
         # Initialized to look for other devices with Avahi
         zeroconf = Zeroconf()
         # Find other devices that are participating in ZIPA
@@ -16,10 +17,10 @@ class ZIPA_Service_Browser:
         # Run this on its own thread
         self.serv_browser_thread = mp.Process(target=self.browser.run)
 
-    def start_thread(self):
+    def start_thread(self) -> None:
         self.serv_browser_thread.start()
 
-    def get_ip_addrs_for_zipa(self):
+    def get_ip_addrs_for_zipa(self) -> List[str]:
         # List that will hold discovered IP addresses advertising ZIPA
         ip_addrs = []
         # Prevent race conditions by thread locking the listener
@@ -37,7 +38,7 @@ class ZIPA_Service_Browser:
 
 
 class ZIPA_Service_Listener(ServiceListener):
-    def __init__(self, ip_addr):
+    def __init__(self, ip_addr: str) -> None:
         self.addr_list_len = 256
         # List to find devices able to perform ZIPA
         self.advertised_zipa_addrs = mp.shared_memory.ShareableList(

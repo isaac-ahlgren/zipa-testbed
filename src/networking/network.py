@@ -1,5 +1,7 @@
 import json
 import time
+from typing import List, Optional, Tuple, Union
+import socket
 
 # Commands
 HOST = "host    "
@@ -13,7 +15,7 @@ SUCC = "success "
 FAIL = "failed  "
 
 
-def send_status(connection, status):
+def send_status(connection: socket.socket, status: bool) -> None:
     if status:
         msg = SUCC
     else:
@@ -21,7 +23,7 @@ def send_status(connection, status):
     connection.send(msg.encode())
 
 
-def status_standby(connection, timeout):
+def status_standby(connection: socket.socket, timeout: int) -> Optional[bool]:
     status = None
     reference = time.time()
     timestamp = reference
@@ -44,11 +46,11 @@ def status_standby(connection, timeout):
     return status
 
 
-def ack(connection):
+def ack(connection: socket.socket) -> None:
     connection.send(ACKN.encode())
 
 
-def ack_standby(connection, timeout):
+def ack_standby(connection: socket.socket, timeout: int) -> bool:
     acknowledged = False
     reference = time.time()
     timestamp = reference
@@ -68,7 +70,7 @@ def ack_standby(connection, timeout):
     return acknowledged
 
 
-def send_commit(commitments, hashes, device):
+def send_commit(commitments: List[bytes], hashes: List[bytes], device: socket.socket) -> None:
     # Prepare number of commitments and their lengths
     number_of_commitments = len(commitments).to_bytes(4, byteorder="big")
     com_length = len(commitments[0]).to_bytes(4, byteorder="big")
@@ -88,7 +90,7 @@ def send_commit(commitments, hashes, device):
     device.send(message)
 
 
-def commit_standby(connection, timeout):
+def commit_standby(connection: socket.socket, timeout: int) -> Tuple[Optional[List[bytes]], Optional[List[bytes]]]:
     reference = time.time()
     timestamp = reference
     commitments = None
@@ -130,13 +132,13 @@ def commit_standby(connection, timeout):
     return commitments, hashes
 
 
-def dh_exchange(connection, key):
+def dh_exchange(connection: socket.socket, key: bytes) -> None:
     key_size = len(key).to_bytes(4, byteorder="big")
     message = DHKY.encode() + key_size + key
     connection.send(message)
 
 
-def dh_exchange_standby(connection, timeout):
+def dh_exchange_standby(connection: socket.socket, timeout: int) -> Optional[bytes]:
     reference = time.time()
     timestamp = reference
     key = None
@@ -158,13 +160,13 @@ def dh_exchange_standby(connection, timeout):
     return key
 
 
-def send_nonce_msg(connection, nonce):
+def send_nonce_msg(connection: socket.socket, nonce: bytes) -> None:
     nonce_size = len(nonce).to_bytes(4, byteorder="big")
     message = NONC.encode() + nonce_size + nonce
     connection.send(message)
 
 
-def get_nonce_msg_standby(connection, timeout):
+def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[bytes]:
     reference = time.time()
     timestamp = reference
     nonce = None
@@ -186,7 +188,7 @@ def get_nonce_msg_standby(connection, timeout):
     return nonce
 
 
-def send_preamble(connenction, preamble):
+def send_preamble(connenction: socket.socket, preamble: List[float]) -> None:
     """
     Used in VoltKey protocol. Client device sends first
     sinusoidal period to the host for synchronization.
@@ -199,7 +201,7 @@ def send_preamble(connenction, preamble):
     connenction.send(message)
 
 
-def get_preamble(connection, timeout):
+def get_preamble(connection: socket.socket, timeout: int) -> Optional[List[float]]:
     """
     Used in VoltKey protocol. Host device recieves preamble
     from client to synchronize dataset.

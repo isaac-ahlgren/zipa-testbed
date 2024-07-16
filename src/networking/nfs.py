@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from typing import List, Optional, Tuple, Union
 
 import mysql.connector
 import numpy as np
@@ -9,15 +10,15 @@ import pandas as pd
 class NFSLogger:
     def __init__(
         self,
-        user,
-        password,
-        host,
-        database,
-        nfs_server_dir,
-        local_dir,
-        identifier,
-        use_local_dir=False,
-    ):
+        user: str,
+        password: str,
+        host: str,
+        database: str,
+        nfs_server_dir: str,
+        local_dir: str,
+        identifier: str,
+        use_local_dir: bool = False,
+    ) -> None:
         self.user = user
         self.password = password
         self.host = host
@@ -27,7 +28,7 @@ class NFSLogger:
         self.local_dir = local_dir
         self.use_local_dir = use_local_dir
 
-    def log_signal(self, name, signal):
+    def log_signal(self, name: str, signal: Union[float, List[float]]) -> None:
         """
         Used in the sensor collector configuration.
 
@@ -57,7 +58,7 @@ class NFSLogger:
         df = pd.DataFrame(signal)
         df.to_csv(file_name, mode="a", header=False, index=False)
 
-    def log(self, data_tuples, count=None, ip_addr=None):
+    def log(self, data_tuples: List[Tuple[str, str, Union[str, bytes, List[bytes]]]], count: Optional[int] = None, ip_addr: Optional[str] = None) -> None:
         """
         Used in the ZIPA protocol configuration.
 
@@ -101,7 +102,7 @@ class NFSLogger:
             if not self.local_dir:
                 self._log_to_mysql([filename])
 
-    def create_filename(self, directory, name, count, ip_addr, file_ext):
+    def create_filename(self, directory: str, name: str, count: Optional[int], ip_addr: Optional[str], file_ext: str) -> str:
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         filename = f"{directory}/{name}_id{self.identifier}_{timestamp}"
         if count is not None:
@@ -113,7 +114,7 @@ class NFSLogger:
         return filename
 
     # TODO: Check if mySQL will be used for project
-    def _log_to_mysql(self, file_paths):
+    def _log_to_mysql(self, file_paths: List[str]) -> None:
         try:
             conn = mysql.connector.connect(
                 user=self.user,
