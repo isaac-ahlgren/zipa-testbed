@@ -77,7 +77,7 @@ class Miettinen_Protocol:
 
         self.verbose = verbose
 
-    def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
+    def signal_preprocessing(signal, no_snap_shot_width, snap_shot_width):
         """
         Processes the given signal into chunks based on specified snapshot widths and calculates the average of each chunk.
 
@@ -99,7 +99,7 @@ class Miettinen_Protocol:
             )
         return c
 
-    def gen_key(self, c, rel_thresh, abs_thresh):
+    def gen_key(c, rel_thresh, abs_thresh):
         """
         Generates a key based on the relative and absolute thresholds applied to the processed signal.
 
@@ -110,7 +110,7 @@ class Miettinen_Protocol:
         """
         bits = ""
         for i in range(len(c) - 1):
-            feature1 = np.abs(c[i] / (c[i - 1]) - 1)
+            feature1 = np.abs((c[i] / c[i - 1]) - 1)
             feature2 = np.abs(c[i] - c[i - 1])
             if feature1 > rel_thresh and feature2 > abs_thresh:
                 bits += "1"
@@ -118,19 +118,22 @@ class Miettinen_Protocol:
                 bits += "0"
         return bits
 
-    # TODO: algorithm needs to be testing using real life data
-    def miettinen_algo(self, x):
+    def miettinen_algo(x, f, w, rel_thresh, abs_thresh):
         """
         Main algorithm for key generation using signal processing and threshold-based key derivation.
 
         :param x: The raw signal data.
+        :param f: The frame rate factor, used to calculate the window size for the signal processing.
+        :param w: The window size factor, used alongside the frame rate to define the granularity of signal analysis.
+        :param rel_thresh: The relative threshold for feature extraction in key generation.
+        :param abs_thresh: The absolute threshold for feature extraction in key generation.
         :return: A byte string of the generated key.
         """
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
-        signal = self.signal_preprocessing(x, self.f, self.w)
-        key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
+        signal = Miettinen_Protocol.signal_preprocessing(x, f, w)
+        key = Miettinen_Protocol.gen_key(signal, rel_thresh, abs_thresh)
         return bitstring_to_bytes(key)
 
     def extract_context(self):
@@ -142,7 +145,7 @@ class Miettinen_Protocol:
         signal = self.sensor.read(
             int(self.time_length * self.sensor.sensor.sample_rate)
         )
-        bits = self.miettinen_algo(signal)
+        bits = Miettinen_Protocol.miettinen_algo(signal, self.f, self.w, self.rel_thresh, self.abs_thresh)
         return bits, signal
 
     def parameters(self, is_host):

@@ -37,7 +37,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             * self.window_len
         )
 
-    def sigs_algo(self, x1, window_len=10000, bands=1000):
+        
+    def sigs_algo(x1, window_len=10000, bands=1000):
         """
         Signal processing algorithm that computes a bit string based on the energy difference between bands of Fourier transforms.
 
@@ -46,6 +47,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         :param bands: Number of frequency bands to consider.
         :return: A bit string converted to bytes based on the energy differences.
         """
+
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
@@ -88,7 +90,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         return bitstring_to_bytes(bs)
 
     def zero_out_antialias_sigs_algo(
-        self, x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
+        x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
     ):
         """
         Similar to sigs_algo but zeroes out frequencies above the anti-aliasing frequency before computing the bit string.
@@ -164,7 +166,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                 self.flag.value = -1
                 break
         # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
-        bits = self.zero_out_antialias_sigs_algo(signal, self.sensor.sensor.antialias_sample_rate, self.sensor.sensor.sample_rate, self.window_len, self.band_len)
+        bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(signal, self.sensor.sensor.antialias_sample_rate, self.sensor.sensor.sample_rate, self.window_len, self.band_len)
 
         #bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
