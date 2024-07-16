@@ -1,4 +1,5 @@
 import struct
+from typing import List, Tuple, Optional, Any
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
@@ -11,7 +12,7 @@ from protocols.protocol_interface import ProtocolInterface
 
 
 class Perceptio_Protocol(ProtocolInterface):
-    def __init__(self, parameters, sensor, logger):
+    def __init__(self, parameters: dict, sensor: Any, logger: any) -> None:
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "FastZIP_Protocol"
         self.wip = True
@@ -29,7 +30,7 @@ class Perceptio_Protocol(ProtocolInterface):
         self.nonce_byte_size = 16
         self.count = 0
 
-    def extract_context(self, socket):
+    def extract_context(self, socket: socket.socket) -> Tuple[List[bytes], np.ndarray, bool]:
         events_detected = False
         for i in range(self.max_no_events_detected):
             signal = self.sensor.read(self.time_length)
@@ -69,7 +70,7 @@ class Perceptio_Protocol(ProtocolInterface):
         return fps, signal, events_detected
 
     #  TODO: Fix why this does not save correctly to drive
-    def parameters(self, is_host):
+    def parameters(self, is_host: bool) -> str:
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
         parameters += f"sensor: {self.sensor.sensor.name}\n"
         parameters += f"key_length: {self.key_length}\n"
@@ -81,7 +82,7 @@ class Perceptio_Protocol(ProtocolInterface):
         parameters += f"bottom_th: {self.bottom_th}\n"
         parameters += f"time_length: {self.time_length}\n"
 
-    def device_protocol(self, host_socket):
+    def device_protocol(self, host_socket: socket.socket) -> None:
         host_socket.setblocking(1)
 
         if self.verbose:
@@ -220,7 +221,7 @@ class Perceptio_Protocol(ProtocolInterface):
             ]
         )
 
-    def host_protocol_single_threaded(self, device_socket):
+    def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         device_ip_addr, device_port = device_socket.getpeername()
 
         # Exit early if no devices to pair with
@@ -352,12 +353,12 @@ class Perceptio_Protocol(ProtocolInterface):
             ip_addr=device_ip_addr,
         )
 
-    def hash_function(self, bytes):
+    def hash_function(self, bytes: bytes) -> bytes:
         hash_func = hashes.Hash(self.hash_func)
         hash_func.update(bytes)
         return hash_func.finalize()
 
-    def ewma(signal, a):
+    def ewma(signal: np.ndarray, a: float) -> np.ndarray:
         y = np.zeros(len(signal))
 
         y[0] = a * signal[0]
@@ -365,7 +366,7 @@ class Perceptio_Protocol(ProtocolInterface):
             y[i] = a * signal[i] + (1 - a) * y[i - 1]
         return y
 
-    def get_events(signal, a, bottom_th, top_th, lump_th):
+    def get_events(signal: np.ndarray, a: float, bottom_th: float, top_th: float, lump_th: int) -> List[Tuple[int, int]]:
         signal = self.ewma(np.abs(signal), a)
 
         # Get events that are within the threshold
@@ -395,7 +396,7 @@ class Perceptio_Protocol(ProtocolInterface):
 
         return events
 
-    def get_event_features(events, signal):
+    def get_event_features(events: List[Tuple[int, int]], signal: np.ndarray) -> List[Tuple[int, float]]:
         event_features = []
         for i in range(len(events)):
             length = events[i][1] - events[i][0]
@@ -403,7 +404,7 @@ class Perceptio_Protocol(ProtocolInterface):
             event_features.append((length, max_amplitude))
         return event_features
 
-    def kmeans_w_elbow_method(event_features, cluster_sizes_to_check, cluster_th):
+    def kmeans_w_elbow_method(event_features: List[Tuple[int, float]], cluster_sizes_to_check: int, cluster_th: float) -> Tuple[np.ndarray, int]:
         if len(event_features) < cluster_sizes_to_check:
             # Handle the case where the number of samples is less than the desired number of clusters
             if self.verbose:
@@ -444,13 +445,13 @@ class Perceptio_Protocol(ProtocolInterface):
 
         return labels, k
 
-    def group_events(events, labels, k):
+    def group_events(events: List[Tuple[int, int]], labels: np.ndarray, k: int) -> List[List[Tuple[int, int]]]:
         event_groups = [[] for i in range(k)]
         for i in range(len(events)):
             event_groups[labels[i]].append(events[i])
         return event_groups
 
-    def gen_fingerprints(grouped_events, k, key_size, Fs):
+    def gen_fingerprints(grouped_events: List[List[Tuple[int, int]]], k: int, key_size: int, Fs: int) -> List[bytes]:
         from datetime import timedelta
 
         fp = []
@@ -472,16 +473,17 @@ class Perceptio_Protocol(ProtocolInterface):
         return fp
 
     def perceptio(
-        signal,
-        key_size,
-        Fs,
-        a,
-        cluster_sizes_to_check,
-        cluster_th,
-        bottom_th,
-        top_th,
-        lump_th,
-    ):
+        self,
+        signal: np.ndarray,
+        key_size: int,
+        Fs: int,
+        a: float,
+        cluster_sizes_to_check: int,
+        cluster_th: float,
+        bottom_th: float,
+        top_th: float,
+        lump_th: int,
+        ) -> Tuple[List[bytes], List[Tuple[int, int]]]:
         events = Perceptio_Protocol.get_events(signal, a, bottom_th, top_th, lump_th)
         if len(events) < 2:
             # Needs two events in order to calculate interevent timings
@@ -501,7 +503,7 @@ class Perceptio_Protocol(ProtocolInterface):
 
         return fps, grouped_events
 
-    def host_verify_mac(self, keys, recieved_nonce_msg):
+    def host_verify_mac(self, keys: List[bytes], received_nonce_msg: bytes) -> Optional[bytes]:
         key_found = None
         for i in range(len(keys)):
             kdf = HKDF(
@@ -521,7 +523,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 break
         return key_found
 
-    def find_commitment(self, commitments, hashes, fingerprints):
+    def find_commitment(self, commitments: List[bytes], hashes: List[bytes], fingerprints: List[bytes]) -> Optional[bytes]:
         key = None
         for i in range(len(fingerprints)):
             for j in range(len(commitments)):
@@ -534,7 +536,7 @@ class Perceptio_Protocol(ProtocolInterface):
                     break
         return key
 
-    def generate_commitments(self, witnesses):
+    def generate_commitments(self, witnesses: List[bytes]) -> Tuple[List[bytes], List[bytes], List[bytes]]:
         commitments = []
         keys = []
         hs = []
@@ -546,8 +548,8 @@ class Perceptio_Protocol(ProtocolInterface):
         return commitments, keys, hs
 
     def checkpoint_log(
-        self, witnesses, commitments, success, signal, iterations, ip_addr=None
-    ):
+        self, witnesses: List[bytes], commitments: List[bytes], success: bool, signal: np.ndarray, iterations: int, ip_addr: Optional[str] = None
+    ) -> None:
         self.logger.log(
             [
                 ("witness", "txt", witnesses),
@@ -564,7 +566,7 @@ class Perceptio_Protocol(ProtocolInterface):
 import socket
 
 
-def device(prot):
+def device(prot: Perceptio_Protocol) -> None:
     print("device")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -573,7 +575,7 @@ def device(prot):
     prot.device_protocol(s)
 
 
-def host(prot):
+def host(prot: Perceptio_Protocol) -> None:
     print("host")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)

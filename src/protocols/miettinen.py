@@ -7,6 +7,7 @@ from cryptography.hazmat.primitives import constant_time, hashes, hmac
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from error_correction.corrector import Fuzzy_Commitment
 from error_correction.reed_solomon import ReedSolomonObj
@@ -16,19 +17,19 @@ from networking.network import *
 class Miettinen_Protocol:
     def __init__(
         self,
-        sensor,
-        key_length,
-        parity_symbols,
-        f,
-        w,
-        rel_thresh,
-        abs_thresh,
-        auth_threshold,
-        success_threshold,
-        max_iterations,
-        timeout,
-        logger,
-        verbose=True,
+        sensor: Any,
+        key_length: int,
+        parity_symbols: int,
+        f: float,
+        w: float,
+        rel_thresh: float,
+        abs_thresh: float,
+        auth_threshold: float,
+        success_threshold: int,
+        max_iterations: int,
+        timeout: int,
+        logger: Any,
+        verbose: bool = True,
     ):
         self.sensor = sensor
         self.f = int(f * self.sensor.sensor.sample_rate)
@@ -60,7 +61,7 @@ class Miettinen_Protocol:
 
         self.verbose = verbose
 
-    def signal_preprocessing(self, signal, no_snap_shot_width, snap_shot_width):
+    def signal_preprocessing(self, signal: np.ndarray, no_snap_shot_width: int, snap_shot_width: int) -> np.ndarray:
         block_num = int(len(signal) / (no_snap_shot_width + snap_shot_width))
         c = np.zeros(block_num)
         for i in range(block_num):
@@ -74,7 +75,7 @@ class Miettinen_Protocol:
             )
         return c
 
-    def gen_key(self, c, rel_thresh, abs_thresh):
+    def gen_key(self, c: np.ndarray, rel_thresh: float, abs_thresh: float) -> str:
         bits = ""
         for i in range(len(c) - 1):
             feature1 = np.abs(c[i] / (c[i - 1]) - 1)
@@ -86,7 +87,7 @@ class Miettinen_Protocol:
         return bits
 
     # TODO: algorithm needs to be testing using real life data
-    def miettinen_algo(self, x):
+    def miettinen_algo(self, x: np.ndarray) -> bytes:
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
@@ -94,14 +95,14 @@ class Miettinen_Protocol:
         key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
         return bitstring_to_bytes(key)
 
-    def extract_context(self):
+    def extract_context(self) -> Tuple[bytes, np.ndarray]:
         signal = self.sensor.read(
             int(self.time_length * self.sensor.sensor.sample_rate)
         )
         bits = self.miettinen_algo(signal)
         return bits, signal
 
-    def parameters(self, is_host):
+    def parameters(self, is_host: bool) -> str:
         parameters = ""
         parameters += "protocol: " + self.name
         parameters += "is_host: " + str(is_host)
@@ -120,7 +121,7 @@ class Miettinen_Protocol:
         parameters += "\ntime_length: " + str(self.time_length)
         return parameters
 
-    def device_protocol(self, host_socket):
+    def device_protocol(self, host_socket: socket.socket) -> None:
         host_socket.setblocking(1)
 
         if self.verbose:
@@ -278,8 +279,8 @@ class Miettinen_Protocol:
         )
 
         self.count += 1
-
-    def host_protocol(self, device_sockets):
+    
+     def host_protocol(self, device_sockets: List[socket.socket]) -> None:
         # Log current paramters to the NFS server
         self.logger.log([("parameters", "txt", self.parameters(True))])
 
@@ -289,7 +290,7 @@ class Miettinen_Protocol:
             p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
             p.start()
 
-    def host_protocol_single_threaded(self, device_socket):
+    def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         device_socket.setblocking(1)
 
         device_ip_addr, device_port = device_socket.getpeername()
@@ -433,7 +434,7 @@ class Miettinen_Protocol:
         self.count += 1
 
     # TODO: Refactor by putting in common_protocols.py, then change all references to this version to the common_protocols.py version
-    def diffie_hellman(self, socket):
+    def diffie_hellman(self, socket: socket.socket) -> bytes: 
         # Generate initial private key for Diffie-Helman
         initial_private_key = ec.generate_private_key(self.ec_curve)
 
@@ -467,15 +468,15 @@ class Miettinen_Protocol:
 
         return shared_key
 
-    def hash_function(self, bytes):
+    def hash_function(self, bytes: bytes) -> bytes:
         hash_func = hashes.Hash(self.hash_func)
         hash_func.update(bytes)
         return hash_func.finalize()
 
     # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
     def send_nonce_msg_to_device(
-        self, connection, recieved_nonce_msg, derived_key, prederived_key_hash
-    ):
+        self, connection: socket.socket, recieved_nonce_msg: bytes, derived_key: bytes, prederived_key_hash: bytes
+    ) -> bytes:
         nonce = os.urandom(self.nonce_byte_size)
 
         # Concatenate nonces together
@@ -498,7 +499,7 @@ class Miettinen_Protocol:
         return nonce
 
     # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
-    def send_nonce_msg_to_host(self, connection, prederived_key_hash, derived_key):
+    def send_nonce_msg_to_host(self, connection: socket.socket, prederived_key_hash: bytes, derived_key: bytes) -> bytes:
         # Generate Nonce
         nonce = os.urandom(self.nonce_byte_size)
 
@@ -515,7 +516,7 @@ class Miettinen_Protocol:
         return nonce
 
     # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
-    def verify_mac_from_host(self, recieved_nonce_msg, generated_nonce, derived_key):
+     def verify_mac_from_host(self, recieved_nonce_msg: bytes, generated_nonce: bytes, derived_key: bytes) -> bool:
         success = False
 
         recieved_nonce = recieved_nonce_msg[0 : self.nonce_byte_size]
@@ -531,9 +532,7 @@ class Miettinen_Protocol:
         return success
 
     # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
-    def verify_mac_from_device(
-        self, recieved_nonce_msg, derived_key, prederived_key_hash
-    ):
+    def verify_mac_from_device(self, recieved_nonce_msg: bytes, derived_key: bytes, prederived_key_hash: bytes) -> bool:
         success = False
 
         # Retrieve nonce used by device

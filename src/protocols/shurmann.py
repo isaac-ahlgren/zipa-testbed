@@ -1,5 +1,6 @@
 import math
 import queue
+from typing import Tuple, List, Optional
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
@@ -9,7 +10,7 @@ from protocols.protocol_interface import ProtocolInterface
 
 
 class Shurmann_Siggs_Protocol(ProtocolInterface):
-    def __init__(self, parameters, sensor, logger):
+    def __init__(self, parameters: dict, sensor: Any, logger: Any) -> None:
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "Shurmann_Siggs_Protocol"
         self.wip = False
@@ -28,8 +29,10 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             * self.window_len
         )
 
-    def sigs_algo(self, x1, window_len=10000, bands=1000):
-        def bitstring_to_bytes(s):
+    def sigs_algo(
+        self, x1: List[float], window_len: int = 10000, bands: int = 1000
+    ) -> bytes:
+        def bitstring_to_bytes(s: str) -> bytes:
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         FFTs = []
@@ -71,9 +74,14 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         return bitstring_to_bytes(bs)
 
     def zero_out_antialias_sigs_algo(
-        self, x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
-    ):
-        def bitstring_to_bytes(s):
+        self,
+        x1: List[float],
+        antialias_freq: float,
+        sampling_freq: float,
+        window_len: int = 10000,
+        bands: int = 1000,
+    ) -> bytes:
+        def bitstring_to_bytes(s: str) -> bytes:
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
         
         FFTs = []
@@ -117,7 +125,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                     bs += "0"
         return bitstring_to_bytes(bs)
 
-    def extract_context(self):
+    def extract_context(self) -> Tuple[bytes, List[float]]:
         signal = []
         self.flag.value = 1
 
@@ -137,7 +145,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         #bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
 
-    def parameters(self, is_host):
+    def parameters(self, is_host: bool) -> str:
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
         parameters += f"sensor: {self.sensor.sensor.name}\n"
         parameters += f"key_length: {self.key_length}\n"
@@ -146,7 +154,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         parameters += f"band_length: {self.band_len}\n"
         parameters += f"time_length: {self.time_length}\n"
 
-    def device_protocol(self, host):
+    def device_protocol(self, host: socket.socket) -> None:
         host.setblocking(1)
         if self.verbose:
             print(f"Iteration {str(self.count)}.\n")
@@ -214,7 +222,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
 
         self.count += 1
 
-    def host_protocol_single_threaded(self, device_socket):
+    def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         # Exit early if no devices to pair with
         if not ack_standby(device_socket, self.timeout):
             if self.verbose:

@@ -1,4 +1,6 @@
 import multiprocessing as mp
+import socket
+from typing import List, Tuple, Optional, Any
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes
@@ -10,7 +12,7 @@ OUTLET_FREQ = 60  # Hz
 
 
 class VoltKeyProtocol(ProtocolInterface):
-    def __init__(self, parameters, sensor, logger):
+    def __init__(self, parameters: dict, sensor: Any, logger: Any) -> None:
         # General protocol information
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "voltkey"
@@ -26,24 +28,24 @@ class VoltKeyProtocol(ProtocolInterface):
             self.sensor.sensor.sample_rate // OUTLET_FREQ
         )  # Samples within a cycle
 
-    def extract_signal(self):
+    def extract_signal(self) -> List[float]:
         signal = self.sensor.read(self.time_length)
         return signal
 
-    def extract_context(self, filtered_signal):
+    def extract_context(self, filtered_signal: List[float]) -> bytes:
         """
         VoltKey protocol host needs preamble from device. Cannot perform bit
         extraction until host dataset is synchronized with device dataset
         """
 
-        def bitstring_to_bytes(s):
+        def bitstring_to_bytes(s: str) -> bytes:
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         bits = self.voltkey_algo(filtered_signal)
 
         return bitstring_to_bytes(bits)
 
-    def sync(self, signal, preamble):
+    def sync(self, signal: List[float], preamble: List[float]) -> List[float]:
         """
         Aligns datasets through client preamble.
         """
@@ -56,7 +58,7 @@ class VoltKeyProtocol(ProtocolInterface):
 
         return synced_frames
 
-    def signal_processing(self, signal):
+    def signal_processing(self, signal: List[float]) -> List[float]:
         """
         Assuming the length of a sinusoid period
 
@@ -81,7 +83,7 @@ class VoltKeyProtocol(ProtocolInterface):
 
         return filtered_frames
 
-    def gen_key(self, signal):
+    def gen_key(self, signal: List[float]) -> str:
         bits = ""
         step = len(signal) // (
             (self.periods - 1) * self.bins
@@ -105,8 +107,8 @@ class VoltKeyProtocol(ProtocolInterface):
 
         return bits
 
-    def voltkey_algo(self, signal):
-        def bitstring_to_bytes(s):
+    def voltkey_algo(self, signal: List[float]) -> bytes:
+        def bitstring_to_bytes(s: str) -> bytes:
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         # Assumes that host has synced frames from client preamble
@@ -116,7 +118,7 @@ class VoltKeyProtocol(ProtocolInterface):
 
         return bitstring_to_bytes(key)
 
-    def device_protocol(self, host):
+    def device_protocol(self, host: socket.socket) -> None:
         host.setblocking(1)
 
         if self.verbose:
@@ -190,7 +192,7 @@ class VoltKeyProtocol(ProtocolInterface):
 
         self.count += 1
 
-    def host_protocol(self, devices):
+    def host_protocol(self, devices: List[socket.socket]) -> None:
         # self.logger.log([("parameters", "txt", self.parameters(True))])
 
         if self.verbose:
@@ -200,7 +202,7 @@ class VoltKeyProtocol(ProtocolInterface):
             process = mp.Process(target=self.host_protocol_threaded, args=[device])
             process.start()
 
-    def host_protocol_threaded(self, device):
+    def host_protocol_threaded(self, device: socket.socket) -> None:
         self.host = True
 
         if not ack_standby(device, self.timeout):
@@ -255,7 +257,7 @@ class VoltKeyProtocol(ProtocolInterface):
 
         self.count += 1
 
-    def parameters(self, is_host):
+    def parameters(self, is_host: bool) -> str:
         """
         Converts parameters from JSON to string format for NFS logging
         """
@@ -267,7 +269,7 @@ class VoltKeyProtocol(ProtocolInterface):
         parameters += f"band_length: {self.bins}\n"
         parameters += f"time_length: {self.time_length}\n"
 
-    def hash_function(self, bytes):
+    def hash_function(self, bytes: bytes) -> bytes:
         hash_func = hashes.Hash(self.hash)
         hash_func.update(bytes)
 
@@ -278,7 +280,7 @@ class VoltKeyProtocol(ProtocolInterface):
 import socket
 
 
-def device(protocol):
+def device(protocol: VoltKeyProtocol) -> None:
     print("DEVICE")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -288,7 +290,7 @@ def device(protocol):
     protocol.device_protocol(s)
 
 
-def host(protocol):
+def host(protocol: VoltKeyProtocol) -> None:
     print("HOST")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)

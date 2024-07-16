@@ -3,6 +3,7 @@ import multiprocessing as mp
 import os
 import struct
 from datetime import datetime as dt
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import chardet
 import matplotlib.pyplot as plt
@@ -19,22 +20,22 @@ from tsfresh.feature_extraction import MinimalFCParameters
 class IoTCupid_Protocol:
     def __init__(
         self,
-        sensors,
-        key_length,
-        a,
-        cluster_sizes_to_check,
-        feature_dim,
-        quantization_factor,
-        cluster_th,
-        window_size,
-        bottom_th,
-        top_th,
-        agg_th,
-        parity_symbols,
-        timeout,
-        logger,
-        verbose=True,
-    ):
+        sensors: List[Any],
+        key_length: int,
+        a: float,
+        cluster_sizes_to_check: int,
+        feature_dim: int,
+        quantization_factor: int,
+        cluster_th: float,
+        window_size: int,
+        bottom_th: float,
+        top_th: float,
+        agg_th: int,
+        parity_symbols: int,
+        timeout: int,
+        logger: Any,
+        verbose: bool = True,
+        ) -> None:
         self.sensors = sensors
 
         self.name = "iotcupid"
@@ -45,10 +46,10 @@ class IoTCupid_Protocol:
 
         self.verbose = verbose
 
-    def extract_context(self):
+    def extract_context(self) -> None:
         pass
 
-    def parameters(self, is_host):
+    def parameters(self, is_host: bool) -> str:
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
         parameters += f"sensor: {self.sensor.sensor.name}\n"
         parameters += f"key_length: {self.key_length}\n"
@@ -60,10 +61,10 @@ class IoTCupid_Protocol:
         parameters += f"parity_symbols: {self.parity_symbols}\n"
         parameters += f"time_length: {self.time_length}\n"
 
-    def device_protocol(self, host):
+    def device_protocol(self, host: Any) -> None:
         pass
 
-    def host_protocol(self, device_sockets):
+    def host_protocol(self, device_sockets: List[Any]) -> None:
         # Log parameters to the NFS server
         self.logger.log([("parameters", "txt", self.parameters(True))])
 
@@ -74,10 +75,10 @@ class IoTCupid_Protocol:
             p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
             p.start()
 
-    def host_protocol_single_threaded(self, device_socket):
+    def host_protocol_single_threaded(self, device_socket: Any) -> None:
         pass
 
-    def ewma_filter(self, dataframe, column_name, alpha=0.15):
+    def ewma_filter(self, dataframe: pd.DataFrame, column_name: str, alpha: float = 0.15) -> pd.DataFrame:
         # Commented out the normalization
         # dataframe[column_name] = dataframe[column_name] - dataframe[column_name].mean()
         dataframe[column_name] = (
@@ -85,7 +86,7 @@ class IoTCupid_Protocol:
         )
         return dataframe
 
-    def compute_derivative(self, signal, window_size):
+    def compute_derivative(self, signal: pd.DataFrame, window_size: int) -> pd.DataFrame:
         signal["timestamp"] = pd.to_datetime(
             signal["timestamp"]
         )  # Ensure datetime type
@@ -105,7 +106,7 @@ class IoTCupid_Protocol:
         print("Derivative dataframe:", derivative_df)
         return derivative_df
 
-    def detect_events(self, derivatives, bottom_th, top_th, agg_th):
+    def detect_events(self, derivatives: pd.DataFrame, bottom_th: float, top_th: float, agg_th: int) -> List[Tuple[int, int]]:
         events = []
         event_start = None
         in_event = False
@@ -129,7 +130,7 @@ class IoTCupid_Protocol:
 
         return events
 
-    def get_event_features(self, events, sensor_data, feature_dim):
+    def get_event_features(self, events: List[Tuple[int, int], sensor_data: np.ndarray, feature_dim: int) -> np.ndarray:
         timeseries = []
         for i, (start, end) in enumerate(events):
             for time_point in range(start, end):
@@ -158,7 +159,7 @@ class IoTCupid_Protocol:
 
         return reduced_dim
 
-    def fuzzy_cmeans_w_elbow_method(self, features, max_clusters, m, cluster_th):
+        def fuzzy_cmeans_w_elbow_method(self, features: np.ndarray, max_clusters: int, m: float, cluster_th: float) -> Tuple[bp.ndarray, np.ndarray, int, List[float]]:
         # Array to store the Fuzzy Partition Coefficient (FPC)
         fpcs = []
 
@@ -188,7 +189,7 @@ class IoTCupid_Protocol:
 
         return cntr, u, optimal_clusters, fpcs
 
-    def calculate_cluster_dispersion(self, features, u, cntr):
+    def calculate_cluster_dispersion(self, features: np.ndarray, u: np.ndarray, cntr: np.ndarray) -> float:
         # Recalculate distances from each sample to each cluster center
         distances = np.zeros(
             (u.shape[0], features.shape[0])
@@ -201,7 +202,7 @@ class IoTCupid_Protocol:
         dispersion = np.sum(u**2 * distances**2)
         return dispersion
 
-    def grid_search_m(self, features, max_clusters):
+    def grid_search_m(self, features: np.ndarray, max_clusters: int) -> float:
         best_m = None
         best_score = np.inf
 
@@ -216,7 +217,7 @@ class IoTCupid_Protocol:
 
         return best_m
 
-    def group_events(self, events, u):
+    def group_events(self, events: List[Tuple[int, int]], u: np.ndarray) -> List[List[Tuple[int, int]]]:
         # Group events based on maximum membership value
         labels = np.argmax(u, axis=0)
         event_groups = [[] for _ in range(u.shape[0])]
@@ -224,7 +225,7 @@ class IoTCupid_Protocol:
             event_groups[label].append(event)
         return event_groups
 
-    def calculate_inter_event_timings(self, grouped_events):
+    def calculate_inter_event_timings(self, grouped_events: List[List[Tuple[int, int]]]) -> Dict[int, np.ndarray]:
         inter_event_timings = {}
         for cluster_id, events in enumerate(grouped_events):
             if len(events) > 1:
@@ -234,7 +235,7 @@ class IoTCupid_Protocol:
                 inter_event_timings[cluster_id] = intervals
         return inter_event_timings
 
-    def encode_timings_to_bits(self, inter_event_timings, quantization_factor=100):
+    def encode_timings_to_bits(self, inter_event_timings: Dict[int, np.ndarray], quantization_factor: int = 100) -> Dict[int, str]:
         encoded_timings = {}
         for cluster_id, timings in inter_event_timings.items():
             quantized_timings = np.floor(timings / quantization_factor).astype(int)
@@ -242,25 +243,25 @@ class IoTCupid_Protocol:
             encoded_timings[cluster_id] = "".join(bit_strings)
         return encoded_timings
 
-    def extract_column_values(self, df, column_name):
+    def extract_column_values(self, df: pd.DataFrame, column_name: str) -> np.ndarray:
         return df[column_name].values
 
     def iotcupid(
         self,
-        raw,
-        pre_events,
-        key_size,
-        Fs,
-        a,
-        cluster_sizes_to_check,
-        feature_dim,
-        quantization_factor,
-        cluster_th,
-        window_size,
-        bottom_th,
-        top_th,
-        agg_th,
-    ):
+        raw: pd.DataFrame,
+        pre_events: List[Tuple[dt, Any]],
+        key_size: int,
+        Fs: int,
+        a: float,
+        cluster_sizes_to_check: int,
+        feature_dim: int,
+        quantization_factor: int,
+        cluster_th: float,
+        window_size: int,
+        bottom_th: float,
+        top_th: float,
+        agg_th: int,
+        ) -> Tuple[Dict[int, str], List[Tuple[int, int]]]: 
         smoothed_data = self.ewma_filter(raw, "rms_db", a)
         print("Smoothed data:", smoothed_data)
 
@@ -297,7 +298,7 @@ class IoTCupid_Protocol:
         return encoded_timings, grouped_events
 
 
-def load_sensor_data(directory):
+def load_sensor_data(directory: str) -> pd.DataFrame:
     files = [
         os.path.join(directory, file)
         for file in os.listdir(directory)
@@ -330,11 +331,11 @@ def load_sensor_data(directory):
     return full_data
 
 
-def extract_column_values_raw(df, column_name):
+def extract_column_values_raw(df: pd.DataFrame, column_name: str) -> np.ndarray:
     return df[column_name].values
 
 
-def detect_encoding(file_path):
+def detect_encoding(file_path: str) -> Optional[str]: 
     with open(file_path, "rb") as file:
         result = chardet.detect(file.read())
         encoding = result["encoding"]
@@ -342,13 +343,13 @@ def detect_encoding(file_path):
         return encoding
 
 
-def get_timestamps(files_directory):
+def get_timestamps(files_directory: str) -> List[Tuple[dt, Any]]: 
     import os
 
     import pandas as pd
 
     filenames = os.listdir(files_directory)
-    events = []
+    events: List[Tuple[dt, Any]] = []
     for f in filenames:
         if f.startswith("."):  # skip swap files or other non-CSV/temporary files
             continue
@@ -374,7 +375,7 @@ def get_timestamps(files_directory):
     return events
 
 
-def get_all_event_time_stamps(directory, relative_file_paths, event_name):
+def get_all_event_time_stamps(directory: str, relative_file_paths: List[str], event_name: List[str]) -> Dict[str, List[Tuple[dt, Any]]]:
     event_dictionary = dict()
     for path, name in zip(relative_file_paths, event_name):
         file_path = directory + path

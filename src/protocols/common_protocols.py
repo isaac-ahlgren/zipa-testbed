@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 from cryptography.hazmat.primitives import constant_time, hmac
 
@@ -6,13 +7,13 @@ from networking.network import *
 
 
 def send_nonce_msg_to_device(
-    connection,
-    recieved_nonce_msg,
-    derived_key,
-    prederived_key_hash,
-    nonce_byte_size,
-    hash_func,
-):
+    connection: Any,
+    recieved_nonce_msg: bytes,
+    derived_key: bytes,
+    prederived_key_hash: bytes,
+    nonce_byte_size: int,
+    hash_func: hashes.HashAlgorithm,
+) -> bytes:
     nonce = os.urandom(nonce_byte_size)
 
     # Concatenate nonces together
@@ -34,12 +35,12 @@ def send_nonce_msg_to_device(
 
 
 def send_nonce_msg_to_host(
-    connection,
-    prederived_key_hash,
-    derived_key,
-    nonce_byte_size,
-    hash_func,
-):
+    connection: Any,
+    prederived_key_hash: bytes,
+    derived_key: bytes,
+    nonce_byte_size: int,
+    hash_func: hashes.HashAlgorithm,
+) -> bytes:
     # Generate Nonce
     nonce = os.urandom(nonce_byte_size)
 
@@ -57,12 +58,12 @@ def send_nonce_msg_to_host(
 
 
 def verify_mac_from_host(
-    recieved_nonce_msg,
-    generated_nonce,
-    derived_key,
-    nonce_byte_size,
-    hash_func,
-):
+    recieved_nonce_msg: bytes,
+    generated_nonce: bytes,
+    derived_key: bytes,
+    nonce_byte_size: int,
+    hash_func: hashes.HashAlgorithm,
+) -> bool:
     success = False
 
     recieved_nonce = recieved_nonce_msg[0:nonce_byte_size]
@@ -79,12 +80,12 @@ def verify_mac_from_host(
 
 
 def verify_mac_from_device(
-    recieved_nonce_msg,
-    derived_key,
-    prederived_key_hash,
-    nonce_byte_size,
-    hash_func,
-):
+    recieved_nonce_msg: bytes,
+    derived_key: bytes,
+    prederived_key_hash: bytes,
+    nonce_byte_size: int,
+    hash_func: hashes.HashAlgorithm,
+) -> bool:
     success = False
 
     # Retrieve nonce used by device

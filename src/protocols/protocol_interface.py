@@ -1,4 +1,5 @@
 from multiprocessing import Process, Queue, Value, Lock
+from typing import List, Tuple, Any, Union
 
 from cryptography.hazmat.primitives import hashes
 
@@ -7,7 +8,7 @@ from error_correction.reed_solomon import ReedSolomonObj
 
 
 class ProtocolInterface:
-    def __init__(self, parameters, sensor, logger):
+    def __init__(self, parameters: dict, sensor: Any, logger: Any) -> None:
         self.verbose = parameters["verbose"]
         self.sensor = sensor
         self.logger = logger
@@ -24,13 +25,13 @@ class ProtocolInterface:
         )
         self.sensor.add_protocol_queue((self.flag, self.queue))
 
-    def hash_function(self, bytes):
+    def hash_function(self, bytes_data: bytes) -> bytes:
         hash_func = hashes.Hash(self.hash_func)
         hash_func.update(bytes)
 
         return hash_func.finalize()
 
-    def host_protocol(self, device_sockets):
+    def host_protocol(self, device_sockets: List[Any]) -> None:
         # Log current paramters to the NFS server
         self.logger.log([("parameters", "txt", self.parameters(True))])
 
@@ -41,14 +42,14 @@ class ProtocolInterface:
             p.start()
 
     # Must be implemented on a protocol basis
-    def device_protocol(self, host):
+    def device_protocol(self, host: Any) -> None:
         raise NotImplementedError
 
-    def host_protocol_single_threaded(self, device_socket):
+    def host_protocol_single_threaded(self, device_socket: Any) -> None:
         raise NotImplementedError
 
-    def extract_context(self):
+    def extract_context(self) -> Tuple[bytes, Any]:
         raise NotImplementedError
 
-    def parameters(self, is_host):
+    def parameters(self, is_host: bool) -> str:
         raise NotImplementedError

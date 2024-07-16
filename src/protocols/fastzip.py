@@ -1,4 +1,5 @@
 from math import ceil
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
@@ -9,16 +10,16 @@ from protocols.protocol_interface import ProtocolInterface
 
 # WIP
 class FastZIP_Protocol(ProtocolInterface):
-    def __init__(self, parameters, sensor, logger):
+    def __init__(self, parameters: dict, sensor: Any, logger: Any) -> None:
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "FastZIP_Protocol"
         self.wip = True
         self.count = 0
 
-    def extract_context(self):
+    def extract_context(self) -> None:
         pass
 
-    def parameters(self, is_host):
+    def parameters(self, is_host: bool) -> None:
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
         parameters += f"sensor: {self.sensor.sensor.name}\n"
         parameters += f"key_length: {self.key_length}\n"
@@ -27,13 +28,13 @@ class FastZIP_Protocol(ProtocolInterface):
         parameters += f"band_length: {self.band_len}\n"
         parameters += f"time_length: {self.time_length}\n"
 
-    def device_protocol(self, host):
+    def device_protocol(self, host: Any) -> None:
         pass
 
-    def host_protocol_single_threaded(self, device_socket):
+    def host_protocol_single_threaded(self, device_socket: Any) -> None:
         pass
 
-    def normalize_signal(sig):
+    def normalize_signal(sig: np.ndarray) -> np.ndarray:
         # Check if sig is non-zero
         if len(sig) == 0:
             print("normalize_signal: signal must have non-zero length!")
@@ -47,39 +48,39 @@ class FastZIP_Protocol(ProtocolInterface):
 
         return norm_sig
 
-    def remove_noise(data):
+    def remove_noise(data: np.ndarray) -> np.ndarray:
         rn_data = np.zeros(data.shape)
         rn_data = gaussian_filter(savgol_filter(data, 5, 3), sigma=1.4)
 
         return rn_data
 
-    def ewma_filter(data, alpha=0.15):
+    def ewma_filter(data: np.ndarray, alpha: float = 0.15) -> np.ndarray:
         ewma_data = np.zeros(len(data))
         ewma_data[0] = data[0]
         for i in range(1, len(ewma_data)):
             ewma_data[i] = alpha * data[i] + (1 - alpha) * ewma_data[i - 1]
         return ewma_data
 
-    def compute_sig_power(sig):
+    def compute_sig_power(sig: np.ndarray) -> float:
         if len(sig) == 0:
             print("compute_sig_power: signal must have non-zero length!")
             return
         return 10 * np.log10(np.sum(sig**2) / len(sig))
 
-    def compute_snr(sig):
+    def compute_snr(sig: np.ndarray) -> float:
         if len(sig) == 0:
             print("compute_snr: signal must have non-zero length!")
             return
         return np.mean(abs(sig)) / np.std(abs(sig))
 
-    def get_peaks(sig):
+    def get_peaks(sig: np.ndarray, sample_rate: int) -> int:
         peak_height = np.mean(sorted(sig)[-9:]) * 0.2
         peaks, _ = FastZIP_Protocol.find_peaks(
             sig, height=peak_height, distance=0.25 * self.sample_rate
         )
         return len(peaks)
 
-    def activity_filter(signal, power_thresh, snr_thresh, peak_thresh):
+    def activity_filter(signal: np.ndarray, power_thresh: float, snr_thresh: float, peak_thresh: int) -> bool:
         # Ensure signal is a numpy array
         signal = np.copy(signal)
 
@@ -102,7 +103,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
         return activity_detected
 
-    def compute_qs_thr(chunk, bias):
+    def compute_qs_thr(chunk: np.ndarray, bias: float) -> float:
         # Make a copy of chunk
         chunk_cpy = np.copy(chunk)
 
@@ -111,7 +112,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
         return np.median(chunk_cpy) + bias
 
-    def generate_equidist_points(self, chunk_len, step, eqd_delta):
+    def generate_equidist_points(self, chunk_len: int, step: int, eqd_delta: int) -> Tuple[np.ndarray, int]:
         # Equidistant delta cannot be bigger than the step
         if eqd_delta > step:
             print('generate_equidist_points: "eqd_delta" must be smaller than "step"')
@@ -134,17 +135,17 @@ class FastZIP_Protocol(ProtocolInterface):
         return eqd_rand_points, len(eqd_rand_points)
 
     def compute_fingerprint(
-        data,
-        n_bits,
-        power_thresh,
-        snr_thresh,
-        peak_thresh,
-        bias,
-        ewma_filter=False,
-        alpha=0.015,
-        remove_noise=False,
-        normalize=False,
-    ):
+        data: np.ndarray,
+        n_bits: int,
+        power_thresh: float,
+        snr_thresh: float,
+        peak_thresh: int,
+        bias: float,
+        ewma_filter: bool = False,
+        alpha: float = 0.015,
+        remove_noise: bool = False,
+        normalize: bool = False,
+    ) -> Optional[str]:
         fp = None
 
         if normalize:
@@ -176,17 +177,17 @@ class FastZIP_Protocol(ProtocolInterface):
         return fp
 
     def fastzip_algo(
-        sensor_data_list,
-        n_bits_list,
-        power_thresh_list,
-        snr_thresh_list,
-        peak_thresh_list,
-        bias_list,
-        ewma_filter_list=None,
-        alpha_list=None,
-        remove_noise_list=None,
-        normalize_list=None,
-    ):
+        sensor_data_list: List[np.ndarray],
+        n_bits_list: List[int],
+        power_thresh_list: List[float],
+        snr_thresh_list: List[float],
+        peak_thresh_list: List[int],
+        bias_list: List[int],
+        ewma_filter_list: Optional[List[bool]] = None,
+        alpha_list: Optional[List[float]] = None,
+        remove_noise_list: Optional[List[bool]] = None,
+        normalize_list: Optional[List[bool]] = None,
+    ) -> str:
         key = ""
 
         for i in range(len(sensor_data)):
