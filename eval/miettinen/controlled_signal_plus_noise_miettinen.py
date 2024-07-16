@@ -24,8 +24,8 @@ def controlled_signal_plus_noise_eval(
     legit_bit_errs = []
     adv_bit_errs = []
     
-    signal, sr = load_controlled_signal("../controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal("../adversary_controlled_signal.wav")
+    signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal("../../data/adversary_controlled_signal.wav")
     w_in_samples = int(w * sr)
     f_in_samples = int(f * sr)
     sample_num = miettinen_calc_sample_num(
@@ -83,8 +83,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-w", "--snap_shot_width", type=float, default=5)
     parser.add_argument("-f", "--no_snap_shot_width", type=float, default=5)
-    parser.add_argument("-at", "--absolute_threshold", type=float, default=0.5)
-    parser.add_argument("-rt", "--relative_threshold", type=float, default=0.1)
+    parser.add_argument("-at", "--absolute_threshold", type=float, default=1)
+    parser.add_argument("-rt", "--relative_threshold", type=float, default=5e-6)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
     parser.add_argument("-snr", "--snr_level", type=float, default=20)
     parser.add_argument("-t", "--trials", type=int, default=100)
