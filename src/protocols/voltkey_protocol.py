@@ -10,6 +10,15 @@ OUTLET_FREQ = 60  # Hz
 
 
 class VoltKeyProtocol(ProtocolInterface):
+    """
+    Implements a protocol to extract cryptographic keys from electrical voltage measurements
+    over power lines, using properties of the power grid's signal.
+
+    :param parameters: Configuration dictionary containing key parameters such as periods, bins, etc.
+    :param sensor: Sensor object used to collect voltage data.
+    :param logger: Logger object for recording protocol operations and data.
+    """
+
     def __init__(self, parameters, sensor, logger):
         # General protocol information
         ProtocolInterface.__init__(self, parameters, sensor, logger)
@@ -27,16 +36,33 @@ class VoltKeyProtocol(ProtocolInterface):
         )  # Samples within a cycle
 
     def extract_signal(self):
+        """
+        Reads the signal from the sensor for the time length specified by the protocol configuration.
+
+        :return: The raw signal data as a numpy array.
+        """
         signal = self.sensor.read(self.time_length)
         return signal
 
     def extract_context(self, filtered_signal):
+        """
+        Converts a filtered signal into a bit string that can be used as a cryptographic key or similar.
+
+        :param filtered_signal: The signal from which context (key material) is extracted.
+        :return: A byte string derived from the bit string representation of the signal.
+        """
         """
         VoltKey protocol host needs preamble from device. Cannot perform bit
         extraction until host dataset is synchronized with device dataset
         """
 
         def bitstring_to_bytes(s):
+            """
+            Converts a bit string to a byte array.
+
+            :param s: String of bits.
+            :return: Corresponding byte array.
+            """
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         bits = self.voltkey_algo(filtered_signal)
@@ -44,6 +70,13 @@ class VoltKeyProtocol(ProtocolInterface):
         return bitstring_to_bytes(bits)
 
     def sync(self, signal, preamble):
+        """
+        Synchronizes the signal with a given preamble by finding the best correlation point.
+
+        :param signal: The complete signal from which to extract synchronized data.
+        :param preamble: A shorter signal segment used as a reference for synchronization.
+        :return: The synchronized part of the signal starting from the best correlation point.
+        """
         """
         Aligns datasets through client preamble.
         """
@@ -57,6 +90,12 @@ class VoltKeyProtocol(ProtocolInterface):
         return synced_frames
 
     def signal_processing(self, signal):
+        """
+        Processes the raw signal to filter out the main frequency component, leaving residual noise.
+
+        :param signal: Raw signal to process.
+        :return: Filtered signal with main frequency components reduced.
+        """
         """
         Assuming the length of a sinusoid period
 
@@ -82,6 +121,12 @@ class VoltKeyProtocol(ProtocolInterface):
         return filtered_frames
 
     def gen_key(self, signal):
+        """
+        Generates a bit string based on the signal's deviations from its mean.
+
+        :param signal: The filtered signal used for key generation.
+        :return: A bit string where each bit is derived from comparing signal deviations to the average.
+        """
         bits = ""
         step = len(signal) // (
             (self.periods - 1) * self.bins
@@ -106,6 +151,12 @@ class VoltKeyProtocol(ProtocolInterface):
         return bits
 
     def voltkey_algo(self, signal):
+        """
+        Wrapper function that processes a signal and generates a cryptographic key.
+
+        :param signal: The raw electrical signal from which to generate the key.
+        :return: The cryptographic key derived from the signal.
+        """
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
@@ -117,6 +168,11 @@ class VoltKeyProtocol(ProtocolInterface):
         return bitstring_to_bytes(key)
 
     def device_protocol(self, host):
+        """
+        Device side of the protocol which communicates with the host to synchronize and exchange cryptographic material.
+
+        :param host: The host's socket connection.
+        """
         host.setblocking(1)
 
         if self.verbose:
@@ -191,6 +247,11 @@ class VoltKeyProtocol(ProtocolInterface):
         self.count += 1
 
     def host_protocol(self, devices):
+        """
+        Host side of the protocol which manages multiple devices for key extraction.
+
+        :param devices: A list of device connections to handle.
+        """
         # self.logger.log([("parameters", "txt", self.parameters(True))])
 
         if self.verbose:
@@ -201,6 +262,11 @@ class VoltKeyProtocol(ProtocolInterface):
             process.start()
 
     def host_protocol_threaded(self, device):
+        """
+        A threaded version of the host protocol to handle individual device connections.
+
+        :param device: The device socket to handle.
+        """
         self.host = True
 
         if not ack_standby(device, self.timeout):
@@ -257,6 +323,12 @@ class VoltKeyProtocol(ProtocolInterface):
 
     def parameters(self, is_host):
         """
+        Formats and returns protocol parameters for logging or display.
+
+        :param is_host: Indicates if the parameters are for the host side.
+        :return: Formatted string of the protocol parameters.
+        """
+        """
         Converts parameters from JSON to string format for NFS logging
         """
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
@@ -279,6 +351,12 @@ import socket
 
 
 def device(protocol):
+    """
+    Sets up a device-side communication for the protocol.
+
+    :param prot: An instance of the Perceptio_Protocol class to manage the device side of the connection.
+    This function configures the socket settings, connects to a specified server, and initiates the device protocol.
+    """
     print("DEVICE")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
@@ -289,6 +367,12 @@ def device(protocol):
 
 
 def host(protocol):
+    """
+    Sets up a host-side communication for the protocol.
+
+    :param prot: An instance of the Perceptio_Protocol class to manage the host side of the connection.
+    This function configures the server socket settings, accepts incoming connections, and initiates the host protocol.
+    """
     print("HOST")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)

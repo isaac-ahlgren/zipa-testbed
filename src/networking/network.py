@@ -14,6 +14,12 @@ FAIL = "failed  "
 
 
 def send_status(connection, status):
+    """
+    Sends a success or failure status over a connection.
+
+    :param connection: The network connection over which to send the status.
+    :param status: The boolean status indicating success (True) or failure (False).
+    """
     if status:
         msg = SUCC
     else:
@@ -22,6 +28,13 @@ def send_status(connection, status):
 
 
 def status_standby(connection, timeout):
+    """
+    Waits for a success or failure status message within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for a status.
+    :returns: True if success, False if failure, None if timeout.
+    """
     status = None
     reference = time.time()
     timestamp = reference
@@ -45,10 +58,22 @@ def status_standby(connection, timeout):
 
 
 def ack(connection):
+    """
+    Sends an acknowledgement message over a connection.
+
+    :param connection: The network connection over which to send the acknowledgement.
+    """
     connection.send(ACKN.encode())
 
 
 def ack_standby(connection, timeout):
+    """
+    Waits for an acknowledgement within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for an acknowledgement.
+    :returns: True if acknowledged, False if timeout occurred.
+    """
     acknowledged = False
     reference = time.time()
     timestamp = reference
@@ -69,6 +94,13 @@ def ack_standby(connection, timeout):
 
 
 def send_commit(commitments, hashes, device):
+    """
+    Sends commitments along with their corresponding hashes over a network connection.
+
+    :param commitments: List of commitments to be sent.
+    :param hashes: List of hashes corresponding to the commitments.
+    :param device: The network connection to send data over.
+    """
     # Prepare number of commitments and their lengths
     number_of_commitments = len(commitments).to_bytes(4, byteorder="big")
     com_length = len(commitments[0]).to_bytes(4, byteorder="big")
@@ -89,6 +121,13 @@ def send_commit(commitments, hashes, device):
 
 
 def commit_standby(connection, timeout):
+    """
+    Waits for commitments and their hashes to be received within a specified timeout.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the data.
+    :returns: A tuple (commitments, hashes) if received, None otherwise.
+    """
     reference = time.time()
     timestamp = reference
     commitments = None
@@ -131,12 +170,25 @@ def commit_standby(connection, timeout):
 
 
 def dh_exchange(connection, key):
+    """
+    Sends a Diffie-Hellman key over a network connection.
+
+    :param connection: The network connection to send the key over.
+    :param key: The key to be sent.
+    """
     key_size = len(key).to_bytes(4, byteorder="big")
     message = DHKY.encode() + key_size + key
     connection.send(message)
 
 
 def dh_exchange_standby(connection, timeout):
+    """
+    Waits to receive a Diffie-Hellman key within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the key.
+    :returns: The received key if successful, None otherwise.
+    """
     reference = time.time()
     timestamp = reference
     key = None
@@ -159,12 +211,25 @@ def dh_exchange_standby(connection, timeout):
 
 
 def send_nonce_msg(connection, nonce):
+    """
+    Sends a nonce message over a network connection.
+
+    :param connection: The network connection to send the nonce over.
+    :param nonce: The nonce to send.
+    """
     nonce_size = len(nonce).to_bytes(4, byteorder="big")
     message = NONC.encode() + nonce_size + nonce
     connection.send(message)
 
 
 def get_nonce_msg_standby(connection, timeout):
+    """
+    Waits to receive a nonce within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the nonce.
+    :returns: The received nonce if successful, None otherwise.
+    """
     reference = time.time()
     timestamp = reference
     nonce = None
@@ -188,6 +253,12 @@ def get_nonce_msg_standby(connection, timeout):
 
 def send_preamble(connenction, preamble):
     """
+    Sends a preamble for synchronization in the VoltKey protocol.
+
+    :param connection: The network connection to send the preamble over.
+    :param preamble: The preamble data to send.
+    """
+    """
     Used in VoltKey protocol. Client device sends first
     sinusoidal period to the host for synchronization.
     """
@@ -200,6 +271,13 @@ def send_preamble(connenction, preamble):
 
 
 def get_preamble(connection, timeout):
+    """
+    Waits to receive a preamble within a specified timeout period for synchronization in the VoltKey protocol.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the preamble.
+    :returns: The received preamble if successful, None otherwise.
+    """
     """
     Used in VoltKey protocol. Host device recieves preamble
     from client to synchronize dataset.

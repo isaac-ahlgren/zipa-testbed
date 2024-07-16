@@ -5,7 +5,19 @@ import numpy as np
 
 
 class Sensor_Reader:
+    """
+    Manages reading data from a sensor into a shared memory buffer, ensuring synchronized access
+    among multiple client processes. This class initializes the shared memory, handles the polling
+    of data from the sensor, and provides a mechanism to safely read the data.
+
+    :param device: An instance of a sensor device that provides the data to be read.
+    """
     def __init__(self, device):
+        """
+        Initializes the Sensor_Reader with a sensor device.
+
+        :param device: The sensor object from which data will be read. Must have properties like data_type, buffer_size.
+        """
         self.sensor = device
         self.shm = shared_memory.SharedMemory(
             create=True,
@@ -26,6 +38,10 @@ class Sensor_Reader:
         self.poll_process.start()
 
     def poll(self):
+        """
+        Continuously polls data from the sensor and writes it into a shared memory buffer.
+        Manages buffer wrapping and synchronization across processes accessing the data.
+        """
 
         full_buffer = False
         self.mutex.acquire()
@@ -63,6 +79,13 @@ class Sensor_Reader:
             self.mutex.release()
 
     def read(self, sample_num):
+        """
+        Reads a specified number of samples from the shared memory buffer.
+
+        :param sample_num: The number of samples to read.
+        :return: An array of sensor data.
+        :raises Exception: If the sample_num requested exceeds the buffer size.
+        """
         if sample_num > self.sensor.buffer_size:
             raise Exception(
                 "Sensor_Reader.read: Cannot request more data than the buffer size"

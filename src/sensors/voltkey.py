@@ -20,7 +20,19 @@ BOOT = b"Booting...\r\n"
 
 
 class Voltkey(SensorInterface):
+    """
+    A sensor interface implementation for communicating with a hardware sensor over a serial port.
+    This class initializes the sensor, configures it via serial commands, and reads data in chunks.
+
+    :param config: Configuration dictionary containing 'sample_rate', 'time_collected', and 'chunk_size'.
+    """
     def __init__(self, config):
+        """
+        Initializes the Voltkey sensor interface with configuration settings.
+
+        :param config: A dictionary containing configuration parameters such as sample rate, time collected,
+                       and chunk size for data reading.
+        """
         SensorInterface.__init__(self)
         self.sample_rate = config.get('sample_rate')
         self.buffer_size = config.get('sample_rate') * config.get('time_collected')
@@ -35,6 +47,10 @@ class Voltkey(SensorInterface):
         self.mutex = mp.Semaphore()
 
     def start(self):
+        """
+        Initiates the sensor by sending setup commands via serial, checks for acknowledgments,
+        and confirms the connection and readiness of the sensor.
+        """
         with self.mutex:
             serial_message = b""
 
@@ -90,6 +106,9 @@ class Voltkey(SensorInterface):
             self.started.value = 1
 
     def stop(self):
+        """
+        Stops the sensor by sending a reset command and ensures the sensor ceases readings.
+        """
         serial_message = b""
 
         with self.mutex:
@@ -104,6 +123,12 @@ class Voltkey(SensorInterface):
                     print(f"Recieved from sensor: {serial_message}")
 
     def read(self):
+        """
+        Reads data from the sensor. This function assumes the sensor is continuously sending data
+        and reads a chunk of data based on the configuration.
+
+        :return: A numpy array containing the cleaned sensor data.
+        """
         # Read doesn't get mutex lock until sensor's started
         if self.started.value == 0:
             time.sleep(0.1)
