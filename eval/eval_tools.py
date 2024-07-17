@@ -35,14 +35,14 @@ class Signal_File:
             samples_can_read = len(self.sample_buffer) - self.start_sample
             if samples_can_read <= samples:
                 buffer = self.sample_buffer[
-                    self.start_sample: self.start_sample + samples_can_read
+                    self.start_sample : self.start_sample + samples_can_read
                 ]
                 output = np.append(output, buffer)
                 self.switch_files()
                 samples -= samples_can_read
             else:
                 buffer = self.sample_buffer[
-                    self.start_sample: self.start_sample + samples
+                    self.start_sample : self.start_sample + samples
                 ]
                 output = np.append(output, buffer)
                 self.start_sample = self.start_sample + samples
@@ -106,14 +106,6 @@ def events_cmp_bits(fp1, fp2, length_in_bits):
     return lowest_bit_error
 
 
-def events_get_average_bit_err(fps1, fps2, length_in_bits):
-    avg_bit_err = 0
-    for i in range(len(fps1)):
-        bit_err = events_cmp_bits(bs1, bs2)
-        avg_bit_err += bit_err
-    return avg_bit_err / len(fps1)
-
-
 def flatten_fingerprints(fps):
     flattened_fps = []
     for fp in fps:
@@ -127,14 +119,10 @@ def get_min_entropy(bits, key_length, symbol_size):
     for b in bits:
         bs = bytes_to_bitstring(b, key_length)
         for i in range(0, key_length // symbol_size, symbol_size):
-            symbol = bs[i * symbol_size: (i + 1) * symbol_size]
+            symbol = bs[i * symbol_size : (i + 1) * symbol_size]
             arr.append(int(symbol, 2))
 
     hist, bin_edges = np.histogram(arr, bins=2**symbol_size)
     pdf = hist / sum(hist)
     max_prob = np.max(pdf)
-    print("Min Entropy:")
-    print(max_prob)
-    print(hist)
-    print()
     return -np.log2(max_prob)

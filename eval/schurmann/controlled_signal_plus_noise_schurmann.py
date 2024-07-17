@@ -61,12 +61,12 @@ def wrap_around_read(buffer, index, samples_to_read):
     while samples_to_read != 0:
         samples_can_read = len(buffer) - index
         if samples_can_read <= samples_to_read:
-            buf = buffer[index: index + samples_can_read]
+            buf = buffer[index : index + samples_can_read]
             output = np.append(output, buf)
             samples_to_read = samples_to_read - samples_can_read
             index = 0
         else:
-            buf = buffer[index: index + samples_to_read]
+            buf = buffer[index : index + samples_to_read]
             output = np.append(output, buf)
             index = index + samples_to_read
             samples_to_read = 0

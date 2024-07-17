@@ -38,7 +38,7 @@ repos:
     rev: 7.1.0
     hooks:
       - id: flake8
-        args: ['--ignore=E501']
+        args: ['--ignore=E501,E203', '--exclude=eval_fastzip.py,eval_perceptio.py']
         files: '\.py$'
 
   - repo: https://github.com/PyCQA/bandit

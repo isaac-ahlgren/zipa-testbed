@@ -120,5 +120,5 @@ class ReedSolomonObj:
         if self.check_syndrome(self.rs_instance):
             self.correct_errors_erasures(np_C, len(np_C), 0, erasures, self.rs_instance)
 
-        key = np_C[0: self.k]
+        key = np_C[0 : self.k]
         return bytearray(key.tobytes())

@@ -29,7 +29,7 @@ def send_nonce_msg_to_device(
 
     # Concatenate nonces together
     pd_hash_len = len(prederived_key_hash)
-    recieved_nonce = recieved_nonce_msg[pd_hash_len: pd_hash_len + nonce_byte_size]
+    recieved_nonce = recieved_nonce_msg[pd_hash_len : pd_hash_len + nonce_byte_size]
     concat_nonce = nonce + recieved_nonce
 
     # Create tag of Nonce
@@ -131,14 +131,14 @@ def verify_mac_from_device(
 
     # Retrieve nonce used by device
     pd_hash_len = len(prederived_key_hash)
-    recieved_nonce = recieved_nonce_msg[pd_hash_len: pd_hash_len + nonce_byte_size]
+    recieved_nonce = recieved_nonce_msg[pd_hash_len : pd_hash_len + nonce_byte_size]
 
     # Generate new MAC tag for the nonce with respect to the derived key
     mac = hmac.HMAC(derived_key, hash_func)
     mac.update(recieved_nonce)
     generated_tag = mac.finalize()
 
-    recieved_tag = recieved_nonce_msg[pd_hash_len + nonce_byte_size:]
+    recieved_tag = recieved_nonce_msg[pd_hash_len + nonce_byte_size :]
     if constant_time.bytes_eq(generated_tag, recieved_tag):
         success = True
     return success

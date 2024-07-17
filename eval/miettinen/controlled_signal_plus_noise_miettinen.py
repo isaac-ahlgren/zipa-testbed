@@ -2,15 +2,16 @@ import argparse
 import os
 import sys
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 import numpy as np
-from eval_tools import cmp_bits
 from miettinen_tools import (
     add_gauss_noise,
     miettinen_calc_sample_num,
     miettinen_wrapper_func,
 )
 from scipy.io import wavfile
+
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import cmp_bits  # noqa: E402
 
 
 def controlled_signal_plus_noise_eval(
@@ -69,12 +70,12 @@ def wrap_around_read(buffer, index, samples_to_read):
     while samples_to_read != 0:
         samples_can_read = len(buffer) - index
         if samples_can_read <= samples_to_read:
-            buf = buffer[index: index + samples_can_read]
+            buf = buffer[index : index + samples_can_read]
             output = np.append(output, buf)
             samples_to_read -= samples_can_read
             index = 0
         else:
-            buf = buffer[index: index + samples_to_read]
+            buf = buffer[index : index + samples_to_read]
             output = np.append(output, buf)
             index = index + samples_to_read
             samples_to_read = 0

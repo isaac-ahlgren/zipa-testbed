@@ -133,7 +133,7 @@ class IoTCupid_Protocol:
         derivative_values = []
         derivative_times = []
         for i in range(window_size, len(signal)):
-            window = signal.iloc[i - window_size: i]
+            window = signal.iloc[i - window_size : i]
             derivative = (
                 window["rms_db"].iloc[-1] - window["rms_db"].iloc[0]
             ) / window_size
