@@ -1,7 +1,7 @@
 # TODO compare with Seemoo lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/Miettinen.ipynb
 import multiprocessing as mp
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes, hmac
@@ -11,7 +11,16 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from error_correction.corrector import Fuzzy_Commitment
 from error_correction.reed_solomon import ReedSolomonObj
-from networking.network import dh_exchange, send_nonce_msg, socket
+from networking.network import (
+    ack,
+    ack_standby,
+    dh_exchange,
+    dh_exchange_standby,
+    get_nonce_msg_standby,
+    send_commit,
+    send_nonce_msg,
+    socket,
+)
 
 
 class Miettinen_Protocol:
@@ -95,7 +104,7 @@ class Miettinen_Protocol:
             c[i] = np.mean(
                 signal[
                     i
-                    * (no_snap_shot_width + snap_shot_width) : i
+                    * (no_snap_shot_width + snap_shot_width): i
                     * (no_snap_shot_width + snap_shot_width)
                     + snap_shot_width
                 ]
@@ -582,7 +591,7 @@ class Miettinen_Protocol:
         # Concatenate nonces together
         pd_hash_len = len(prederived_key_hash)
         recieved_nonce = recieved_nonce_msg[
-            pd_hash_len : pd_hash_len + self.nonce_byte_size
+            pd_hash_len: pd_hash_len + self.nonce_byte_size
         ]
         concat_nonce = nonce + recieved_nonce
 

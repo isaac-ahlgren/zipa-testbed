@@ -127,7 +127,7 @@ def get_min_entropy(bits, key_length, symbol_size):
     for b in bits:
         bs = bytes_to_bitstring(b, key_length)
         for i in range(0, key_length // symbol_size, symbol_size):
-            symbol = bs[i * symbol_size : (i + 1) * symbol_size]
+            symbol = bs[i * symbol_size: (i + 1) * symbol_size]
             arr.append(int(symbol, 2))
 
     hist, bin_edges = np.histogram(arr, bins=2**symbol_size)

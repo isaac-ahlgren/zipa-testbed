@@ -1,5 +1,5 @@
 from multiprocessing import Lock, Process, Queue, Value
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Tuple
 
 from cryptography.hazmat.primitives import hashes
 

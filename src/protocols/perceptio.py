@@ -5,8 +5,22 @@ from cryptography.hazmat.primitives import constant_time
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from sklearn.cluster import KMeans
 
-from networking.network import *
-from protocols.common_protocols import *
+from networking.network import (
+    ack,
+    ack_standby,
+    commit_standby,
+    send_commit,
+    send_status,
+    socket,
+    status_standby,
+    time,
+)
+from protocols.common_protocols import (
+    get_nonce_msg_standby,
+    send_nonce_msg_to_host,
+    verify_mac_from_device,
+    verify_mac_from_host,
+)
 from protocols.protocol_interface import ProtocolInterface
 
 
