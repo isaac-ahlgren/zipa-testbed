@@ -2,13 +2,13 @@
 import os
 import sys
 
-sys.path.insert(
-    1, os.getcwd() + "/../../src/"
-)  # Gives us path to Schurmann and Siggs algorithm in /src
-
 import numpy as np
 
 from protocols.miettinen import Miettinen_Protocol
+
+sys.path.insert(
+    1, os.getcwd() + "/../../src/"
+)  # Gives us path to Schurmann and Siggs algorithm in /src
 
 MICROPHONE_SAMPLING_RATE = 48000
 

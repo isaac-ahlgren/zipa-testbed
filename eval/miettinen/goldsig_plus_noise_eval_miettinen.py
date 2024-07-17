@@ -2,7 +2,6 @@ import argparse
 import os
 import sys
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 import numpy as np
 from eval_tools import cmp_bits
 from miettinen_tools import (
@@ -13,6 +12,8 @@ from miettinen_tools import (
     miettinen_calc_sample_num,
     miettinen_wrapper_func,
 )
+
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 
 
 def goldsig_plus_noise_eval(
