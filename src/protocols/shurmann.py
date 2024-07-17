@@ -1,11 +1,18 @@
 import math
-import queue
-from typing import List, Optional, Tuple
+
+# import queue
+from typing import List, Tuple  # ,Optional
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
 
-from networking.network import *
+from networking.network import (
+    ack,
+    ack_standby,
+    commit_standby,
+    send_commit,
+    socket,
+)
 from protocols.protocol_interface import ProtocolInterface
 
 
@@ -61,20 +68,20 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         x = np.array(x1.copy())
         # wind = scipy.signal.windows.hann(window_len)
         for i in range(0, len(x), window_len):
-            if len(x[i : i + window_len]) < window_len:
+            if len(x[i: i + window_len]) < window_len:
                 # wind = scipy.signal.windows.hann(len(x[i:i+window_len]))
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
+                x[i: i + window_len] = x[i: i + window_len]  # * wind
             else:
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
+                x[i: i + window_len] = x[i: i + window_len]  # * wind
 
-            FFTs.append(abs(rfft(x[i : i + window_len])))
+            FFTs.append(abs(rfft(x[i: i + window_len])))
 
         E = {}
         bands_lst = []
         for i in range(0, len(FFTs)):
             frame = FFTs[i]
             bands_lst.append(
-                [frame[k : k + bands] for k in range(0, len(frame), bands)]
+                [frame[k: k + bands] for k in range(0, len(frame), bands)]
             )
             for j in range(0, len(bands_lst[i])):
                 E[(i, j)] = np.sum(bands_lst[i][j])
@@ -124,20 +131,20 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         x = np.array(x1.copy())
         # wind = scipy.signal.windows.hann(window_len)
         for i in range(0, len(x), window_len):
-            if len(x[i : i + window_len]) < window_len:
+            if len(x[i: i + window_len]) < window_len:
                 # wind = scipy.signal.windows.hann(len(x[i:i+window_len]))
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
+                x[i: i + window_len] = x[i: i + window_len]  # * wind
             else:
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
+                x[i: i + window_len] = x[i: i + window_len]  # * wind
 
-            fft_row = abs(rfft(x[i : i + window_len]))
+            fft_row = abs(rfft(x[i: i + window_len]))
             FFTs.append(fft_row[:antialias_bin])
         E = {}
         bands_lst = []
         for i in range(0, len(FFTs)):
             frame = FFTs[i]
             bands_lst.append(
-                [frame[k : k + bands] for k in range(0, len(frame), bands)]
+                [frame[k: k + bands] for k in range(0, len(frame), bands)]
             )
             for j in range(0, len(bands_lst[i])):
                 E[(i, j)] = np.sum(bands_lst[i][j])

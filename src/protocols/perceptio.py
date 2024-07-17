@@ -477,7 +477,7 @@ class Perceptio_Protocol(ProtocolInterface):
         event_features = []
         for i in range(len(events)):
             length = events[i][1] - events[i][0]
-            max_amplitude = np.max(signal[events[i][0] : events[i][1]])
+            max_amplitude = np.max(signal[events[i][0]: events[i][1]])
             event_features.append((length, max_amplitude))
         return event_features
 

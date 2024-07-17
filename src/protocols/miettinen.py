@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from error_correction.corrector import Fuzzy_Commitment
 from error_correction.reed_solomon import ReedSolomonObj
-from networking.network import *
+from networking.network import dh_exchange, send_nonce_msg, socket
 
 
 class Miettinen_Protocol:
@@ -639,14 +639,14 @@ class Miettinen_Protocol:
         """
         success = False
 
-        recieved_nonce = recieved_nonce_msg[0 : self.nonce_byte_size]
+        recieved_nonce = recieved_nonce_msg[0: self.nonce_byte_size]
 
         # Create tag of Nonce
         mac = hmac.HMAC(derived_key, self.hash_func)
         mac.update(recieved_nonce + generated_nonce)
         generated_tag = mac.finalize()
 
-        recieved_tag = recieved_nonce_msg[self.nonce_byte_size :]
+        recieved_tag = recieved_nonce_msg[self.nonce_byte_size:]
         if constant_time.bytes_eq(generated_tag, recieved_tag):
             success = True
         return success
@@ -668,7 +668,7 @@ class Miettinen_Protocol:
         # Retrieve nonce used by device
         pd_hash_len = len(prederived_key_hash)
         recieved_nonce = recieved_nonce_msg[
-            pd_hash_len : pd_hash_len + self.nonce_byte_size
+            pd_hash_len: pd_hash_len + self.nonce_byte_size
         ]
 
         # Generate new MAC tag for the nonce with respect to the derived key
@@ -676,7 +676,7 @@ class Miettinen_Protocol:
         mac.update(recieved_nonce)
         generated_tag = mac.finalize()
 
-        recieved_tag = recieved_nonce_msg[pd_hash_len + self.nonce_byte_size :]
+        recieved_tag = recieved_nonce_msg[pd_hash_len + self.nonce_byte_size:]
         if constant_time.bytes_eq(generated_tag, recieved_tag):
             success = True
         return success

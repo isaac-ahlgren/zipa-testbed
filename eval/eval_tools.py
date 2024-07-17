@@ -35,14 +35,14 @@ class Signal_File:
             samples_can_read = len(self.sample_buffer) - self.start_sample
             if samples_can_read <= samples:
                 buffer = self.sample_buffer[
-                    self.start_sample : self.start_sample + samples_can_read
+                    self.start_sample: self.start_sample + samples_can_read
                 ]
                 output = np.append(output, buffer)
                 self.switch_files()
                 samples -= samples_can_read
             else:
                 buffer = self.sample_buffer[
-                    self.start_sample : self.start_sample + samples
+                    self.start_sample: self.start_sample + samples
                 ]
                 output = np.append(output, buffer)
                 self.start_sample = self.start_sample + samples

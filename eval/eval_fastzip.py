@@ -4,7 +4,7 @@ import random
 import sys
 
 import pandas as pd
-from eval_tools import *
+from eval_tools import Signal_File, get_average_bit_err, get_min_entropy
 
 sys.path.insert(1, os.getcwd() + "/../src/")
 from protocols.shurmann.fastzip import FastZIP_Protocol
@@ -16,8 +16,7 @@ def fastzip_wrapper_func(arr, window_length, band_len):
 
 def generate_bits(sf, bit_length, window_length, band_length, max_samples):
     samples_per_key = (
-        math.ceil(((bit_length) / int((window_length / 2 + 1) / band_length)) + 1)
-        * window_length
+        math.ceil(((bit_length) / int((window_length / 2 + 1) / band_length)) + 1) * window_length
     )
 
     number_of_keys = max_samples // samples_per_key
