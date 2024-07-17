@@ -1,9 +1,9 @@
 import math
-import queue
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
+from scipy.fft import rfft
 
 from networking.network import *
 from protocols.protocol_interface import ProtocolInterface

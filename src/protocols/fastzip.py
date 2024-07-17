@@ -1,5 +1,5 @@
 from math import ceil
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Any
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
