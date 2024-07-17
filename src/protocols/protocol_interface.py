@@ -43,7 +43,7 @@ class ProtocolInterface:
         :return: The hash of the input bytes.
         """
         hash_func = hashes.Hash(self.hash_func)
-        hash_func.update(bytes)
+        hash_func.update(bytes_data)
 
         return hash_func.finalize()
 

@@ -160,15 +160,15 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         :return: Tuple containing the processed bits and the raw signal array.
         """
         signal = self.get_signal()
-        # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
-        bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
+
+        bits = self.zero_out_antialias_sigs_algo(
             signal,
             self.sensor.sensor.antialias_sample_rate,
             self.sensor.sensor.sample_rate,
             self.window_len,
             self.band_len,
         )
-
+        
         # bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
         return bits, signal
 
