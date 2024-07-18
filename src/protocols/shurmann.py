@@ -34,15 +34,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         self.count = 0
         # Conversion from how many requested bits you need to how much sample data you will need for that
         self.time_length = (
-            math.ceil(
-                (
-                    (self.commitment_length * 8)
-                    / int((self.window_len / 2 + 1) / self.band_len)
-                )
-                + 1
-            )
-            * self.window_len
-        )
+            math.ceil(((self.commitment_length * 8)/ int((self.window_len / 2 + 1) / self.band_len))+ 1) * self.window_len)
 
     def sigs_algo(
         self, x1: List[float], window_len: int = 10000, bands: int = 1000

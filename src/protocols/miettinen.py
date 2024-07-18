@@ -219,8 +219,7 @@ class Miettinen_Protocol:
         successes = 0
         total_iterations = 0
         while (
-            successes < self.success_threshold
-            and total_iterations < self.max_iterations
+            successes < self.success_threshold and total_iterations < self.max_iterations
         ):
             # Sending ack that they are ready to begin
 
@@ -315,13 +314,11 @@ class Miettinen_Protocol:
         if self.verbose:
             if successes / total_iterations >= self.auth_threshold:
                 print(
-                    "Total Key Pairing Success: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Success: auth - {str(successes / total_iterations)}"
                 )
             else:
                 print(
-                    "Total Key Pairing Failure: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Failure: auth - {str(successes / total_iterations)}"
                 )
 
         self.logger.log(
@@ -378,8 +375,7 @@ class Miettinen_Protocol:
         total_iterations = 0
         successes = 0
         while (
-            successes < self.success_threshold
-            and total_iterations < self.max_iterations
+            successes < self.success_threshold and total_iterations < self.max_iterations
         ):
             success = False
             # ACK device
