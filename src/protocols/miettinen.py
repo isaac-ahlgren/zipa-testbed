@@ -14,6 +14,7 @@ from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import (
     ack,
     ack_standby,
+    commit_standby,
     dh_exchange,
     dh_exchange_standby,
     get_nonce_msg_standby,
@@ -102,12 +103,7 @@ class Miettinen_Protocol:
         c = np.zeros(block_num)
         for i in range(block_num):
             c[i] = np.mean(
-                signal[
-                    i
-                    * (no_snap_shot_width + snap_shot_width) : i
-                    * (no_snap_shot_width + snap_shot_width)
-                    + snap_shot_width
-                ]
+                signal[i * (no_snap_shot_width + snap_shot_width): i * (no_snap_shot_width + snap_shot_width) + snap_shot_width]
             )
         return c
 
@@ -130,7 +126,7 @@ class Miettinen_Protocol:
                 bits += "0"
         return bits
 
-    def miettinen_algo(self, x: np.ndarray) -> bytes:
+    def miettinen_algo(x: np.ndarray, f: int, w: int, rel_thresh: float, abs_thresh: float) -> bytes:
         """
         Main algorithm for key generation using signal processing and threshold-based key derivation.
 
@@ -146,7 +142,7 @@ class Miettinen_Protocol:
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         signal = Miettinen_Protocol.signal_preprocessing(x, f, w)
-        key = Miettinen_Protocol.gen_key(signal, rel_thresh, abs_thresh)
+        key = Miettinen_Protocol.gen_key(signal, self.rel_thresh, self.abs_thresh)
         return bitstring_to_bytes(key)
 
     def extract_context(self) -> Tuple[bytes, np.ndarray]:
@@ -301,14 +297,7 @@ class Miettinen_Protocol:
 
             if self.verbose:
                 print("Produced Key: " + str(derived_key))
-                print(
-                    "success: "
-                    + str(success)
-                    + ", Number of successes: "
-                    + str(successes)
-                    + ", Total number of iterations: "
-                    + str(total_iterations)
-                )
+                print(f"success: f{str(success)}, Number of successes: f{str(successes)}, Total number of iterations: {str(total_iterations)}")
 
             self.logger.log(
                 [
@@ -340,12 +329,7 @@ class Miettinen_Protocol:
                 (
                     "pairing_statistics",
                     "txt",
-                    "successes: "
-                    + str(successes)
-                    + " total_iterations: "
-                    + str(total_iterations)
-                    + " succeeded: "
-                    + str(successes / total_iterations >= self.auth_threshold),
+                    f"successes: {str(successes)} total_iterations: {str(total_iterations)} succeeded: {str(successes / total_iterations >= self.auth_threshold)}"
                 )
             ]
         )
@@ -477,25 +461,18 @@ class Miettinen_Protocol:
 
             if self.verbose:
                 print(
-                    "success: "
-                    + str(success)
-                    + ", Number of successes: "
-                    + str(successes)
-                    + ", Total number of iterations: "
-                    + str(total_iterations)
+                    f"success: {str(success)}, Number of successes: {str(successes)}, Total number of iterations: {str(total_iterations)}"
                 )
                 print()
 
         if self.verbose:
             if successes / total_iterations >= self.auth_threshold:
                 print(
-                    "Total Key Pairing Success: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Success: auth - {str(successes / total_iterations)}"
                 )
             else:
                 print(
-                    "Total Key Pairing Failure: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Failure: auth - {str(successes / total_iterations)}"
                 )
 
         self.logger.log(
@@ -503,12 +480,7 @@ class Miettinen_Protocol:
                 (
                     "pairing_statistics",
                     "txt",
-                    "successes: "
-                    + str(successes)
-                    + " total_iterations: "
-                    + str(total_iterations)
-                    + " succeeded: "
-                    + str(successes / total_iterations >= self.auth_threshold),
+                    f"successes: {str(successes)} total_iterations: {str(total_iterations)} succeeded: {str(successes / total_iterations >= self.auth_threshold)}",
                 )
             ],
             ip_addr=device_ip_addr,

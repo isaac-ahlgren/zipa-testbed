@@ -68,15 +68,7 @@ class NFSLogger:
 
         # Logging one day's worth of signals into a file
         timestamp = datetime.now().strftime("%Y%m%d%H")
-        file_name = (
-            directory  # On NFS or locally
-            + name  # Sensor name
-            + "_id_"
-            + str(self.identifier)  # Unique ID for deivce
-            + "_date_"
-            + timestamp  # Day
-            + ".csv"
-        )
+        file_name = f'directory{name}_id_{str(self.identifier)}_date_{timestamp}.csv'
 
         # Convert to CSV and save
         df = pd.DataFrame(signal)
