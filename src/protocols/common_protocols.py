@@ -1,7 +1,7 @@
 import os
 from typing import Any
 
-from cryptography.hazmat.primitives import constant_time, hmac
+from cryptography.hazmat.primitives import constant_time, hmac, hashes
 
 from networking.network import *
 

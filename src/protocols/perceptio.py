@@ -24,7 +24,7 @@ class Perceptio_Protocol(ProtocolInterface):
         """
 
         ProtocolInterface.__init__(self, parameters, sensor, logger)
-        self.name = "FastZIP_Protocol"
+        self.name = "Perceptio_Protocol"
         self.wip = True
         self.a = parameters["a"]
         self.cluster_sizes_to_check = parameters["cluster_sizes_to_check"]
@@ -435,7 +435,7 @@ class Perceptio_Protocol(ProtocolInterface):
         :param lump_th: Threshold for lumping close events together.
         :return: A list of tuples representing the start and end indices of each detected event.
         """
-        signal = self.ewma(np.abs(signal), a)
+        signal = Perceptio_Protocol.ewma(np.abs(signal), a)
 
         # Get events that are within the threshold
         events = []
@@ -476,8 +476,11 @@ class Perceptio_Protocol(ProtocolInterface):
         """
         event_features = []
         for i in range(len(events)):
-            length = events[i][1] - events[i][0]
-            max_amplitude = np.max(signal[events[i][0] : events[i][1]])
+            length = events[i][1] - events[i][0] + 1
+            if length == 1:
+                max_amplitude = signal[events[i][1]]
+            else:
+                max_amplitude = np.max(signal[events[i][0] : events[i][1]])
             event_features.append((length, max_amplitude))
         return event_features
 
@@ -495,11 +498,6 @@ class Perceptio_Protocol(ProtocolInterface):
         :return: Cluster labels and the determined number of clusters.
         """
         if len(event_features) < cluster_sizes_to_check:
-            # Handle the case where the number of samples is less than the desired number of clusters
-            if self.verbose:
-                print(
-                    "Warning: Insufficient samples for clustering. Returning default label and k=1."
-                )
             return np.zeros(len(event_features), dtype=int), 1
 
         km = KMeans(1, n_init=50, random_state=0).fit(event_features)
@@ -569,7 +567,7 @@ class Perceptio_Protocol(ProtocolInterface):
             event_list = grouped_events[i]
             key = bytearray()
             for j in range(len(event_list) - 1):
-                interval = (event_list[j][0] - event_list[j + 1][0]) / Fs
+                interval = (event_list[j + 1][0] - event_list[j][0]) / Fs
                 in_microseconds = int(
                     timedelta(seconds=interval) / timedelta(microseconds=1)
                 )
