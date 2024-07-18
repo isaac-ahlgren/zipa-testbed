@@ -98,21 +98,10 @@ def events_cmp_bits(fp1, fp2, length_in_bits):
     lowest_bit_error = 100
     for dev1 in fp1:
         for dev2 in fp2:
-            b1 = bytes_to_bitstring(dev1, length_in_bits)
-            b2 = bytes_to_bitstring(dev2, length_in_bits)
-            bit_err = cmp_bits(b1, b2)
+            bit_err = cmp_bits(dev1, dev2, length_in_bits)
             if bit_err < lowest_bit_error:
                 lowest_bit_error = bit_err
     return lowest_bit_error
-
-
-def events_get_average_bit_err(fps1, fps2, length_in_bits):
-    avg_bit_err = 0
-    for i in range(len(fps1)):
-        bit_err = events_cmp_bits(bs1, bs2)
-        avg_bit_err += bit_err
-    return avg_bit_err / len(fps1)
-
 
 def flatten_fingerprints(fps):
     flattened_fps = []

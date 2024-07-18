@@ -4,77 +4,88 @@ import sys
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 import numpy as np
-from eval_tools import cmp_bits
-from miettinen_tools import (
-    MICROPHONE_SAMPLING_RATE,
+from eval_tools import events_cmp_bits
+from perceptio_tools import (
     adversary_signal,
     golden_signal,
-    miettinen_calc_sample_num,
-    miettinen_wrapper_func,
+    gen_min_events,
+    generate_bits,
 )
 
 
 def goldsig_eval(
-    w,
-    f,
-    rel_thresh,
-    abs_thresh,
-    key_length,
-    goldsig_sampling_freq,
+    top_th, 
+    bottom_th, 
+    lump_th, 
+    a, 
+    cluster_sizes_to_check,
+    cluster_th,
+    min_events,
+    Fs,
+    key_size_in_bytes,
+    chunk_size,
     trials,
 ):
-    w_in_samples = int(w * goldsig_sampling_freq)
-    f_in_samples = int(f * goldsig_sampling_freq)
+    
     legit_bit_errs = []
     adv_bit_errs = []
-    sample_num = miettinen_calc_sample_num(
-        key_length,
-        w_in_samples,
-        f_in_samples,
-    )
-    signal = golden_signal(sample_num, goldsig_sampling_freq)
-    adv_signal = adversary_signal(sample_num, goldsig_sampling_freq)
+    
     for i in range(trials):
-        bits1 = miettinen_wrapper_func(
-            signal, f_in_samples, w_in_samples, rel_thresh, abs_thresh
+        signal_events, signal_event_features = gen_min_events(golden_signal, chunk_size, min_events, top_th, bottom_th, lump_th, a)
+        adv_events, adv_event_features = gen_min_events(adversary_signal, chunk_size, min_events, top_th, bottom_th, lump_th, a)
+        bits1, grouped_events1 = generate_bits(
+            signal_events, signal_event_features, cluster_sizes_to_check, cluster_th, Fs, key_size_in_bytes
         )
-        bits2 = miettinen_wrapper_func(
-            signal, f_in_samples, w_in_samples, rel_thresh, abs_thresh
+        bits2, grouped_events2 = generate_bits(
+            signal_events, signal_event_features, cluster_sizes_to_check, cluster_th, Fs, key_size_in_bytes
         )
-        adv_bits = miettinen_wrapper_func(
-            adv_signal, f_in_samples, w_in_samples, rel_thresh, abs_thresh
+        adv_bits, grouped_events_adv = generate_bits(
+            adv_events, adv_event_features, cluster_sizes_to_check, cluster_th, Fs, key_size_in_bytes
         )
-        legit_bit_err = cmp_bits(bits1, bits2, key_length)
+        legit_bit_err = events_cmp_bits(bits1, bits2, key_size_in_bytes*8)
         legit_bit_errs.append(legit_bit_err)
-        adv_bit_err = cmp_bits(bits1, adv_bits, key_length)
+        adv_bit_err = events_cmp_bits(bits1, adv_bits, key_size_in_bytes*8)
         adv_bit_errs.append(adv_bit_err)
     return legit_bit_errs, adv_bit_errs
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-w", "--snap_shot_width", type=float, default=5)
-    parser.add_argument("-f", "--no_snap_shot_width", type=float, default=5)
-    parser.add_argument("-at", "--absolute_threshold", type=float, default=5e-15)
-    parser.add_argument("-rt", "--relative_threshold", type=float, default=0.1)
+    parser.add_argument("-tt", "--top_threshold", type=float, default=6)
+    parser.add_argument("-bt", "--bottom_threshold", type=float, default=4)
+    parser.add_argument("-lt", "--lump_threshold", type=int, default=4)
+    parser.add_argument("-a", "--ewma_a", type=float, default=0.75)
+    parser.add_argument("-cl", "--cluster_sizes_to_check", type=int, default=4)
+    parser.add_argument("-min", "--minimum_events", type=int, default=16)
+    parser.add_argument("-fs", "--sampling_frequency", type=float, default=10000)
+    parser.add_argument("-ch", "--chunk_size", type=int, default=100)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
-    parser.add_argument("-t", "--trials", type=int, default=1000)
+    parser.add_argument("-t", "--trials", type=int, default=100)
 
     args = parser.parse_args()
-    w = getattr(args, "snap_shot_width")
-    f = getattr(args, "no_snap_shot_width")
-    abs_thresh = getattr(args, "absolute_threshold")
-    rel_thresh = getattr(args, "relative_threshold")
-    key_length = getattr(args, "key_length")
+    top_th = getattr(args, "top_threshold")
+    bottom_th = getattr(args, "bottom_threshold")
+    lump_th = getattr(args, "lump_threshold")
+    a = getattr(args, "ewma_a")
+    cluster_sizes_to_check = getattr(args, "cluster_sizes_to_check")
+    cluster_th = 0.1
+    min_events = getattr(args, "minimum_events")
+    Fs = getattr(args, "sampling_frequency")
+    chunk_size = getattr(args, "chunk_size")
+    key_size_in_bytes = getattr(args, "key_length") // 8
     trials = getattr(args, "trials")
 
     legit_bit_errs, adv_bit_errs = goldsig_eval(
-        w,
-        f,
-        rel_thresh,
-        abs_thresh,
-        key_length,
-        MICROPHONE_SAMPLING_RATE,
+        top_th, 
+        bottom_th, 
+        lump_th, 
+        a, 
+        cluster_sizes_to_check,
+        cluster_th,
+        min_events,
+        Fs,
+        key_size_in_bytes,
+        chunk_size,
         trials,
     )
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
