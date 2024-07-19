@@ -160,14 +160,12 @@ def commit_standby(
             for i in range(number_of_commits):
                 hashes.append(
                     commits[
-                        i * (hash_length + com_length) : i * (hash_length + com_length)
-                        + hash_length
+                        i * (hash_length + com_length) : i * (hash_length + com_length) + hash_length
                     ]
                 )
                 commitments.append(
                     commits[
-                        i * (hash_length + com_length)
-                        + hash_length : (i + 1) * (hash_length + com_length)
+                        i * (hash_length + com_length) + hash_length : (i + 1) * (hash_length + com_length)
                     ]
                 )
             break
