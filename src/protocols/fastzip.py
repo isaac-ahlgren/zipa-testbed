@@ -241,7 +241,7 @@ class FastZIP_Protocol(ProtocolInterface):
         fp = None
 
         if normalize:
-            chunk = normalize_signal(chunk)
+            chunk = FastZIP_Protocol.normalize_signal(chunk)
 
         activity = FastZIP_Protocol.activity_filter(
             chunk, power_thresh, snr_thresh, peak_thresh

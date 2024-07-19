@@ -2,16 +2,18 @@ import argparse
 import os
 import sys
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-import numpy as np
-from eval_tools import cmp_bits
-from schurmann_tools import (  # MICROPHONE_SAMPLING_RATE,
+# Gives us path to eval_tools.py
+sys.path.insert(1, os.getcwd() + "/..")
+
+import numpy as np  # noqa: E402
+from eval_tools import cmp_bits  # noqa: E402
+from schurmann_tools import (  # noqa: E402; MICROPHONE_SAMPLING_RATE,
     ANTIALIASING_FILTER,
     add_gauss_noise,
     schurmann_calc_sample_num,
     schurmann_wrapper_func,
 )
-from scipy.io import wavfile
+from scipy.io import wavfile  # noqa: E402
 
 
 def controlled_sig_plus_noise_eval(

@@ -6,9 +6,9 @@ sys.path.insert(
     1, os.getcwd() + "/../../src/"
 )  # Gives us path to Schurmann and Siggs algorithm in /src
 
-import numpy as np
+import numpy as np  # noqa: E402
 
-from protocols.shurmann import Shurmann_Siggs_Protocol
+from protocols.shurmann import Shurmann_Siggs_Protocol  # noqa: E402
 
 MICROPHONE_SAMPLING_RATE = 48000
 ANTIALIASING_FILTER = 18000

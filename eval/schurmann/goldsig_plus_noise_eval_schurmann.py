@@ -3,9 +3,9 @@ import os
 import sys
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-import numpy as np
-from eval_tools import cmp_bits
-from schurmann_tools import (
+import numpy as np  # noqa: E402
+from eval_tools import cmp_bits  # noqa: E402
+from schurmann_tools import (  # noqa: E402
     ANTIALIASING_FILTER,
     MICROPHONE_SAMPLING_RATE,
     add_gauss_noise,
