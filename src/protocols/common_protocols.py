@@ -1,9 +1,10 @@
 import os
 from typing import Any
 
-from cryptography.hazmat.primitives import constant_time, hmac, hashes
 
-from networking.network import *
+from cryptography.hazmat.primitives import constant_time, hashes, hmac
+
+from networking.network import send_nonce_msg
 
 
 def send_nonce_msg_to_device(

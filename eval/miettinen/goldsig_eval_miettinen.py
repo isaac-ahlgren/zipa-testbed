@@ -2,16 +2,17 @@ import argparse
 import os
 import sys
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 import numpy as np
-from eval_tools import cmp_bits
-from miettinen_tools import (
+from eval_tools import cmp_bits  # noqa: E402
+from miettinen_tools import (  # noqa: E402
     MICROPHONE_SAMPLING_RATE,
     adversary_signal,
     golden_signal,
     miettinen_calc_sample_num,
     miettinen_wrapper_func,
 )
+
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 
 
 def goldsig_eval(

@@ -1,11 +1,19 @@
 import math
-import queue
-from typing import List, Optional, Tuple
+
+# import queue
+from typing import Any, List, Tuple  # ,Optional
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
+from scipy.fft import rfft
 
-from networking.network import *
+from networking.network import (
+    ack,
+    ack_standby,
+    commit_standby,
+    send_commit,
+    socket,
+)
 from protocols.protocol_interface import ProtocolInterface
 
 
@@ -56,7 +64,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
         if window_len == 0:
-            window_len = len(x)
+            window_len = len(x1)  # renamed x to x1 because x was undefined
 
         x = np.array(x1.copy())
         # wind = scipy.signal.windows.hann(window_len)
@@ -116,7 +124,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
         if window_len == 0:
-            window_len = len(x)
+            window_len = len(x1)  # renamed x to x1 because x is not defined
 
         freq_bin_len = (sampling_freq / 2) / (int(window_len / 2) + 1)
         antialias_bin = int(antialias_freq / freq_bin_len)
@@ -160,8 +168,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         :return: Tuple containing the processed bits and the raw signal array.
         """
         signal = self.get_signal()
-        # switch anti-aliasing freq to self.sensor.sensor.antialias_sample_rate
-        bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
+
+        bits = self.zero_out_antialias_sigs_algo(
             signal,
             self.sensor.sensor.antialias_sample_rate,
             self.sensor.sensor.sample_rate,

@@ -2,15 +2,16 @@ import argparse
 import os
 import sys
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 import numpy as np
-from eval_tools import cmp_bits
 from miettinen_tools import (
     add_gauss_noise,
     miettinen_calc_sample_num,
     miettinen_wrapper_func,
 )
 from scipy.io import wavfile
+
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import cmp_bits  # noqa: E402
 
 
 def controlled_signal_plus_noise_eval(

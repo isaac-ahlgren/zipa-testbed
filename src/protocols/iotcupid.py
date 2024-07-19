@@ -1,7 +1,7 @@
 import multiprocessing as mp
 import os
 from datetime import datetime as dt
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import chardet
 import numpy as np
@@ -76,7 +76,7 @@ class IoTCupid_Protocol:
         parameters += f"key_length: {self.key_length}\n"
         parameters += f"alpha: {a}\n"
         parameters += f"cluster_sizes_to_check: {cluster_sizes_to_check}\n"
-        parameters += f"features_dim: {features_dim}\n"
+        parameters += f"features_dim: {self.features_dim}\n"
         parameters += f"quantization_factor: {quantization_factor}\n"
         parameters += f"cluster_th: {cluster_th}\n"
         parameters += f"parity_symbols: {self.parity_symbols}\n"
@@ -222,7 +222,7 @@ class IoTCupid_Protocol:
 
     def fuzzy_cmeans_w_elbow_method(
         self, features: np.ndarray, max_clusters: int, m: float, cluster_th: float
-    ) -> Tuple[bp.ndarray, np.ndarray, int, List[float]]:
+    ) -> Tuple[np.ndarray, np.ndarray, int, List[float]]:
         """
         Performs fuzzy C-means clustering with an elbow method to determine the optimal number of clusters.
 

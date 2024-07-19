@@ -103,6 +103,7 @@ def events_cmp_bits(fp1, fp2, length_in_bits):
                 lowest_bit_error = bit_err
     return lowest_bit_error
 
+
 def flatten_fingerprints(fps):
     flattened_fps = []
     for fp in fps:
@@ -122,8 +123,4 @@ def get_min_entropy(bits, key_length, symbol_size):
     hist, bin_edges = np.histogram(arr, bins=2**symbol_size)
     pdf = hist / sum(hist)
     max_prob = np.max(pdf)
-    print("Min Entropy:")
-    print(max_prob)
-    print(hist)
-    print()
     return -np.log2(max_prob)
