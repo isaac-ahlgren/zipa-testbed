@@ -1,6 +1,6 @@
 import queue
 import socket
-from multiprocessing import Lock, Process, Queue, Value
+from multiprocessing import Lock, Process, Queue, Value, Manager
 from typing import Any, List, Tuple, Union
 
 from cryptography.hazmat.primitives import hashes
@@ -21,6 +21,8 @@ class ProtocolInterface:
         self.verbose = parameters["verbose"]
         self.sensor = sensor
         self.logger = logger
+        self.manager = Manager()
+        self.list = self.manager.list()
         self.queue = Queue()
         self.flag = Value("i", 0)
         self.key_length = parameters["key_length"]
@@ -72,20 +74,27 @@ class ProtocolInterface:
 
         :return: List of collected signal data.
         """
-        signal = []
-        self.flag.value = 1
+        # First process to grab the flag populates the list
+        if self.flag.value == 0:
+            with self.manager.Lock:
+                self.list.clear()
+                self.flag.value = 1
 
-        while self.flag.value == 1:
-            try:
-                data = self.queue.get()
-                signal.extend(data)
-            except queue.Empty:
+                while self.flag.value == 1:
+                    try:
+                        data = self.queue.get()
+                        self.list.extend(data)
+                    except queue.Empty:
+                        continue
+
+                    if len(self.list) >= self.time_length:
+                        self.flag.value = -1
+        # Remaining processes standy for list to be full
+        else:
+            while self.flag.value == 1:
                 continue
-
-            if len(signal) >= self.time_length:
-                self.flag.value = -1
-
-        return signal
+        
+        return self.list
 
     # Must be implemented on a protocol basis
     def device_protocol(self, host: socket.socket) -> None:
