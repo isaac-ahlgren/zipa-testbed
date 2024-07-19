@@ -114,7 +114,6 @@ class FastZIP_Protocol(ProtocolInterface):
             return
         return np.mean(abs(sig)) / np.std(abs(sig))
 
-
     def get_peaks(sig: np.ndarray, sample_rate: int) -> int:
         """
         Identifies peaks in the signal based on average peak height.
@@ -205,7 +204,7 @@ class FastZIP_Protocol(ProtocolInterface):
                 np.arange(
                     0 + eqd_delta * i,
                     chunk_len + eqd_delta * i,
-                    ceil(chunk_len / n_bits),
+                    ceil(chunk_len / self.n_bits),
                 )
                 % chunk_len
             )

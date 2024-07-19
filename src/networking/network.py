@@ -172,6 +172,7 @@ def commit_standby(
 
     return commitments, hashes
 
+
 def dh_exchange(connection: socket.socket, key: bytes) -> None:
     """
     Sends a Diffie-Hellman key over a network connection.
