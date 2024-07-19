@@ -76,6 +76,8 @@ class ProtocolInterface:
         :return: List of collected signal data.
         """
         # First process to grab the flag populates the list
+        signal = []
+
         if self.flag.value == 0:
             with self.mutex:
                 del self.list[:]
@@ -84,11 +86,12 @@ class ProtocolInterface:
                 while self.flag.value == 1:
                     try:
                         data = self.queue.get()
-                        self.list.extend(data)
+                        signal.extend(data)
                     except queue.Empty:
                         continue
 
-                    if len(self.list) >= self.time_length:
+                    if len(signal) >= self.time_length:
+                        self.list.extend(signal)
                         self.flag.value = -1
         # Remaining processes standy for list to be full
         else:
