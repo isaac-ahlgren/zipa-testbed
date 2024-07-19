@@ -5,6 +5,7 @@ from typing import Any, List, Tuple  # ,Optional
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
+from scipy.fft import rfft
 
 from networking.network import (
     ack,
@@ -34,7 +35,15 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         self.count = 0
         # Conversion from how many requested bits you need to how much sample data you will need for that
         self.time_length = (
-            math.ceil(((self.commitment_length * 8)/ int((self.window_len / 2 + 1) / self.band_len))+ 1) * self.window_len)
+            math.ceil(
+                (
+                    (self.commitment_length * 8)
+                    / int((self.window_len / 2 + 1) / self.band_len)
+                )
+                + 1
+            )
+            * self.window_len
+        )
 
     def sigs_algo(
         self, x1: List[float], window_len: int = 10000, bands: int = 1000
@@ -55,7 +64,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
         if window_len == 0:
-            window_len = len(x)
+            window_len = len(x1)  # renamed x to x1 because x was undefined
 
         x = np.array(x1.copy())
         # wind = scipy.signal.windows.hann(window_len)
@@ -115,7 +124,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
         if window_len == 0:
-            window_len = len(x)
+            window_len = len(x1)  # renamed x to x1 because x is not defined
 
         freq_bin_len = (sampling_freq / 2) / (int(window_len / 2) + 1)
         antialias_bin = int(antialias_freq / freq_bin_len)

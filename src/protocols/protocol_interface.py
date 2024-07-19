@@ -78,7 +78,7 @@ class ProtocolInterface:
             try:
                 data = self.queue.get()
                 signal.extend(data)
-            except queue.Empty:
+            except self.queue.Empty:
                 continue
 
             if len(signal) >= self.time_length:

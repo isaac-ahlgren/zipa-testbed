@@ -256,7 +256,10 @@ class ZIPA_System:
 
             for name, obj in inspect.getmembers(module):
                 if (
-                    inspect.isclass(obj) and issubclass(obj, ProtocolInterface) and obj is not ProtocolInterface and name == requested_name
+                    inspect.isclass(obj)
+                    and issubclass(obj, ProtocolInterface)
+                    and obj is not ProtocolInterface
+                    and name == requested_name
                 ):
                     self.protocols.append(
                         obj(payload["parameters"], self.sensors[sensor], self.logger)

@@ -17,11 +17,12 @@ from networking.network import (
 )
 from protocols.common_protocols import (
     get_nonce_msg_standby,
+    send_nonce_msg_to_device,
     send_nonce_msg_to_host,
     verify_mac_from_device,
     verify_mac_from_host,
 )
-from protocols.protocol_interface import ProtocolInterface, socket
+from protocols.protocol_interface import ProtocolInterface, hashes
 
 
 class Perceptio_Protocol(ProtocolInterface):
@@ -449,7 +450,7 @@ class Perceptio_Protocol(ProtocolInterface):
         :param lump_th: Threshold for lumping close events together.
         :return: A list of tuples representing the start and end indices of each detected event.
         """
-        signal = self.ewma(np.abs(signal), a)
+        signal = Perceptio_Protocol.ewma(np.abs(signal), a)
 
         # Get events that are within the threshold
         events = []
