@@ -1,6 +1,6 @@
 import queue
 import socket
-from multiprocessing import Lock, Process, Queue, Value, Manager
+from multiprocessing import Lock, Process, Queue, Value, Manager, Lock
 from typing import Any, List, Tuple, Union
 
 from cryptography.hazmat.primitives import hashes
@@ -24,6 +24,7 @@ class ProtocolInterface:
         self.manager = Manager()
         self.list = self.manager.list()
         self.queue = Queue()
+        self.mutex = self.manager.Lock()
         self.flag = Value("i", 0)
         self.key_length = parameters["key_length"]
         self.time_length = None  # To be calculated in implementation
@@ -76,8 +77,8 @@ class ProtocolInterface:
         """
         # First process to grab the flag populates the list
         if self.flag.value == 0:
-            with self.manager.Lock:
-                self.list.clear()
+            with self.mutex:
+                del self.list[:]
                 self.flag.value = 1
 
                 while self.flag.value == 1:
@@ -94,7 +95,7 @@ class ProtocolInterface:
             while self.flag.value == 1:
                 continue
         
-        return self.list
+        return list(self.list)
 
     # Must be implemented on a protocol basis
     def device_protocol(self, host: socket.socket) -> None:
