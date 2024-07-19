@@ -1,7 +1,6 @@
 import os
 from typing import Any
 
-
 from cryptography.hazmat.primitives import constant_time, hashes, hmac
 
 from networking.network import send_nonce_msg

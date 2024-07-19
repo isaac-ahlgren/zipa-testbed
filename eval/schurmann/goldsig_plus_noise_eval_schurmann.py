@@ -2,10 +2,8 @@ import argparse
 import os
 import sys
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-import numpy as np  # noqa: E402
-from eval_tools import cmp_bits  # noqa: E402
-from schurmann_tools import (  # noqa: E402
+import numpy as np
+from schurmann_tools import (
     ANTIALIASING_FILTER,
     MICROPHONE_SAMPLING_RATE,
     add_gauss_noise,
@@ -14,6 +12,9 @@ from schurmann_tools import (  # noqa: E402
     schurmann_calc_sample_num,
     schurmann_wrapper_func,
 )
+
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import cmp_bits  # noqa: E402
 
 
 def goldsig_plus_noise_eval(

@@ -2,11 +2,11 @@ import math
 import os
 import sys
 
+import numpy as np
+
 sys.path.insert(
     1, os.getcwd() + "/../../src/"
 )  # Gives us path to Schurmann and Siggs algorithm in /src
-
-import numpy as np  # noqa: E402
 
 from protocols.shurmann import Shurmann_Siggs_Protocol  # noqa: E402
 

@@ -1,11 +1,6 @@
 import socket
 from multiprocessing import Lock, Process, Queue, Value
-<<<<<<< HEAD
-from typing import Any, List, Tuple, Union
-import socket
-=======
 from typing import Any, List, Tuple
->>>>>>> d5b968ecbf445e87877cefb60de5d61ae527688f
 
 from cryptography.hazmat.primitives import hashes
 

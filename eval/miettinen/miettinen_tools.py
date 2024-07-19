@@ -4,11 +4,11 @@ import sys
 
 import numpy as np
 
-from protocols.miettinen import Miettinen_Protocol
-
 sys.path.insert(
     1, os.getcwd() + "/../../src/"
-)  # Gives us path to Schurmann and Siggs algorithm in /src
+)  # Gives us path to Miettinen algorithm in /src
+
+from protocols.miettinen import Miettinen_Protocol  # noqa: E402
 
 MICROPHONE_SAMPLING_RATE = 48000
 

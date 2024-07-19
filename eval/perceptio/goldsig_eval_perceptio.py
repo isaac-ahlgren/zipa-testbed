@@ -2,22 +2,23 @@ import argparse
 import os
 import sys
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 import numpy as np
-from eval_tools import events_cmp_bits
 from perceptio_tools import (
     adversary_signal,
-    golden_signal,
     gen_min_events,
     generate_bits,
+    golden_signal,
 )
+
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import events_cmp_bits  # noqa: E402
 
 
 def goldsig_eval(
-    top_th, 
-    bottom_th, 
-    lump_th, 
-    a, 
+    top_th,
+    bottom_th,
+    lump_th,
+    a,
     cluster_sizes_to_check,
     cluster_th,
     min_events,
@@ -26,25 +27,43 @@ def goldsig_eval(
     chunk_size,
     trials,
 ):
-    
     legit_bit_errs = []
     adv_bit_errs = []
-    
+
     for i in range(trials):
-        signal_events, signal_event_features = gen_min_events(golden_signal, chunk_size, min_events, top_th, bottom_th, lump_th, a)
-        adv_events, adv_event_features = gen_min_events(adversary_signal, chunk_size, min_events, top_th, bottom_th, lump_th, a)
+        signal_events, signal_event_features = gen_min_events(
+            golden_signal, chunk_size, min_events, top_th, bottom_th, lump_th, a
+        )
+        adv_events, adv_event_features = gen_min_events(
+            adversary_signal, chunk_size, min_events, top_th, bottom_th, lump_th, a
+        )
         bits1, grouped_events1 = generate_bits(
-            signal_events, signal_event_features, cluster_sizes_to_check, cluster_th, Fs, key_size_in_bytes
+            signal_events,
+            signal_event_features,
+            cluster_sizes_to_check,
+            cluster_th,
+            Fs,
+            key_size_in_bytes,
         )
         bits2, grouped_events2 = generate_bits(
-            signal_events, signal_event_features, cluster_sizes_to_check, cluster_th, Fs, key_size_in_bytes
+            signal_events,
+            signal_event_features,
+            cluster_sizes_to_check,
+            cluster_th,
+            Fs,
+            key_size_in_bytes,
         )
         adv_bits, grouped_events_adv = generate_bits(
-            adv_events, adv_event_features, cluster_sizes_to_check, cluster_th, Fs, key_size_in_bytes
+            adv_events,
+            adv_event_features,
+            cluster_sizes_to_check,
+            cluster_th,
+            Fs,
+            key_size_in_bytes,
         )
-        legit_bit_err = events_cmp_bits(bits1, bits2, key_size_in_bytes*8)
+        legit_bit_err = events_cmp_bits(bits1, bits2, key_size_in_bytes * 8)
         legit_bit_errs.append(legit_bit_err)
-        adv_bit_err = events_cmp_bits(bits1, adv_bits, key_size_in_bytes*8)
+        adv_bit_err = events_cmp_bits(bits1, adv_bits, key_size_in_bytes * 8)
         adv_bit_errs.append(adv_bit_err)
     return legit_bit_errs, adv_bit_errs
 
@@ -76,10 +95,10 @@ if __name__ == "__main__":
     trials = getattr(args, "trials")
 
     legit_bit_errs, adv_bit_errs = goldsig_eval(
-        top_th, 
-        bottom_th, 
-        lump_th, 
-        a, 
+        top_th,
+        bottom_th,
+        lump_th,
+        a,
         cluster_sizes_to_check,
         cluster_th,
         min_events,
