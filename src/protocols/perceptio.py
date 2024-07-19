@@ -497,6 +497,7 @@ class Perceptio_Protocol(ProtocolInterface):
         return event_features
 
     def kmeans_w_elbow_method(
+        self,
         event_features: List[Tuple[int, float]],
         cluster_sizes_to_check: int,
         cluster_th: float,
@@ -643,7 +644,9 @@ class Perceptio_Protocol(ProtocolInterface):
         return fps, grouped_events
 
     def host_verify_mac(
-        self, keys: List[bytes], received_nonce_msg: bytes
+        self,
+        keys: List[bytes],
+        received_nonce_msg: bytes,
     ) -> Optional[bytes]:
         """
         Verifies the MAC received from a device against the derived keys.
@@ -661,7 +664,7 @@ class Perceptio_Protocol(ProtocolInterface):
             key_hash = self.hash_function(keys[i])
 
             if verify_mac_from_device(
-                recieved_nonce_msg,
+                received_nonce_msg,
                 derived_key,
                 key_hash,
                 self.nonce_byte_size,
