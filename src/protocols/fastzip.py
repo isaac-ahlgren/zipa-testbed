@@ -2,7 +2,7 @@ from math import ceil
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
-from scipy.signal import savgol_filter
+from scipy.signal import savgol_filter, find_peaks
 
 from protocols.protocol_interface import ProtocolInterface
 
@@ -72,14 +72,14 @@ class FastZIP_Protocol(ProtocolInterface):
             return
         return np.mean(abs(sig)) / np.std(abs(sig))
 
-    def get_peaks(sig):
+    def get_peaks(sig, sample_rate):
         peak_height = np.mean(sorted(sig)[-9:]) * 0.2
-        peaks, _ = FastZIP_Protocol.find_peaks(
-            sig, height=peak_height, distance=0.25 * self.sample_rate
+        peaks, _ = find_peaks(
+            sig, height=peak_height, distance=0.25 * sample_rate
         )
         return len(peaks)
 
-    def activity_filter(signal, power_thresh, snr_thresh, peak_thresh):
+    def activity_filter(signal, power_thresh, snr_thresh, peak_thresh, sample_rate):
         # Ensure signal is a numpy array
         signal = np.copy(signal)
 
@@ -90,7 +90,7 @@ class FastZIP_Protocol(ProtocolInterface):
         power = FastZIP_Protocol.compute_sig_power(signal)
 
         # Find peaks
-        peaks = FastZIP_Protocol.get_peaks(signal)
+        peaks = FastZIP_Protocol.get_peaks(signal, sample_rate)
 
         # Compute signal's SNR
         snr = FastZIP_Protocol.compute_snr(signal)
@@ -118,7 +118,7 @@ class FastZIP_Protocol(ProtocolInterface):
             return -1, 0
 
         # Store equidistant points
-        eqd_points = []
+        eqd_rand_points = []
 
         # Generate equdistant points
         for i in range(0, ceil(chunk_len / eqd_delta)):
@@ -126,7 +126,7 @@ class FastZIP_Protocol(ProtocolInterface):
                 np.arange(
                     0 + eqd_delta * i,
                     chunk_len + eqd_delta * i,
-                    ceil(chunk_len / n_bits),
+                    ceil(chunk_len / step),
                 )
                 % chunk_len
             )
@@ -140,18 +140,21 @@ class FastZIP_Protocol(ProtocolInterface):
         snr_thresh,
         peak_thresh,
         bias,
+        sample_rate,
+        eqd_delta,
         ewma_filter=False,
         alpha=0.015,
         remove_noise=False,
         normalize=False,
     ):
         fp = None
+        chunk = np.copy(data)
 
         if normalize:
-            chunk = normalize_signal(chunk)
+            chunk = FastZIP_Protocol.normalize_signal(chunk)
 
         activity = FastZIP_Protocol.activity_filter(
-            chunk, power_thresh, snr_thresh, peak_thresh
+            chunk, power_thresh, snr_thresh, peak_thresh, sample_rate
         )
         if activity:
             if remove_noise:
@@ -163,7 +166,7 @@ class FastZIP_Protocol(ProtocolInterface):
             qs_thr = FastZIP_Protocol.compute_qs_thr(chunk, bias)
 
             pts = FastZIP_Protocol.generate_equidist_points(
-                len(data), n_bits, eqd_delta
+                len(data), n_bits, eqd_delta, n_bits
             )
 
             fp = ""
@@ -182,20 +185,27 @@ class FastZIP_Protocol(ProtocolInterface):
         snr_thresh_list,
         peak_thresh_list,
         bias_list,
+        sample_rate_list,
+        eqd_delta_list,
         ewma_filter_list=None,
         alpha_list=None,
         remove_noise_list=None,
         normalize_list=None,
     ):
+        def bitstring_to_bytes(s):
+            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
+
         key = ""
 
-        for i in range(len(sensor_data)):
+        for i in range(len(sensor_data_list)):
             data = sensor_data_list[i]
             n_bits = n_bits_list[i]
             power_thresh = power_thresh_list[i]
             snr_thresh = snr_thresh_list[i]
             peak_thresh = peak_thresh_list[i]
             bias = bias_list[i]
+            sample_rate = sample_rate_list[i]
+            eqd_delta = eqd_delta_list[i]
 
             if ewma_filter_list == None:
                 ewma_filter = False
@@ -224,6 +234,8 @@ class FastZIP_Protocol(ProtocolInterface):
                 snr_thresh,
                 peak_thresh,
                 bias,
+                sample_rate,
+                eqd_delta,
                 ewma_filter=ewma_filter,
                 alpha=alpha,
                 remove_noise=remove_noise,
@@ -232,7 +244,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
             if bits != None:
                 key += bits
-        return key
+        return bitstring_to_bytes(key)
 
 
 # Example usage:

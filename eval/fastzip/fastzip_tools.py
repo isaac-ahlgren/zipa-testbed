@@ -12,18 +12,19 @@ from protocols.fastzip import FastZIP_Protocol
 
 SAMPLING_RATE = 100
 
-def fastzip_wrapper_function(sensor_arr, bits, power_thr, snr_thr, peak_thr, bias):
-    return FastZIP_Protocol.fastzip_algo(sensor_arr, bits, power_thr, snr_thr, peak_thr, bias)
+def fastzip_wrapper_function(sensor_arr, bits, power_thr, snr_thr, peak_thr, bias, sample_rate, eqd_delta):
+    return FastZIP_Protocol.fastzip_algo(
+        [sensor_arr], [bits], [power_thr], [snr_thr], [peak_thr], [bias], [sample_rate], [eqd_delta]
+    )
 
 
-def grab_parameters(sig):
+def grab_parameters(sig, sample_rate):
     sig_copy = np.copy(sig)
     power_thr = FastZIP_Protocol.compute_sig_power(sig_copy)
     snr_thr = FastZIP_Protocol.compute_snr(sig_copy)
-    peaks = FastZIP_Protocol.get_peaks(sig_copy)
+    peaks = FastZIP_Protocol.get_peaks(sig_copy, sample_rate)
     return power_thr, snr_thr, peaks
 
-    
 #Change the golden signal to output random numbers given a seed
 #seed golden_signal with 0, seed adversarial with 12
 
