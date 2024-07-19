@@ -21,7 +21,7 @@ from protocols.common_protocols import (
     verify_mac_from_device,
     verify_mac_from_host,
 )
-from protocols.protocol_interface import ProtocolInterface
+from protocols.protocol_interface import ProtocolInterface, socket
 
 
 class Perceptio_Protocol(ProtocolInterface):
@@ -741,10 +741,6 @@ class Perceptio_Protocol(ProtocolInterface):
             count=iterations,
             ip_addr=ip_addr,
         )
-
-
-# TESTING CODE ###
-import socket
 
 
 def device(prot: Perceptio_Protocol) -> None:
