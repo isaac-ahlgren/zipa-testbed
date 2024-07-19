@@ -1,11 +1,11 @@
 from math import ceil
-from typing import List, Optional, Tuple, Union, Any
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
 from scipy.signal import savgol_filter
 
-from protocols.protocol_interface import ProtocolInterface
+from protocols.protocol_interface import Any, ProtocolInterface
 
 
 # WIP
@@ -124,7 +124,7 @@ class FastZIP_Protocol(ProtocolInterface):
         """
         peak_height = np.mean(sorted(sig)[-9:]) * 0.2
         peaks, _ = FastZIP_Protocol.find_peaks(
-            sig, height=peak_height, distance=0.25 * self.sample_rate
+            sig, height=peak_height, distance=0.25 * sample_rate
         )
         return len(peaks)
 
@@ -204,7 +204,7 @@ class FastZIP_Protocol(ProtocolInterface):
                 np.arange(
                     0 + eqd_delta * i,
                     chunk_len + eqd_delta * i,
-                    ceil(chunk_len / n_bits),
+                    ceil(chunk_len / self.n_bits),
                 )
                 % chunk_len
             )
@@ -241,7 +241,7 @@ class FastZIP_Protocol(ProtocolInterface):
         fp = None
 
         if normalize:
-            chunk = normalize_signal(chunk)
+            chunk = FastZIP_Protocol.normalize_signal(chunk)
 
         activity = FastZIP_Protocol.activity_filter(
             chunk, power_thresh, snr_thresh, peak_thresh
@@ -256,7 +256,7 @@ class FastZIP_Protocol(ProtocolInterface):
             qs_thr = FastZIP_Protocol.compute_qs_thr(chunk, bias)
 
             pts = FastZIP_Protocol.generate_equidist_points(
-                len(data), n_bits, eqd_delta
+                len(data), n_bits, eqd_delta  # noqa: F821
             )
 
             fp = ""

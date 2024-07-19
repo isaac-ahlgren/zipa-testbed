@@ -1,7 +1,7 @@
 import multiprocessing as mp
 import os
 from datetime import datetime as dt
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import chardet
 import numpy as np

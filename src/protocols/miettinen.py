@@ -1,7 +1,7 @@
 # TODO compare with Seemoo lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/Miettinen.ipynb
 import multiprocessing as mp
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes, hmac
@@ -11,7 +11,17 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
 from error_correction.corrector import Fuzzy_Commitment
 from error_correction.reed_solomon import ReedSolomonObj
-from networking.network import *
+from networking.network import (
+    ack,
+    ack_standby,
+    commit_standby,
+    dh_exchange,
+    dh_exchange_standby,
+    get_nonce_msg_standby,
+    send_commit,
+    send_nonce_msg,
+    socket,
+)
 
 
 class Miettinen_Protocol:
@@ -121,7 +131,9 @@ class Miettinen_Protocol:
                 bits += "0"
         return bits
 
-    def miettinen_algo(self, x: np.ndarray) -> bytes:
+    def miettinen_algo(
+        x: np.ndarray, f: int, w: int, rel_thresh: float, abs_thresh: float
+    ) -> bytes:
         """
         Main algorithm for key generation using signal processing and threshold-based key derivation.
 
@@ -293,12 +305,7 @@ class Miettinen_Protocol:
             if self.verbose:
                 print("Produced Key: " + str(derived_key))
                 print(
-                    "success: "
-                    + str(success)
-                    + ", Number of successes: "
-                    + str(successes)
-                    + ", Total number of iterations: "
-                    + str(total_iterations)
+                    f"success: f{str(success)}, Number of successes: f{str(successes)}, Total number of iterations: {str(total_iterations)}"
                 )
 
             self.logger.log(
@@ -317,13 +324,11 @@ class Miettinen_Protocol:
         if self.verbose:
             if successes / total_iterations >= self.auth_threshold:
                 print(
-                    "Total Key Pairing Success: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Success: auth - {str(successes / total_iterations)}"
                 )
             else:
                 print(
-                    "Total Key Pairing Failure: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Failure: auth - {str(successes / total_iterations)}"
                 )
 
         self.logger.log(
@@ -331,12 +336,7 @@ class Miettinen_Protocol:
                 (
                     "pairing_statistics",
                     "txt",
-                    "successes: "
-                    + str(successes)
-                    + " total_iterations: "
-                    + str(total_iterations)
-                    + " succeeded: "
-                    + str(successes / total_iterations >= self.auth_threshold),
+                    f"successes: {str(successes)} total_iterations: {str(total_iterations)} succeeded: {str(successes / total_iterations >= self.auth_threshold)}",
                 )
             ]
         )
@@ -468,25 +468,18 @@ class Miettinen_Protocol:
 
             if self.verbose:
                 print(
-                    "success: "
-                    + str(success)
-                    + ", Number of successes: "
-                    + str(successes)
-                    + ", Total number of iterations: "
-                    + str(total_iterations)
+                    f"success: {str(success)}, Number of successes: {str(successes)}, Total number of iterations: {str(total_iterations)}"
                 )
                 print()
 
         if self.verbose:
             if successes / total_iterations >= self.auth_threshold:
                 print(
-                    "Total Key Pairing Success: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Success: auth - {str(successes / total_iterations)}"
                 )
             else:
                 print(
-                    "Total Key Pairing Failure: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Failure: auth - {str(successes / total_iterations)}"
                 )
 
         self.logger.log(
@@ -494,12 +487,7 @@ class Miettinen_Protocol:
                 (
                     "pairing_statistics",
                     "txt",
-                    "successes: "
-                    + str(successes)
-                    + " total_iterations: "
-                    + str(total_iterations)
-                    + " succeeded: "
-                    + str(successes / total_iterations >= self.auth_threshold),
+                    f"successes: {str(successes)} total_iterations: {str(total_iterations)} succeeded: {str(successes / total_iterations >= self.auth_threshold)}",
                 )
             ],
             ip_addr=device_ip_addr,

@@ -4,10 +4,10 @@ import random
 import sys
 
 import pandas as pd
-from eval_tools import *
+from eval_tools import Signal_File, get_average_bit_err, get_min_entropy
 
 sys.path.insert(1, os.getcwd() + "/../src/")
-from protocols.shurmann.fastzip import FastZIP_Protocol
+from protocols.shurmann.fastzip import FastZIP_Protocol  # noqa: E402
 
 
 def fastzip_wrapper_func(arr, window_length, band_len):
