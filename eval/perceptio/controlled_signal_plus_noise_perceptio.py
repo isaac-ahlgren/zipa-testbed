@@ -9,11 +9,13 @@ from perceptio_tools import (
     generate_bits,
     golden_signal,
 )
+from scipy.io import wavfile
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import events_cmp_bits  # noqa: E402
 
 
+# WIP
 def goldsig_eval(
     top_th,
     bottom_th,
@@ -29,6 +31,11 @@ def goldsig_eval(
 ):
     legit_bit_errs = []
     adv_bit_errs = []
+
+    signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
+    )
 
     for i in range(trials):
         signal_events, signal_event_features = gen_min_events(
@@ -66,6 +73,11 @@ def goldsig_eval(
         adv_bit_err = events_cmp_bits(bits1, adv_bits, key_size_in_bytes * 8)
         adv_bit_errs.append(adv_bit_err)
     return legit_bit_errs, adv_bit_errs
+
+
+def load_controlled_signal(file_name):
+    sr, data = wavfile.read(file_name)
+    return data.astype(np.int64) + 2**16, sr
 
 
 if __name__ == "__main__":
