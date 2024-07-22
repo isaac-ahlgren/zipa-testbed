@@ -5,7 +5,7 @@ import pkgutil
 import select
 import socket
 from multiprocessing import Process
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List
 
 import netifaces as ni
 import yaml

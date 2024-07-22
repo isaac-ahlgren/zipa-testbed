@@ -3,7 +3,7 @@ from typing import Any
 
 from cryptography.hazmat.primitives import constant_time, hashes, hmac
 
-from networking.network import *
+from networking.network import send_nonce_msg
 
 
 def send_nonce_msg_to_device(

@@ -3,13 +3,18 @@ import sys
 
 sys.path.insert(1, os.getcwd() + "/../../src/")
 
-import math
+import math  # noqa: E402
 
-import numpy as np
-import pandas as pd
-from eval_tools import *
+import numpy as np  # noqa: E402
+import pandas as pd  # noqa: E402
+from eval_tools import (  # noqa: E402
+    Signal_File,
+    get_average_bit_err,
+    get_bit_err,
+    get_min_entropy,
+)
 
-from protocols.shurmann import Shurmann_Siggs_Protocol
+from protocols.shurmann import Shurmann_Siggs_Protocol  # noqa: E402
 
 # import random
 

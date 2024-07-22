@@ -5,9 +5,24 @@ from cryptography.hazmat.primitives import constant_time
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from sklearn.cluster import KMeans
 
-from networking.network import *
-from protocols.common_protocols import *
-from protocols.protocol_interface import ProtocolInterface
+from networking.network import (
+    ack,
+    ack_standby,
+    commit_standby,
+    send_commit,
+    send_status,
+    socket,
+    status_standby,
+    time,
+)
+from protocols.common_protocols import (
+    get_nonce_msg_standby,
+    send_nonce_msg_to_device,
+    send_nonce_msg_to_host,
+    verify_mac_from_device,
+    verify_mac_from_host,
+)
+from protocols.protocol_interface import ProtocolInterface, hashes
 
 
 class Perceptio_Protocol(ProtocolInterface):
@@ -435,7 +450,7 @@ class Perceptio_Protocol(ProtocolInterface):
         :param lump_th: Threshold for lumping close events together.
         :return: A list of tuples representing the start and end indices of each detected event.
         """
-        signal = self.ewma(np.abs(signal), a)
+        signal = Perceptio_Protocol.ewma(np.abs(signal), a)
 
         # Get events that are within the threshold
         events = []
@@ -482,6 +497,7 @@ class Perceptio_Protocol(ProtocolInterface):
         return event_features
 
     def kmeans_w_elbow_method(
+        self,
         event_features: List[Tuple[int, float]],
         cluster_sizes_to_check: int,
         cluster_th: float,
@@ -628,7 +644,9 @@ class Perceptio_Protocol(ProtocolInterface):
         return fps, grouped_events
 
     def host_verify_mac(
-        self, keys: List[bytes], received_nonce_msg: bytes
+        self,
+        keys: List[bytes],
+        received_nonce_msg: bytes,
     ) -> Optional[bytes]:
         """
         Verifies the MAC received from a device against the derived keys.
@@ -646,7 +664,7 @@ class Perceptio_Protocol(ProtocolInterface):
             key_hash = self.hash_function(keys[i])
 
             if verify_mac_from_device(
-                recieved_nonce_msg,
+                received_nonce_msg,
                 derived_key,
                 key_hash,
                 self.nonce_byte_size,
@@ -727,10 +745,6 @@ class Perceptio_Protocol(ProtocolInterface):
             count=iterations,
             ip_addr=ip_addr,
         )
-
-
-# TESTING CODE ###
-import socket
 
 
 def device(prot: Perceptio_Protocol) -> None:
