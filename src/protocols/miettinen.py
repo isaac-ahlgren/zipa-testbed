@@ -17,23 +17,7 @@ from protocols.protocol_interface import ProtocolInterface
 
 
 class Miettinen_Protocol:
-    def __init__(
-        self,
-        parameters: dict,
-        sensor: Any,
-        key_length: int,
-        parity_symbols: int,
-        f: float,
-        w: float,
-        rel_thresh: float,
-        abs_thresh: float,
-        auth_threshold: float,
-        success_threshold: int,
-        max_iterations: int,
-        timeout: int,
-        logger: Any,
-        verbose: bool = True,
-    ):
+    def __init__(self, parameters: dict, sensor: Any, logger: Any):
         """
         Initializes a new instance of the Miettinen Protocol with specified parameters for key generation and communication.
 
@@ -52,23 +36,24 @@ class Miettinen_Protocol:
         :param verbose: A boolean flag that indicates whether to output detailed debug information.
         """
         ProtocolInterface.__init__(self, parameters, sensor, logger)
-        self.f = int(f * self.sensor.sensor.sample_rate)
-        self.w = int(w * self.sensor.sensor.sample_rate)
-        self.rel_thresh = rel_thresh
-        self.abs_thresh = abs_thresh
-        self.auth_threshold = auth_threshold
-        self.success_threshold = success_threshold
-        self.max_iterations = max_iterations
+        self.f = parameters["f"]
+        self.w = parameters["w"]
+        self.rel_thresh = parameters["rel_thresh"]
+        self.abs_thresh = parameters["abs_thresh"]
+        self.auth_threshold = parameters["auth_thresh"]
+        self.success_threshold = parameters["success_thresh"]
+        self.max_iterations = parameters["max_iterations"]
 
-        self.timeout = timeout
+        self.timeout = parameters["timeout"]
         self.name = "Miettinen_Protocol"
         self.wip = False 
 
         self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
+        self.time_length = (self.w + self.f) * (self.commitment_length * 8 + 1)
 
         # removed the following vars:
-        # time_length, verbose, logger, hash_func, re, commitment_length,
+        # verbose, logger, hash_func, re, commitment_length,
         # commitment_length, parity_symbols, key_length, sensor
 
         self.count = 0
@@ -132,8 +117,8 @@ class Miettinen_Protocol:
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
-        signal = Miettinen_Protocol.signal_preprocessing(x, f, w)
-        key = Miettinen_Protocol.gen_key(signal, rel_thresh, abs_thresh)
+        signal = Miettinen_Protocol.signal_preprocessing(x, self.f, self.w)
+        key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
         return bitstring_to_bytes(key)
 
     def extract_context(self) -> Tuple[bytes, np.ndarray]:
