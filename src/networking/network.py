@@ -119,7 +119,8 @@ def send_commit(
     message = COMM.encode() + number_of_commitments + hash_length + com_length
 
     for i in range(len(commitments)):
-        message += hashes[i] + commitments[i]
+        # message += hashes[i] + commitments[i]
+        message += commitments[i]
 
     device.send(message)
 

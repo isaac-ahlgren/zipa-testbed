@@ -117,7 +117,7 @@ class Miettinen_Protocol(ProtocolInterface):
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
-        signal = Miettinen_Protocol.signal_preprocessing(x, self.f, self.w)
+        signal = self.signal_preprocessing(x, self.f, self.w)
         key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
         return bitstring_to_bytes(key)
 
@@ -128,9 +128,7 @@ class Miettinen_Protocol(ProtocolInterface):
         :return: A tuple of the generated key bits and the raw sensor signal.
         """
         signal = self.get_signal()
-        bits = Miettinen_Protocol.miettinen_algo(
-            signal, self.f, self.w, self.rel_thresh, self.abs_thresh
-        )
+        bits = self.miettinen_algo(signal)
         return bits, signal
 
     def parameters(self, is_host: bool) -> str:
