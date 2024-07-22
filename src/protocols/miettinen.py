@@ -13,10 +13,13 @@ from error_correction.corrector import Fuzzy_Commitment
 from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import *
 
+from protocols.protocol_interface import ProtocolInterface
+
 
 class Miettinen_Protocol:
     def __init__(
         self,
+        parameters: dict,
         sensor: Any,
         key_length: int,
         parity_symbols: int,
@@ -48,7 +51,7 @@ class Miettinen_Protocol:
         :param logger: A logging object used to record protocol activity and debugging information.
         :param verbose: A boolean flag that indicates whether to output detailed debug information.
         """
-        self.sensor = sensor
+        ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.f = int(f * self.sensor.sensor.sample_rate)
         self.w = int(w * self.sensor.sensor.sample_rate)
         self.rel_thresh = rel_thresh
@@ -58,25 +61,18 @@ class Miettinen_Protocol:
         self.max_iterations = max_iterations
 
         self.timeout = timeout
-        self.name = "miettinen"
+        self.name = "Miettinen_Protocol"
+        self.wip = False 
 
-        self.key_length = key_length
-        self.parity_symbols = parity_symbols
-        self.commitment_length = parity_symbols + key_length
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, key_length), key_length
-        )
-        self.hash_func = hashes.SHA256()
         self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
 
-        self.time_length = (w + f) * (self.commitment_length * 8 + 1)
-
-        self.logger = logger
+        # removed the following vars:
+        # time_length, verbose, logger, hash_func, re, commitment_length,
+        # commitment_length, parity_symbols, key_length, sensor
 
         self.count = 0
 
-        self.verbose = verbose
 
     def signal_preprocessing(
         self, signal: np.ndarray, no_snap_shot_width: int, snap_shot_width: int
