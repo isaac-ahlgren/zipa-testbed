@@ -3,7 +3,6 @@ import os
 import sys
 
 import numpy as np
-from eval_tools import cmp_bits
 from miettinen_tools import (
     MICROPHONE_SAMPLING_RATE,
     add_gauss_noise,
@@ -14,6 +13,7 @@ from miettinen_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import cmp_bits  # noqa: E402
 
 
 def goldsig_plus_noise_eval(

@@ -3,8 +3,7 @@ import os
 import sys
 
 import numpy as np
-from eval_tools import cmp_bits  # noqa: E402
-from miettinen_tools import (  # noqa: E402
+from miettinen_tools import (
     MICROPHONE_SAMPLING_RATE,
     adversary_signal,
     golden_signal,
@@ -13,6 +12,7 @@ from miettinen_tools import (  # noqa: E402
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import cmp_bits  # noqa: E402
 
 
 def goldsig_eval(
