@@ -3,10 +3,7 @@ import os
 import sys
 
 import numpy as np
-from perceptio_tools import (
-    gen_min_events,
-    generate_bits,
-)
+from perceptio_tools import gen_min_events, generate_bits
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import Signal_Buffer, events_cmp_bits  # noqa: E402
@@ -33,7 +30,7 @@ def goldsig_plus_noise_eval(
     goldsig_random_signal = goldsig_rng.integers(0, 10, size=100000)
     gold_signal1 = Signal_Buffer(goldsig_random_signal.copy())
     gold_signal2 = Signal_Buffer(goldsig_random_signal.copy())
-    
+
     adv_rng = np.random.default_rng(12345)
     adv_random_signal = adv_rng.integers(0, 10, size=100000)
     adv_signal = Signal_Buffer(adv_random_signal)
@@ -51,7 +48,7 @@ def goldsig_plus_noise_eval(
             snr=snr_level,
         )
         signal2_events, signal2_event_features = gen_min_events(
-            gold_signal2 ,
+            gold_signal2,
             chunk_size,
             min_events,
             top_th,

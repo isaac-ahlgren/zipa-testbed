@@ -3,10 +3,7 @@ import os
 import sys
 
 import numpy as np
-from perceptio_tools import (
-    gen_min_events,
-    generate_bits,
-)
+from perceptio_tools import gen_min_events, generate_bits
 from scipy.io import wavfile
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
@@ -35,7 +32,9 @@ def controlled_sig_plus_noise_eval(
     gold_signal1 = Signal_Buffer(controlled_signal1_buf)
     gold_signal2 = Signal_Buffer(controlled_signal2_buf)
 
-    adv_signal_buf = load_controlled_signal("../../data/adversary_controlled_signal.wav")
+    adv_signal_buf = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
+    )
     adv_signal = Signal_Buffer(adv_signal_buf)
     for i in range(trials):
         signal1_events, signal1_event_features = gen_min_events(
@@ -50,7 +49,7 @@ def controlled_sig_plus_noise_eval(
             snr=snr_level,
         )
         signal2_events, signal2_event_features = gen_min_events(
-            gold_signal2 ,
+            gold_signal2,
             chunk_size,
             min_events,
             top_th,

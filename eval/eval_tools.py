@@ -7,7 +7,7 @@ class Signal_Buffer:
     def __init__(self, buf):
         self.signal_buffer = buf
         self.index = 0
-    
+
     def read(self, samples_to_read):
         output = np.array([])
         while samples_to_read != 0:
@@ -25,10 +25,13 @@ class Signal_Buffer:
         return output
 
     def sync(self, other_signal_buff):
-        self.index = other_signal_buff.index        
+        self.index = other_signal_buff.index
+
 
 class Signal_File:
-    def __init__(self, signal_directory, file_names, wrap_around_read=False, load_func=np.loadtxt):
+    def __init__(
+        self, signal_directory, file_names, wrap_around_read=False, load_func=np.loadtxt
+    ):
         self.signal_directory = signal_directory
         self.files = glob.glob(file_names, root_dir=signal_directory)
         if len(self.files) == 0:

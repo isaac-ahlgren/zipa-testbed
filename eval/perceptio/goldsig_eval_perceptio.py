@@ -3,11 +3,7 @@ import os
 import sys
 
 import numpy as np
-from perceptio_tools import (
-    gen_min_events,
-    generate_bits,
-    random_signal,
-)
+from perceptio_tools import gen_min_events, generate_bits
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import Signal_Buffer, events_cmp_bits  # noqa: E402
