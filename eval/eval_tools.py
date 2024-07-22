@@ -2,12 +2,33 @@ import glob
 
 import numpy as np
 
-# import random
-# from datetime import datetime, timedelta
 
+class Signal_Buffer:
+    def __init__(self, buf):
+        self.signal_buffer = buf
+        self.index = 0
+    
+    def read(self, samples_to_read):
+        output = np.array([])
+        while samples_to_read != 0:
+            samples_can_read = len(self.signal_buffer) - self.index
+            if samples_can_read <= samples_to_read:
+                buf = self.signal_buffer[self.index : self.index + samples_can_read]
+                output = np.append(output, buf)
+                samples_to_read = samples_to_read - samples_can_read
+                self.index = 0
+            else:
+                buf = self.signal_buffer[self.index : self.index + samples_to_read]
+                output = np.append(output, buf)
+                self.index = self.index + samples_to_read
+                samples_to_read = 0
+        return output
+
+    def sync(self, other_signal_buff):
+        self.index = other_signal_buff.index        
 
 class Signal_File:
-    def __init__(self, signal_directory, file_names):
+    def __init__(self, signal_directory, file_names, wrap_around_read=False, load_func=np.loadtxt):
         self.signal_directory = signal_directory
         self.files = glob.glob(file_names, root_dir=signal_directory)
         if len(self.files) == 0:
@@ -16,17 +37,21 @@ class Signal_File:
             self.files.sort()
         self.file_index = 0
         self.start_sample = 0
-        print("Loading in " + self.signal_directory + self.files[0])
-        self.sample_buffer = np.loadtxt(self.signal_directory + self.files[0])
+        self.load_func = load_func
+        self.sample_buffer = self.load_func(self.signal_directory + self.files[0])
+        self.wrap_around_read = wrap_around_read
 
     def switch_files(self):
         self.start_sample = 0
         self.file_index += 1
         print("Loading in " + self.signal_directory + self.files[self.file_index])
-        del self.sample_buffer
-        self.sample_buffer = np.loadtxt(
-            self.signal_directory + self.files[self.file_index]
-        )
+        if len(self.files) == self.file_index and self.wrap_around_read:
+            self.reset()
+        else:
+            del self.sample_buffer
+            self.sample_buffer = self.load_func(
+                self.signal_directory + self.files[self.file_index]
+            )
 
     def read(self, samples):
         output = np.array([])
@@ -53,7 +78,15 @@ class Signal_File:
         self.start_sample = 0
         self.file_index = 0
         del self.sample_buffer
-        self.sample_buffer = np.loadtxt(self.signal_directory + self.files[0])
+        self.sample_buffer = self.load_func(self.signal_directory + self.files[0])
+
+    def sync(self, other_sf):
+        self.file_index = other_sf.file_index
+        self.start_sample = other_sf.start_sample
+        del self.sample_buffer
+        self.sample_buffer = self.load_func(
+            self.signal_directory + self.files[self.file_index]
+        )
 
 
 def bytes_to_bitstring(b, length):

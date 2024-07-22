@@ -4,6 +4,10 @@ import sys
 
 import numpy as np
 
+# Gives us path to eval_tools.py
+sys.path.insert(1, os.getcwd() + "/..")
+from eval_tools import Signal_File # noqa: E402
+
 sys.path.insert(
     1, os.getcwd() + "/../../src/"
 )  # Gives us path to Perceptio algorithm in /src
@@ -18,7 +22,7 @@ def get_events(arr, top_th, bottom_th, lump_th, a):
 
 
 def gen_min_events(
-    signal_func,
+    signal,
     chunk_size,
     min_events,
     top_th,
@@ -32,7 +36,8 @@ def gen_min_events(
     event_features = []
     iteration = 0
     while len(events) < min_events:
-        chunk = signal_func(chunk_size)
+        chunk = signal.read(chunk_size)
+
         if add_noise is True:
             chunk = add_gauss_noise(chunk, snr)
         found_events, found_event_features = get_events(
@@ -69,30 +74,10 @@ def generate_bits(
     return fps, grouped_events
 
 
-golden_rng = np.random.default_rng(0)
-
-
-def golden_signal(sample_num):
-    output = []
-    for i in range(sample_num):
-        output.append(golden_rng.integers(0, 10))
-    return np.array(output)
-
-
-adv_rng = np.random.default_rng(12345)
-
-
-def adversary_signal(sample_num):
-    output = []
-    for i in range(sample_num):
-        output.append(adv_rng.integers(0, 10))
-    return np.array(output)
-
-
 def add_gauss_noise(signal, target_snr):
-    sig_avg = np.mean(signal)
-    sig_avg_db = 10 * np.log10(sig_avg)
+    sig_avg_sqr = np.mean(signal)**2
+    sig_avg_db = 10 * np.log10(sig_avg_sqr)
     noise_avg_db = sig_avg_db - target_snr
-    noise_avg = 10 ** (noise_avg_db / 10)
-    noise = np.random.normal(0, np.sqrt(noise_avg), len(signal))
+    noise_avg_sqr = 10 ** (noise_avg_db / 10)
+    noise = np.random.normal(0, np.sqrt(noise_avg_sqr), len(signal))
     return signal + noise

@@ -9,6 +9,7 @@ from networking.network import (
     ack,
     ack_standby,
     commit_standby,
+    get_nonce_msg_standby,
     send_commit,
     send_status,
     socket,
@@ -16,7 +17,6 @@ from networking.network import (
     time,
 )
 from protocols.common_protocols import (
-    get_nonce_msg_standby,
     send_nonce_msg_to_device,
     send_nonce_msg_to_host,
     verify_mac_from_device,
@@ -500,7 +500,6 @@ class Perceptio_Protocol(ProtocolInterface):
         return event_features
 
     def kmeans_w_elbow_method(
-        self,
         event_features: List[Tuple[int, float]],
         cluster_sizes_to_check: int,
         cluster_th: float,
