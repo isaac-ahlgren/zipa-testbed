@@ -36,8 +36,8 @@ class Miettinen_Protocol(ProtocolInterface):
         :param verbose: A boolean flag that indicates whether to output detailed debug information.
         """
         ProtocolInterface.__init__(self, parameters, sensor, logger)
-        self.f = parameters["f"]
-        self.w = parameters["w"]
+        self.f = parameters["f"] * self.sensor.sensor.sample_rate
+        self.w = parameters["w"] * self.sensor.sensor.sample_rate
         self.rel_thresh = parameters["rel_thresh"]
         self.abs_thresh = parameters["abs_thresh"]
         self.auth_threshold = parameters["auth_thresh"]
