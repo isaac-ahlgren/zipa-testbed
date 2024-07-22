@@ -16,7 +16,7 @@ from networking.network import *
 from protocols.protocol_interface import ProtocolInterface
 
 
-class Miettinen_Protocol:
+class Miettinen_Protocol(ProtocolInterface): 
     def __init__(self, parameters: dict, sensor: Any, logger: Any):
         """
         Initializes a new instance of the Miettinen Protocol with specified parameters for key generation and communication.
@@ -127,9 +127,7 @@ class Miettinen_Protocol:
 
         :return: A tuple of the generated key bits and the raw sensor signal.
         """
-        signal = self.sensor.read(
-            int(self.time_length * self.sensor.sensor.sample_rate)
-        )
+        signal = self.get_signal()
         bits = Miettinen_Protocol.miettinen_algo(
             signal, self.f, self.w, self.rel_thresh, self.abs_thresh
         )
