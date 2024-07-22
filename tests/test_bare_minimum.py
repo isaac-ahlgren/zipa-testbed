@@ -5,7 +5,7 @@ from typing import List
 sys.path.insert(1, os.getcwd() + "/src")
 
 def testing_schurmann_bit_generation_interface():
-    from src.protocols.shurmann import Shurmann_Siggs_Protocol
+    from protocols.shurmann import Shurmann_Siggs_Protocol
     import numpy as np
 
     outcome = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
@@ -20,7 +20,7 @@ def testing_schurmann_bit_generation_interface():
 
 
 def testing_miettinen_bit_generation_interface():
-    from src.protocols.miettinen import Miettinen_Protocol
+    from protocols.miettinen import Miettinen_Protocol
     import numpy as np
 
     outcome = Miettinen_Protocol.miettinen_algo(np.sin(np.arange(50000)), 1000, 1000, 0.5, 0.5)
@@ -29,7 +29,7 @@ def testing_miettinen_bit_generation_interface():
 
 
 def testing_perceptio_bit_generation_interface():
-    from src.protocols.perceptio import Perceptio_Protocol
+    from protocols.perceptio import Perceptio_Protocol
     import numpy as np
 
     rng = np.random.default_rng(0)
