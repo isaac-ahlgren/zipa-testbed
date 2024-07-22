@@ -1,12 +1,7 @@
-# import math
 import os
 import sys
 
 import numpy as np
-
-# Gives us path to eval_tools.py
-sys.path.insert(1, os.getcwd() + "/..")
-from eval_tools import Signal_File # noqa: E402
 
 sys.path.insert(
     1, os.getcwd() + "/../../src/"
@@ -75,7 +70,7 @@ def generate_bits(
 
 
 def add_gauss_noise(signal, target_snr):
-    sig_avg_sqr = np.mean(signal)**2
+    sig_avg_sqr = np.mean(signal) ** 2
     sig_avg_db = 10 * np.log10(sig_avg_sqr)
     noise_avg_db = sig_avg_db - target_snr
     noise_avg_sqr = 10 ** (noise_avg_db / 10)

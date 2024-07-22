@@ -1,7 +1,5 @@
 import math
-
-# import queue
-from typing import Any, List, Tuple  # ,Optional
+from typing import Any, List, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time

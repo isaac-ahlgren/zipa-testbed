@@ -67,7 +67,7 @@ class Perceptio_Protocol(ProtocolInterface):
         events_detected = False
         for i in range(self.max_no_events_detected):
             signal = self.sensor.read(self.time_length)
-            fps, events = self.perceptio(
+            fps, events = Perceptio_Protocol.perceptio(
                 signal,
                 self.commitment_length,
                 self.sensor.sensor.sample_rate,
@@ -512,6 +512,7 @@ class Perceptio_Protocol(ProtocolInterface):
         :param cluster_th: Threshold for determining the elbow point in clustering.
         :return: Cluster labels and the determined number of clusters.
         """
+
         if len(event_features) < cluster_sizes_to_check:
             return np.zeros(len(event_features), dtype=int), 1
 
@@ -519,11 +520,11 @@ class Perceptio_Protocol(ProtocolInterface):
         x1 = km.inertia_
         rel_inert = x1
 
-        k = None
-        labels = None
+        k = 1
+        labels = km.labels_
         inertias = [rel_inert]
 
-        for i in range(2, cluster_sizes_to_check):
+        for i in range(2, cluster_sizes_to_check + 1):
             labels = km.labels_
 
             km = KMeans(i, n_init=50, random_state=0).fit(event_features)
@@ -596,7 +597,6 @@ class Perceptio_Protocol(ProtocolInterface):
         return fp
 
     def perceptio(
-        self,
         signal: np.ndarray,
         key_size: int,
         Fs: int,
@@ -622,11 +622,6 @@ class Perceptio_Protocol(ProtocolInterface):
         :return: A tuple containing the generated fingerprints and the grouped events.
         """
         events = Perceptio_Protocol.get_events(signal, a, bottom_th, top_th, lump_th)
-        if len(events) < 2:
-            # Needs two events in order to calculate interevent timings
-            if self.verbose:
-                print("Error: Less than two events detected")
-            return ([], events)
 
         event_features = Perceptio_Protocol.get_event_features(events, signal)
 

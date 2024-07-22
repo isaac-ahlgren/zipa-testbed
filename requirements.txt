@@ -1,0 +1,17 @@
+poetry
+zeroconf
+numpy
+pyaudio
+netifaces
+scipy
+cryptography
+mysql-connector-python
+matplotlib
+adafruit-circuitpython-bmp280
+adafruit-circuitpython-veml7700
+adafruit-circuitpython-sht31d
+gpiozero
+pyyaml
+scikit-learn
+pandas
+pytest
