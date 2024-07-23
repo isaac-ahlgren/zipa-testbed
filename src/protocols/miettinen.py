@@ -70,7 +70,7 @@ class Miettinen_Protocol(ProtocolInterface):
 
 
     def signal_preprocessing(
-        self, signal: np.ndarray, no_snap_shot_width: int, snap_shot_width: int
+        signal: np.ndarray, no_snap_shot_width: int, snap_shot_width: int
     ) -> np.ndarray:
         """
         Processes the given signal into chunks based on specified snapshot widths and calculates the average of each chunk.
@@ -93,7 +93,7 @@ class Miettinen_Protocol(ProtocolInterface):
             )
         return c
 
-    def gen_key(self, c: np.ndarray, rel_thresh: float, abs_thresh: float) -> str:
+    def gen_key(c: np.ndarray, rel_thresh: float, abs_thresh: float) -> str:
         """
         Generates a key based on the relative and absolute thresholds applied to the processed signal.
 

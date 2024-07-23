@@ -16,9 +16,6 @@ from eval_tools import (  # noqa: E402
 
 from protocols.shurmann import Shurmann_Siggs_Protocol  # noqa: E402
 
-# import random
-
-
 MICROPHONE_SAMPLING_RATE = 48000
 ANTIALIASING_FILTER = 18000
 

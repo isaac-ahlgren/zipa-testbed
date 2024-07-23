@@ -9,6 +9,7 @@ from networking.network import (
     ack,
     ack_standby,
     commit_standby,
+    get_nonce_msg_standby,
     send_commit,
     send_status,
     socket,
@@ -16,7 +17,6 @@ from networking.network import (
     time,
 )
 from protocols.common_protocols import (
-    get_nonce_msg_standby,
     send_nonce_msg_to_device,
     send_nonce_msg_to_host,
     verify_mac_from_device,
@@ -39,7 +39,7 @@ class Perceptio_Protocol(ProtocolInterface):
         """
 
         ProtocolInterface.__init__(self, parameters, sensor, logger)
-        self.name = "FastZIP_Protocol"
+        self.name = "Perceptio_Protocol"
         self.wip = True
         self.a = parameters["a"]
         self.cluster_sizes_to_check = parameters["cluster_sizes_to_check"]
@@ -67,7 +67,7 @@ class Perceptio_Protocol(ProtocolInterface):
         events_detected = False
         for i in range(self.max_no_events_detected):
             signal = self.sensor.read(self.time_length)
-            fps, events = self.perceptio(
+            fps, events = Perceptio_Protocol.perceptio(
                 signal,
                 self.commitment_length,
                 self.sensor.sensor.sample_rate,
@@ -491,13 +491,15 @@ class Perceptio_Protocol(ProtocolInterface):
         """
         event_features = []
         for i in range(len(events)):
-            length = events[i][1] - events[i][0]
-            max_amplitude = np.max(signal[events[i][0] : events[i][1]])
+            length = events[i][1] - events[i][0] + 1
+            if length == 1:
+                max_amplitude = signal[events[i][1]]
+            else:
+                max_amplitude = np.max(signal[events[i][0] : events[i][1]])
             event_features.append((length, max_amplitude))
         return event_features
 
     def kmeans_w_elbow_method(
-        self,
         event_features: List[Tuple[int, float]],
         cluster_sizes_to_check: int,
         cluster_th: float,
@@ -510,23 +512,19 @@ class Perceptio_Protocol(ProtocolInterface):
         :param cluster_th: Threshold for determining the elbow point in clustering.
         :return: Cluster labels and the determined number of clusters.
         """
+
         if len(event_features) < cluster_sizes_to_check:
-            # Handle the case where the number of samples is less than the desired number of clusters
-            if self.verbose:
-                print(
-                    "Warning: Insufficient samples for clustering. Returning default label and k=1."
-                )
             return np.zeros(len(event_features), dtype=int), 1
 
         km = KMeans(1, n_init=50, random_state=0).fit(event_features)
         x1 = km.inertia_
         rel_inert = x1
 
-        k = None
-        labels = None
+        k = 1
+        labels = km.labels_
         inertias = [rel_inert]
 
-        for i in range(2, cluster_sizes_to_check):
+        for i in range(2, cluster_sizes_to_check + 1):
             labels = km.labels_
 
             km = KMeans(i, n_init=50, random_state=0).fit(event_features)
@@ -585,7 +583,7 @@ class Perceptio_Protocol(ProtocolInterface):
             event_list = grouped_events[i]
             key = bytearray()
             for j in range(len(event_list) - 1):
-                interval = (event_list[j][0] - event_list[j + 1][0]) / Fs
+                interval = (event_list[j + 1][0] - event_list[j][0]) / Fs
                 in_microseconds = int(
                     timedelta(seconds=interval) / timedelta(microseconds=1)
                 )
@@ -599,7 +597,6 @@ class Perceptio_Protocol(ProtocolInterface):
         return fp
 
     def perceptio(
-        self,
         signal: np.ndarray,
         key_size: int,
         Fs: int,
@@ -625,11 +622,6 @@ class Perceptio_Protocol(ProtocolInterface):
         :return: A tuple containing the generated fingerprints and the grouped events.
         """
         events = Perceptio_Protocol.get_events(signal, a, bottom_th, top_th, lump_th)
-        if len(events) < 2:
-            # Needs two events in order to calculate interevent timings
-            if self.verbose:
-                print("Error: Less than two events detected")
-            return ([], events)
 
         event_features = Perceptio_Protocol.get_event_features(events, signal)
 

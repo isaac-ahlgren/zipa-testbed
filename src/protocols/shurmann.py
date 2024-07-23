@@ -1,7 +1,5 @@
 import math
-
-# import queue
-from typing import Any, List, Tuple  # ,Optional
+from typing import Any, List, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
@@ -45,9 +43,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             * self.window_len
         )
 
-    def sigs_algo(
-        self, x1: List[float], window_len: int = 10000, bands: int = 1000
-    ) -> bytes:
+    def sigs_algo(x1: List[float], window_len: int = 10000, bands: int = 1000) -> bytes:
         """
         Signal processing algorithm that computes a bit string based on the energy difference between bands of Fourier transforms.
 
@@ -99,7 +95,6 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         return bitstring_to_bytes(bs)
 
     def zero_out_antialias_sigs_algo(
-        self,
         x1: List[float],
         antialias_freq: float,
         sampling_freq: float,
@@ -169,7 +164,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         """
         signal = self.get_signal()
 
-        bits = self.zero_out_antialias_sigs_algo(
+        bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
             signal,
             self.sensor.sensor.antialias_sample_rate,
             self.sensor.sensor.sample_rate,
