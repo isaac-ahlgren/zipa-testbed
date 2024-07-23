@@ -3,7 +3,7 @@ from typing import Any
 
 import numpy as np
 
-from sensors.sensor_interface import SensorInterface
+from sensor_interface import SensorInterface
 
 
 class TestSensor(SensorInterface):
