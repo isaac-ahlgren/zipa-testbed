@@ -1,3 +1,4 @@
+from multiprocessing.shared_memory import SharedMemory
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
@@ -66,7 +67,8 @@ class Perceptio_Protocol(ProtocolInterface):
         """
         events_detected = False
         for i in range(self.max_no_events_detected):
-            signal = self.sensor.read(self.time_length)
+            self.shm_active.value += 1
+            signal = self.get_signal()
             fps, events = Perceptio_Protocol.perceptio(
                 signal,
                 self.commitment_length,
@@ -93,6 +95,17 @@ class Perceptio_Protocol(ProtocolInterface):
                 events_detected = status
             else:
                 events_detected = events_detected and status
+
+            self.shm_active.value -= 1
+
+            if self.shm_active.value == 0:
+                shared_memory = SharedMemory(
+                    name=self.name + "_Signal",
+                    create=False,
+                    size=self.sensor.sensor.data_type.itemsize * self.time_length,
+                )
+                shared_memory.unlink()
+                self.flag.value = 0
 
             # Break out of the loop if event was detected
             if events_detected:

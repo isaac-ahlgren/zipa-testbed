@@ -1,8 +1,7 @@
 import multiprocessing as mp
 
-from sensor_interface import SensorInterface
-
 from networking.nfs import NFSLogger
+from sensors.sensor_interface import SensorInterface
 
 
 class Sensor_Collector:

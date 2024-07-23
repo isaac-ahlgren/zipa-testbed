@@ -1,7 +1,10 @@
+import queue
 import socket
 from multiprocessing import Lock, Process, Queue, Value
+from multiprocessing.shared_memory import SharedMemory
 from typing import Any, List, Tuple
 
+import numpy as np
 from cryptography.hazmat.primitives import hashes
 
 from error_correction.corrector import Fuzzy_Commitment
@@ -22,6 +25,7 @@ class ProtocolInterface:
         self.logger = logger
         self.queue = Queue()
         self.flag = Value("i", 0)
+        self.shm_active = Value("i", 0)
         self.key_length = parameters["key_length"]
         self.time_length = None  # To be calculated in implementation
         self.parity_symbols = parameters["parity_symbols"]
@@ -57,9 +61,16 @@ class ProtocolInterface:
 
         if self.verbose:
             print("Iteration " + str(self.count) + "\n")
+
+        processes = []
+
         for device in device_sockets:
             p = Process(target=self.host_protocol_single_threaded, args=[device])
             p.start()
+            processes.append(p)
+
+        for process in processes:
+            process.join()
 
     def get_signal(self):
         """
@@ -71,20 +82,53 @@ class ProtocolInterface:
 
         :return: List of collected signal data.
         """
-        signal = []
-        self.flag.value = 1
+        # Waiting until shared memory isn't needed by other processes
+        while self.flag.value == -1:
+            continue
 
-        while self.flag.value == 1:
-            try:
-                data = self.queue.get()
-                signal.extend(data)
-            except self.queue.Empty:
+        # First process to grab the flag populates the list
+        if self.flag.value == 0:
+            with self.mutex:
+                signal = []
+                self.flag.value = 1
+
+                while self.flag.value == 1:
+                    try:
+                        data = self.queue.get()
+                        signal.extend(data)
+                    except queue.Empty:
+                        continue
+
+                    if len(signal) >= self.time_length:
+                        shared_memory = SharedMemory(
+                            name=self.name + "_Signal",
+                            create=True,
+                            size=self.sensor.sensor.data_type.itemsize
+                            * self.time_length,
+                        )
+                        accessible_buffer = np.ndarray(
+                            (self.time_length,),
+                            self.sensor.sensor.data_type,
+                            buffer=shared_memory.buf,
+                        )
+                        accessible_buffer[:] = signal[: self.time_length]
+                        self.flag.value = -1
+        # Remaining processes standy for list to be full
+        else:
+            while self.flag.value == 1:
                 continue
 
-            if len(signal) >= self.time_length:
-                self.flag.value = -1
-
-        return signal
+            shared_memory = SharedMemory(
+                name=self.name + "_Signal",
+                create=False,
+                size=self.sensor.sensor.data_type.itemsize * self.time_length,
+            )
+            accessible_buffer = np.ndarray(
+                (self.time_length,),
+                self.sensor.sensor.data_type,
+                buffer=shared_memory.buf,
+            )
+        return list(accessible_buffer)
 
     # Must be implemented on a protocol basis
     def device_protocol(self, host: socket.socket) -> None:

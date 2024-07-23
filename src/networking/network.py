@@ -119,7 +119,10 @@ def send_commit(
     message = COMM.encode() + number_of_commitments + hash_length + com_length
 
     for i in range(len(commitments)):
-        message += hashes[i] + commitments[i]
+        message += (
+            commitments[i] + hashes[i]
+        )  # Works in Shurmann since it has hashes to send
+        # message += commitments[i] # Works in mietinnen since it doens't do any hashes
 
     device.send(message)
 
