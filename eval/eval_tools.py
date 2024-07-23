@@ -91,6 +91,13 @@ class Signal_File:
             self.signal_directory + self.files[self.file_index]
         )
 
+def add_gauss_noise(signal, target_snr):
+    sig_avg_sqr = np.mean(signal) ** 2
+    sig_avg_db = 10 * np.log10(sig_avg_sqr)
+    noise_avg_db = sig_avg_db - target_snr
+    noise_avg_sqr = 10 ** (noise_avg_db / 10)
+    noise = np.random.normal(0, np.sqrt(noise_avg_sqr), len(signal))
+    return signal + noise
 
 def bytes_to_bitstring(b, length):
     import binascii
@@ -125,11 +132,6 @@ def get_bit_err(bits1, bits2, key_length):
     return bit_err_over_time
 
 
-def get_average_bit_err(bits1, bits2, key_length):
-    bit_errs = get_bit_err(bits1, bits2, key_length)
-    return np.average(bit_errs)
-
-
 def events_cmp_bits(fp1, fp2, length_in_bits):
     lowest_bit_error = 100
     for dev1 in fp1:
@@ -146,6 +148,7 @@ def flatten_fingerprints(fps):
         for bits in fp:
             flattened_fps.append(bits)
     return flattened_fps
+
 
 
 def get_min_entropy(bits, key_length, symbol_size):
