@@ -88,12 +88,18 @@ class FastZIP_Protocol(ProtocolInterface):
 
         # Compute signal power (similar for all sensor types
         power = FastZIP_Protocol.compute_sig_power(signal)
+        print("Power threshold: ", power_thresh)
+        print("Signal Power: ", power)
 
         # Find peaks
         peaks = FastZIP_Protocol.get_peaks(signal, sample_rate)
+        print("Peak threshold: ", peak_thresh)
+        print("Peaks: ", peaks)
 
         # Compute signal's SNR
         snr = FastZIP_Protocol.compute_snr(signal)
+        print("SNR Threshold: ", snr_thresh)
+        print("Signal SNR: ", snr)
 
         # Check against thresholds to determine if activity is present
         activity_detected = False
@@ -111,7 +117,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
         return np.median(chunk_cpy) + bias
 
-    def generate_equidist_points(self, chunk_len, step, eqd_delta):
+    def generate_equidist_points(chunk_len, step, eqd_delta):
         # Equidistant delta cannot be bigger than the step
         if eqd_delta > step:
             print('generate_equidist_points: "eqd_delta" must be smaller than "step"')
@@ -131,7 +137,7 @@ class FastZIP_Protocol(ProtocolInterface):
                 % chunk_len
             )
 
-        return eqd_rand_points, len(eqd_rand_points)
+        return eqd_rand_points
 
     def compute_fingerprint(
         data,
@@ -149,6 +155,7 @@ class FastZIP_Protocol(ProtocolInterface):
     ):
         fp = None
         chunk = np.copy(data)
+        print("Chunk: ", chunk)
 
         if normalize:
             chunk = FastZIP_Protocol.normalize_signal(chunk)
@@ -156,6 +163,8 @@ class FastZIP_Protocol(ProtocolInterface):
         activity = FastZIP_Protocol.activity_filter(
             chunk, power_thresh, snr_thresh, peak_thresh, sample_rate
         )
+        #activity = True
+        print("Activity detected:", activity)
         if activity:
             if remove_noise:
                 chunk = FastZIP_Protocol.remove_noise(chunk)
@@ -164,14 +173,16 @@ class FastZIP_Protocol(ProtocolInterface):
                 chunk = FastZIP_Protocol.ewma_filter(abs(chunk), alpha=alpha)
 
             qs_thr = FastZIP_Protocol.compute_qs_thr(chunk, bias)
+            print("qs threshold", qs_thr)
 
             pts = FastZIP_Protocol.generate_equidist_points(
-                len(data), n_bits, eqd_delta, n_bits
+                len(data), n_bits, eqd_delta
             )
+            print("Points: ", pts)
 
             fp = ""
             for pt in pts:
-                if data[pt] > qs_thr:
+                if all(data[pt] > qs_thr):
                     fp += "1"
                 else:
                     fp += "0"
@@ -193,6 +204,8 @@ class FastZIP_Protocol(ProtocolInterface):
         normalize_list=None,
     ):
         def bitstring_to_bytes(s):
+            if s == "":
+                return b""
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         key = ""
