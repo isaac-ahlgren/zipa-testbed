@@ -1,7 +1,7 @@
 # TODO compare with Seemoo lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/Miettinen.ipynb
-import multiprocessing as mp
 import os
-from typing import Any, List, Tuple
+from multiprocessing.shared_memory import SharedMemory
+from typing import Any, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes, hmac
@@ -29,18 +29,8 @@ class Miettinen_Protocol(ProtocolInterface):
         Initializes a new instance of the Miettinen Protocol with specified parameters for key generation and communication.
 
         :param sensor: The sensor object that provides access to real-time data.
-        :param key_length: The length of the cryptographic key to be generated.
-        :param parity_symbols: The number of parity symbols used in the error-correction scheme.
-        :param f: The frame rate factor, used to calculate the window size for the signal processing.
-        :param w: The window size factor, used alongside the frame rate to define the granularity of signal analysis.
-        :param rel_thresh: The relative threshold for feature extraction in key generation.
-        :param abs_thresh: The absolute threshold for feature extraction in key generation.
-        :param auth_threshold: The threshold for successful authentication attempts before considering the session authenticated.
-        :param success_threshold: The number of successful key exchanges required for the protocol to be considered successful.
-        :param max_iterations: The maximum number of iterations (key exchanges) the protocol should attempt.
-        :param timeout: The timeout in seconds for network operations.
         :param logger: A logging object used to record protocol activity and debugging information.
-        :param verbose: A boolean flag that indicates whether to output detailed debug information.
+        :param parameters: A dictionary filled with the parameters needed to initialize and run the protocol
         """
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.f = parameters["f"] * self.sensor.sensor.sample_rate
@@ -50,19 +40,12 @@ class Miettinen_Protocol(ProtocolInterface):
         self.auth_threshold = parameters["auth_thresh"]
         self.success_threshold = parameters["success_thresh"]
         self.max_iterations = parameters["max_iterations"]
-
         self.timeout = parameters["timeout"]
         self.name = "Miettinen_Protocol"
         self.wip = False
-
         self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
         self.time_length = (self.w + self.f) * (self.commitment_length * 8 + 1)
-
-        # removed the following vars:
-        # verbose, logger, hash_func, re, commitment_length,
-        # commitment_length, parity_symbols, key_length, sensor
-
         self.count = 0
 
     def signal_preprocessing(
@@ -136,7 +119,9 @@ class Miettinen_Protocol(ProtocolInterface):
         :return: A tuple of the generated key bits and the raw sensor signal.
         """
         signal = self.get_signal()
-        bits = self.miettinen_algo(signal)
+        bits = Miettinen_Protocol.miettinen_algo(
+            signal, self.f, self.w, self.rel_thresh, self.abs_thresh
+        )
         return bits, signal
 
     def parameters(self, is_host: bool) -> str:
@@ -294,6 +279,17 @@ class Miettinen_Protocol(ProtocolInterface):
             # Increment total number of iterations key evolution has occured
             total_iterations += 1
 
+            try:
+                shared_memory = SharedMemory(
+                    name=self.name + "_Signal",
+                    create=False,
+                    size=self.sensor.sensor.data_type.itemsize * self.time_length,
+                )
+                shared_memory.unlink()
+            # Shared Memory instance is already wiped out
+            except FileNotFoundError:
+                pass
+
         if self.verbose:
             if successes / total_iterations >= self.auth_threshold:
                 print(
@@ -315,22 +311,6 @@ class Miettinen_Protocol(ProtocolInterface):
         )
 
         self.count += 1
-
-    def host_protocol(self, device_sockets: List[socket.socket]) -> None:
-        """
-        Manages the host side of the protocol, coordinating with multiple devices.
-
-        :param device_sockets: A list of sockets, each connected to a device participating in the protocol.
-        """
-
-        # Log current paramters to the NFS server
-        self.logger.log([("parameters", "txt", self.parameters(True))])
-
-        if self.verbose:
-            print("Iteration " + str(self.count) + "\n")
-        for device in device_sockets:
-            p = mp.Process(target=self.host_protocol_single_threaded, args=[device])
-            p.start()
 
     def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         """
@@ -375,6 +355,7 @@ class Miettinen_Protocol(ProtocolInterface):
                 print("Successfully ACKed participating device\n")
 
             # Extract key from sensor
+            self.shm_active.value += 1
             witness, signal = self.extract_context()
 
             # Commit Secret
@@ -390,12 +371,11 @@ class Miettinen_Protocol(ProtocolInterface):
                 print("Sending commitment")
                 print()
 
-            send_commit([commitment], None, device_socket)
-
-            # Key Confirmation Phase
-
             # Hash prederived key
             pd_key_hash = self.hash_function(prederived_key)
+
+            # Key Confirmation Phase
+            send_commit([commitment], [pd_key_hash], device_socket)
 
             # Recieve nonce message
             recieved_nonce_msg = get_nonce_msg_standby(device_socket, self.timeout)
@@ -438,6 +418,16 @@ class Miettinen_Protocol(ProtocolInterface):
 
             # Increment total times key evolution has occured
             total_iterations += 1
+            self.shm_active.value -= 1
+
+            if self.shm_active.value == 0:
+                shared_memory = SharedMemory(
+                    name=self.name + "_Signal",
+                    create=False,
+                    size=self.sensor.sensor.data_type.itemsize * self.time_length,
+                )
+                shared_memory.unlink()
+                self.flag.value = 0
 
             if self.verbose:
                 print(

@@ -42,12 +42,3 @@ def schurmann_calc_sample_num(
     return (
         math.ceil(((key_length) / int(antialias_bin / band_length)) + 1) * window_length
     )
-
-
-def add_gauss_noise(signal, target_snr):
-    sig_avg = np.mean(signal)
-    sig_avg_db = 10 * np.log10(sig_avg)
-    noise_avg_db = sig_avg_db - target_snr
-    noise_avg = 10 ** (noise_avg_db / 10)
-    noise = np.random.normal(0, np.sqrt(noise_avg), len(signal))
-    return signal + noise

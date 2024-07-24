@@ -1,14 +1,20 @@
 import glob
 
 import numpy as np
+from scipy.io import wavfile
 
 
 class Signal_Buffer:
-    def __init__(self, buf):
+    def __init__(self, buf, noise=False, target_snr=20):
         self.signal_buffer = buf
         self.index = 0
+        self.noise = noise
+        if self.noise:
+            self.noise_std = calc_snr_dist_params(buf, target_snr)
 
     def read(self, samples_to_read):
+        samples = samples_to_read
+
         output = np.array([])
         while samples_to_read != 0:
             samples_can_read = len(self.signal_buffer) - self.index
@@ -22,6 +28,9 @@ class Signal_Buffer:
                 output = np.append(output, buf)
                 self.index = self.index + samples_to_read
                 samples_to_read = 0
+        if self.noise:
+            noise = np.random.normal(0, self.noise_std, samples)
+            output += noise
         return output
 
     def sync(self, other_signal_buff):
@@ -92,6 +101,25 @@ class Signal_File:
         )
 
 
+def load_controlled_signal(file_name):
+    sr, data = wavfile.read(file_name)
+    return data.astype(np.int64), sr
+
+
+def calc_snr_dist_params(signal, target_snr):
+    sig_avg_sqr = np.mean(signal) ** 2
+    sig_avg_db = 10 * np.log10(sig_avg_sqr)
+    noise_avg_db = sig_avg_db - target_snr
+    noise_avg_sqr = 10 ** (noise_avg_db / 10)
+    return np.sqrt(noise_avg_sqr)
+
+
+def add_gauss_noise(signal, target_snr):
+    noise_std = calc_snr_dist_params(signal, target_snr)
+    noise = np.random.normal(0, noise_std, len(signal))
+    return signal + noise
+
+
 def bytes_to_bitstring(b, length):
     import binascii
 
@@ -123,11 +151,6 @@ def get_bit_err(bits1, bits2, key_length):
         bit_err = cmp_bits(bs1, bs2)
         bit_err_over_time.append(bit_err)
     return bit_err_over_time
-
-
-def get_average_bit_err(bits1, bits2, key_length):
-    bit_errs = get_bit_err(bits1, bits2, key_length)
-    return np.average(bit_errs)
 
 
 def events_cmp_bits(fp1, fp2, length_in_bits):

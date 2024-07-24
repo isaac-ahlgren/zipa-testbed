@@ -1,5 +1,6 @@
 import math
-from typing import Any, List, Tuple
+from multiprocessing.shared_memory import SharedMemory
+from typing import Any, List, Tuple  # ,Optional
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
@@ -190,6 +191,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         parameters += f"band_length: {self.band_len}\n"
         parameters += f"time_length: {self.time_length}\n"
 
+        return parameters
+
     def device_protocol(self, host: socket.socket) -> None:
         """
         Executes the device side protocol which involves sending and receiving data to/from the host.
@@ -263,6 +266,14 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
 
         self.count += 1
 
+        shared_memory = SharedMemory(
+            name=self.name + "_Signal",
+            create=False,
+            size=self.sensor.sensor.data_type.itemsize * self.time_length,
+        )
+
+        shared_memory.unlink()
+
     def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         """
         Manages the protocol operations for a single device connection in a threaded environment.
@@ -270,6 +281,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         :param device_socket: The socket connection to a single device.
         """
         # Exit early if no devices to pair with
+        self.shm_active.value += 1
+
         if not ack_standby(device_socket, self.timeout):
             if self.verbose:
                 print("No ACK recieved within time limit - early exit.\n\n")
@@ -312,6 +325,16 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         )
 
         self.count += 1
+        self.shm_active.value -= 1
+
+        if self.shm_active.value == 0:
+            shared_memory = SharedMemory(
+                name=self.name + "_Signal",
+                create=False,
+                size=self.sensor.sensor.data_type.itemsize * self.time_length,
+            )
+            shared_memory.unlink()
+            self.flag.value = 0
 
 
 """###TESTING CODE###
