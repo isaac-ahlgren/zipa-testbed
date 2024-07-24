@@ -28,7 +28,7 @@ class TestSensorWrapper:
         chunk = self.test_sensor.read()
         self.output_data.append(chunk)
 
-        print(chunk)
+        # print(chunk)
         return chunk
     
     def start(self):
@@ -81,15 +81,13 @@ def test_remove_protocol_queue():
     test_sen_reader.remove_protocol_queue(protocol_queue)
 
     # check to see if queues is empty
-    assert len(test_sen_reader.queues) == 0
+    assert test_sen_reader.queues.qsize() == 0
 
 def test_poll():
-    # raw data
     test_sensor = TestSensorWrapper(TestSensor(
       SEN_TEST, signal_type="sine"
     ))
 
-    # client data
     test_sen_reader = SensorReader(test_sensor)
 
     # Make queue tuple here
@@ -106,6 +104,7 @@ def test_poll():
     time.sleep(5)
     flag.value = -1
 
+    data = status_queue[1].get_nowait()
+
     # checks to see if the status_queue is being written to 
-    assert status_queue[1] == test_sensor.read()
-    
+    assert (data == test_sensor.read()).all()

@@ -19,13 +19,13 @@ def testing_schurmann_bit_generation_interface():
     assert type(outcome) == bytes
 
 
-# def testing_miettinen_bit_generation_interface():
-#     from protocols.miettinen import Miettinen_Protocol
-#     import numpy as np
+def testing_miettinen_bit_generation_interface():
+    from protocols.miettinen import Miettinen_Protocol
+    import numpy as np
 
-#     outcome = Miettinen_Protocol.miettinen_algo(np.sin(np.arange(50000)), 1000, 1000, 0.5, 0.5)
+    outcome = Miettinen_Protocol.miettinen_algo(np.sin(np.arange(50000)), 1000, 1000, 0.5, 0.5)
     
-#     assert type(outcome) == bytes
+    assert type(outcome) == bytes
 
 
 def testing_perceptio_bit_generation_interface():
