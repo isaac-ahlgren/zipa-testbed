@@ -3,18 +3,18 @@ import os
 import sys
 
 import numpy as np
-from miettinen_tools import (
-    miettinen_calc_sample_num,
-    miettinen_wrapper_func,
-)
-from scipy.io import wavfile
+from miettinen_tools import miettinen_calc_sample_num, miettinen_wrapper_func
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import Signal_Buffer, add_gauss_noise, cmp_bits, load_controlled_signal  # noqa: E402
+from eval_tools import (  # noqa: E402
+    Signal_Buffer,
+    cmp_bits,
+    load_controlled_signal,
+)
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
-     # Setting up command-line argument parsing
+    # Setting up command-line argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument("-w", "--snap_shot_width", type=float, default=5)
     parser.add_argument("-f", "--no_snap_shot_width", type=float, default=5)
@@ -36,7 +36,9 @@ if __name__ == "__main__":
 
     # Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal("../../data/adversary_controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
+    )
 
     # Converting time durations to number of samples
     w_in_samples = int(w * sr)
@@ -45,8 +47,12 @@ if __name__ == "__main__":
     # Calculating the number of samples needed
     sample_num = miettinen_calc_sample_num(key_length, w_in_samples, f_in_samples)
 
-    legit_signal_buffer1 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
-    legit_signal_buffer2 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
+    legit_signal_buffer1 = Signal_Buffer(
+        legit_signal.copy(), noise=True, target_snr=target_snr
+    )
+    legit_signal_buffer2 = Signal_Buffer(
+        legit_signal.copy(), noise=True, target_snr=target_snr
+    )
     adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
 
     # Grouping the signal buffers into a tuple

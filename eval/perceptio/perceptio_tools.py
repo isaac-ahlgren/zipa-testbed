@@ -5,18 +5,23 @@ import numpy as np
 
 sys.path.insert(
     1, os.getcwd() + "/../../src/"
-)  # Gives us path to Perceptio algorithm in /
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+)  # Gives us path to Perceptio algorithm in /src
+
 from protocols.perceptio import Perceptio_Protocol  # noqa: E402
-from eval_tools import add_gauss_noise # noqa: E402
 
 goldsig_rng = np.random.default_rng(0)
+
+
 def golden_signal(sample_num):
     return goldsig_rng.integers(0, 10, size=sample_num)
 
+
 adv_rng = np.random.default_rng(12345)
+
+
 def adversary_signal(sample_num):
     return adv_rng.integers(0, 10, size=sample_num)
+
 
 def get_events(arr, top_th, bottom_th, lump_th, a):
     events = Perceptio_Protocol.get_events(arr, a, bottom_th, top_th, lump_th)
@@ -32,7 +37,7 @@ def gen_min_events(
     top_th,
     bottom_th,
     lump_th,
-    a, 
+    a,
 ):
     events = []
     event_features = []

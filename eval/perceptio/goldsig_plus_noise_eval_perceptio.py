@@ -3,7 +3,12 @@ import os
 import sys
 
 import numpy as np
-from perceptio_tools import gen_min_events, generate_bits, golden_signal, adversary_signal
+from perceptio_tools import (
+    adversary_signal,
+    gen_min_events,
+    generate_bits,
+    golden_signal,
+)
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import Signal_Buffer, events_cmp_bits  # noqa: E402
@@ -44,8 +49,12 @@ if __name__ == "__main__":
     # Generating the signals
     golden_signal = golden_signal(buffer_size)
     adv_signal = adversary_signal(buffer_size)
-    legit_signal_buffer1 = Signal_Buffer(golden_signal.copy(), noise=True, target_snr=target_snr)
-    legit_signal_buffer2 = Signal_Buffer(golden_signal.copy(), noise=True, target_snr=target_snr)
+    legit_signal_buffer1 = Signal_Buffer(
+        golden_signal.copy(), noise=True, target_snr=target_snr
+    )
+    legit_signal_buffer2 = Signal_Buffer(
+        golden_signal.copy(), noise=True, target_snr=target_snr
+    )
     adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
 
     # Grouping the signal buffers into a tuple
@@ -77,7 +86,9 @@ if __name__ == "__main__":
     # Evaluating the signals with the specified number of trials
     evaluator.evaluate(signals, trials)
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(events_cmp_bits, key_size_in_bytes)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(
+        events_cmp_bits, key_size_in_bytes
+    )
 
     # Printing the average bit error rates
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")

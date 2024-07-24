@@ -8,10 +8,13 @@ from schurmann_tools import (
     schurmann_calc_sample_num,
     schurmann_wrapper_func,
 )
-from scipy.io import wavfile
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import Signal_Buffer, add_gauss_noise, cmp_bits, load_controlled_signal  # noqa: E402
+from eval_tools import (  # noqa: E402
+    Signal_Buffer,
+    cmp_bits,
+    load_controlled_signal,
+)
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
@@ -33,9 +36,15 @@ if __name__ == "__main__":
 
     # Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal("../../data/adversary_controlled_signal.wav")
-    legit_signal_buffer1 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
-    legit_signal_buffer2 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
+    adv_signal, sr = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
+    )
+    legit_signal_buffer1 = Signal_Buffer(
+        legit_signal.copy(), noise=True, target_snr=target_snr
+    )
+    legit_signal_buffer2 = Signal_Buffer(
+        legit_signal.copy(), noise=True, target_snr=target_snr
+    )
     adv_signal_buffer = Signal_Buffer(adv_signal)
 
     # Grouping the signal buffers into a tuple

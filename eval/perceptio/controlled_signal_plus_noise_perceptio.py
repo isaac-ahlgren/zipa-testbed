@@ -3,10 +3,14 @@ import os
 import sys
 
 import numpy as np
-from perceptio_tools import gen_min_events, generate_bits, golden_signal, adversary_signal
+from perceptio_tools import gen_min_events, generate_bits
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import Signal_Buffer, events_cmp_bits, load_controlled_signal  # noqa: E402
+from eval_tools import (  # noqa: E402
+    Signal_Buffer,
+    events_cmp_bits,
+    load_controlled_signal,
+)
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
@@ -41,14 +45,19 @@ if __name__ == "__main__":
     target_snr = getattr(args, "snr_level")
     trials = getattr(args, "trials")
 
-   # Loading the controlled signals
+    # Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal("../../data/adversary_controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
+    )
 
-    legit_signal_buffer1 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
-    legit_signal_buffer2 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
+    legit_signal_buffer1 = Signal_Buffer(
+        legit_signal.copy(), noise=True, target_snr=target_snr
+    )
+    legit_signal_buffer2 = Signal_Buffer(
+        legit_signal.copy(), noise=True, target_snr=target_snr
+    )
     adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
-
 
     # Grouping the signal buffers into a tuple
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
@@ -79,7 +88,9 @@ if __name__ == "__main__":
     # Evaluating the signals with the specified number of trials
     evaluator.evaluate(signals, trials)
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(events_cmp_bits, key_size_in_bytes)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(
+        events_cmp_bits, key_size_in_bytes
+    )
 
     # Printing the average bit error rates
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")

@@ -1,7 +1,6 @@
 import glob
 
 import numpy as np
-
 from scipy.io import wavfile
 
 
@@ -12,7 +11,6 @@ class Signal_Buffer:
         self.noise = noise
         if self.noise:
             self.noise_std = calc_snr_dist_params(buf, target_snr)
-
 
     def read(self, samples_to_read):
         samples = samples_to_read
@@ -102,9 +100,11 @@ class Signal_File:
             self.signal_directory + self.files[self.file_index]
         )
 
+
 def load_controlled_signal(file_name):
     sr, data = wavfile.read(file_name)
     return data.astype(np.int64), sr
+
 
 def calc_snr_dist_params(signal, target_snr):
     sig_avg_sqr = np.mean(signal) ** 2
@@ -112,6 +112,7 @@ def calc_snr_dist_params(signal, target_snr):
     noise_avg_db = sig_avg_db - target_snr
     noise_avg_sqr = 10 ** (noise_avg_db / 10)
     return np.sqrt(noise_avg_sqr)
+
 
 def add_gauss_noise(signal, target_snr):
     noise_std = calc_snr_dist_params(signal, target_snr)
