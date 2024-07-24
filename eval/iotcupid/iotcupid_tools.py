@@ -7,7 +7,7 @@ sys.path.insert(
     1, os.getcwd() + "/../../src/"
 )  # Gives us path to Perceptio algorithm in /src
 
-from protocols.perceptio import Perceptio_Protocol  # noqa: E402
+from protocols.iotcupid import IoTCupid_Protocol  # noqa: E402
 
 goldsig_rng = np.random.default_rng(0)
 
@@ -24,7 +24,7 @@ def adversary_signal(sample_num):
 
 
 def get_events(arr, top_th, bottom_th, lump_th, a):
-    events = Perceptio_Protocol.get_events(arr, a, bottom_th, top_th, lump_th)
+    events = IoTCupid_Protocol.get_events(arr, a, bottom_th, top_th, lump_th)
     event_features = Perceptio_Protocol.get_event_features(events, arr)
 
     return events, event_features
