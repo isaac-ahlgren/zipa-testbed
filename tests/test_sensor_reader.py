@@ -75,13 +75,13 @@ def test_remove_protocol_queue():
     protocol_queue = (flag, queue)
 
     # add tuple to queues 
-    test_add_protocol()
+    test_sen_reader.add_protocol_queue(protocol_queue)
 
     # call remove_protocol_queue 
     test_sen_reader.remove_protocol_queue(protocol_queue)
 
     # check to see if queues is empty
-    assert len(test_sen_reader.queues) < queue_size
+    assert len(test_sen_reader.queues) <= queue_size
 
 def test_poll():
     test_sensor = TestSensorWrapper(TestSensor(
