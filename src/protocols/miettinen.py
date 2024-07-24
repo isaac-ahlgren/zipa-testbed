@@ -9,8 +9,6 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import (
     ack,
     ack_standby,
@@ -22,11 +20,10 @@ from networking.network import (
     send_nonce_msg,
     socket,
 )
-
 from protocols.protocol_interface import ProtocolInterface
 
 
-class Miettinen_Protocol(ProtocolInterface): 
+class Miettinen_Protocol(ProtocolInterface):
     def __init__(self, parameters: dict, sensor: Any, logger: Any):
         """
         Initializes a new instance of the Miettinen Protocol with specified parameters for key generation and communication.
@@ -56,7 +53,7 @@ class Miettinen_Protocol(ProtocolInterface):
 
         self.timeout = parameters["timeout"]
         self.name = "Miettinen_Protocol"
-        self.wip = False 
+        self.wip = False
 
         self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
@@ -67,7 +64,6 @@ class Miettinen_Protocol(ProtocolInterface):
         # commitment_length, parity_symbols, key_length, sensor
 
         self.count = 0
-
 
     def signal_preprocessing(
         signal: np.ndarray, no_snap_shot_width: int, snap_shot_width: int
@@ -129,8 +125,8 @@ class Miettinen_Protocol(ProtocolInterface):
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
-        signal = self.signal_preprocessing(x, self.f, self.w)
-        key = self.gen_key(signal, self.rel_thresh, self.abs_thresh)
+        signal = Miettinen_Protocol.signal_preprocessing(x, f, w)
+        key = Miettinen_Protocol.gen_key(signal, rel_thresh, abs_thresh)
         return bitstring_to_bytes(key)
 
     def extract_context(self) -> Tuple[bytes, np.ndarray]:

@@ -1,6 +1,6 @@
 import socket
-from multiprocessing import Lock, Process, Queue, Value, Manager, Lock
-from typing import Any, List, Tuple, Union
+from multiprocessing import Lock, Manager, Process, Queue, Value
+from typing import Any, List, Tuple
 
 from cryptography.hazmat.primitives import hashes
 
@@ -86,7 +86,7 @@ class ProtocolInterface:
                     try:
                         data = self.queue.get()
                         signal.extend(data)
-                    except queue.Empty:
+                    except self.queue.Empty:
                         continue
 
                     if len(signal) >= self.time_length:
@@ -96,7 +96,7 @@ class ProtocolInterface:
         else:
             while self.flag.value == 1:
                 continue
-        
+
         return list(self.list)
 
     # Must be implemented on a protocol basis
