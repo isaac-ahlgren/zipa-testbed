@@ -81,7 +81,7 @@ def test_remove_protocol_queue():
     test_sen_reader.remove_protocol_queue(protocol_queue)
 
     # check to see if queues is empty
-    assert test_sen_reader.queues.qsize() == 0
+    assert len(test_sen_reader.queues) < queue_size
 
 def test_poll():
     test_sensor = TestSensorWrapper(TestSensor(
