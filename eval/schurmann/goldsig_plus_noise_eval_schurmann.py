@@ -32,7 +32,12 @@ if __name__ == "__main__":
     trials = getattr(args, "trials")
 
     sample_num = schurmann_calc_sample_num(
-        key_length, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER)
+        key_length,
+        window_length,
+        band_length,
+        MICROPHONE_SAMPLING_RATE,
+        ANTIALIASING_FILTER,
+    )
 
     signal1 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
     signal2 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
@@ -41,11 +46,17 @@ if __name__ == "__main__":
 
     def bit_gen_algo(signal):
         noisy_signal = add_gauss_noise(signal, target_snr)
-        return schurmann_wrapper_func(noisy_signal, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER)
+        return schurmann_wrapper_func(
+            noisy_signal,
+            window_length,
+            band_length,
+            MICROPHONE_SAMPLING_RATE,
+            ANTIALIASING_FILTER,
+        )
 
     evaluator = Evaluator(bit_gen_algo)
     evaluator.evaluate(signals, trials)
     legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
-    
+
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")

@@ -2,10 +2,7 @@ import argparse
 import os
 import sys
 
-# Gives us path to eval_tools.py
-sys.path.insert(1, os.getcwd() + "/..")
-
-import numpy as np 
+import numpy as np
 from schurmann_tools import (
     ANTIALIASING_FILTER,
     schurmann_calc_sample_num,
@@ -13,9 +10,10 @@ from schurmann_tools import (
 )
 from scipy.io import wavfile
 
-sys.path.insert(1, os.getcwd() + "/..")
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import Signal_Buffer, add_gauss_noise, cmp_bits  # noqa: E402
-from evaluator import Evaluator # noqa: E402
+from evaluator import Evaluator  # noqa: E402
+
 
 def load_controlled_signal(file_name):
     sr, data = wavfile.read(file_name)
@@ -48,16 +46,19 @@ if __name__ == "__main__":
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
     sample_num = schurmann_calc_sample_num(
-        key_length, window_length, band_length, sr, ANTIALIASING_FILTER)
+        key_length, window_length, band_length, sr, ANTIALIASING_FILTER
+    )
 
     def bit_gen_algo(signal):
         signal_chunk = signal.read(sample_num)
         noisy_signal = add_gauss_noise(signal_chunk, target_snr)
-        return schurmann_wrapper_func(noisy_signal, window_length, band_length, sr, ANTIALIASING_FILTER)
+        return schurmann_wrapper_func(
+            noisy_signal, window_length, band_length, sr, ANTIALIASING_FILTER
+        )
 
     evaluator = Evaluator(bit_gen_algo)
     evaluator.evaluate(signals, trials)
     legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
-    
+
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")

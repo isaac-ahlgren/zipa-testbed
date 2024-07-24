@@ -20,7 +20,9 @@ class Evaluator:
             adv_bits = self.bit_gen_algo_wrapper(adv_signal)
             self.adv_bits.append(adv_bits)
 
-            if type(legit_signal1) == Signal_Buffer or type(legit_signal1) == Signal_File:
+            if isinstance(legit_signal1, Signal_Buffer) or isinstance(
+                legit_signal1, Signal_File
+            ):
                 legit_signal1.sync(legit_signal2)
 
     def cmp_func(self, func, key_length):
