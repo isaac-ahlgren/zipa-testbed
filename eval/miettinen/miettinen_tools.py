@@ -33,12 +33,3 @@ def adversary_signal(sample_num, fs):
 
 def miettinen_calc_sample_num(key_length, w, f):
     return (w + f) * (key_length + 1)
-
-
-def add_gauss_noise(signal, target_snr):
-    sig_avg = np.mean(signal)
-    sig_avg_db = 10 * np.log10(sig_avg)
-    noise_avg_db = sig_avg_db - target_snr
-    noise_avg = 10 ** (noise_avg_db / 10)
-    noise = np.random.normal(0, np.sqrt(noise_avg), len(signal))
-    return signal + noise

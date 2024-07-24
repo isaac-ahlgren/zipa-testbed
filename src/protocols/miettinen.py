@@ -107,7 +107,6 @@ class Miettinen_Protocol(ProtocolInterface):
 
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
-
         signal = Miettinen_Protocol.signal_preprocessing(x, f, w)
         key = Miettinen_Protocol.gen_key(signal, rel_thresh, abs_thresh)
         return bitstring_to_bytes(key)
