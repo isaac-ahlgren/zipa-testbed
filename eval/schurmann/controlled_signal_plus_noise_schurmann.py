@@ -5,74 +5,21 @@ import sys
 # Gives us path to eval_tools.py
 sys.path.insert(1, os.getcwd() + "/..")
 
-import numpy as np  # noqa: E402
-from eval_tools import cmp_bits  # noqa: E402
-from schurmann_tools import (  # noqa: E402; MICROPHONE_SAMPLING_RATE,
+import numpy as np 
+from schurmann_tools import (
     ANTIALIASING_FILTER,
-    add_gauss_noise,
     schurmann_calc_sample_num,
     schurmann_wrapper_func,
 )
-from scipy.io import wavfile  # noqa: E402
+from scipy.io import wavfile
 
-
-def controlled_sig_plus_noise_eval(
-    window_length, band_length, key_length, antialias_freq, target_snr, trials
-):
-    legit_bit_errs = []
-    adv_bit_errs = []
-
-    signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal(
-        "../../data/adversary_controlled_signal.wav"
-    )
-    sample_num = schurmann_calc_sample_num(
-        key_length, window_length, band_length, sr, antialias_freq
-    )
-    index = 0
-    adv_index = 0
-    for i in range(trials):
-        signal_part, index = wrap_around_read(signal, index, sample_num)
-        adv_part, adv_index = wrap_around_read(adv_signal, adv_index, sample_num)
-        sig1 = add_gauss_noise(signal_part, target_snr)
-        sig2 = add_gauss_noise(signal_part, target_snr)
-        adv_sig = add_gauss_noise(adv_part, target_snr)
-        bits1 = schurmann_wrapper_func(
-            sig1, window_length, band_length, sr, antialias_freq
-        )
-        bits2 = schurmann_wrapper_func(
-            sig2, window_length, band_length, sr, antialias_freq
-        )
-        adv_bits = schurmann_wrapper_func(
-            adv_sig, window_length, band_length, sr, antialias_freq
-        )
-        legit_bit_err = cmp_bits(bits1, bits2, key_length)
-        legit_bit_errs.append(legit_bit_err)
-        adv_bit_err = cmp_bits(bits1, adv_bits, key_length)
-        adv_bit_errs.append(adv_bit_err)
-    return legit_bit_errs, adv_bit_errs
-
+sys.path.insert(1, os.getcwd() + "/..")
+from eval_tools import Signal_Buffer, add_gauss_noise, cmp_bits  # noqa: E402
+from evaluator import Evaluator # noqa: E402
 
 def load_controlled_signal(file_name):
     sr, data = wavfile.read(file_name)
-    return data.astype(np.int64) + 2**16, sr
-
-
-def wrap_around_read(buffer, index, samples_to_read):
-    output = np.array([])
-    while samples_to_read != 0:
-        samples_can_read = len(buffer) - index
-        if samples_can_read <= samples_to_read:
-            buf = buffer[index : index + samples_can_read]
-            output = np.append(output, buf)
-            samples_to_read = samples_to_read - samples_can_read
-            index = 0
-        else:
-            buf = buffer[index : index + samples_to_read]
-            output = np.append(output, buf)
-            index = index + samples_to_read
-            samples_to_read = 0
-    return output, index
+    return data.astype(np.int64), sr
 
 
 if __name__ == "__main__":
@@ -87,11 +34,30 @@ if __name__ == "__main__":
     window_length = getattr(args, "window_length")
     band_length = getattr(args, "band_length")
     key_length = getattr(args, "key_length")
-    snr_level = getattr(args, "snr_level")
+    target_snr = getattr(args, "snr_level")
     trials = getattr(args, "trials")
 
-    legit_bit_errs, adv_bit_errs = controlled_sig_plus_noise_eval(
-        window_length, band_length, key_length, ANTIALIASING_FILTER, snr_level, trials
+    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
     )
+    legit_signal_buffer1 = Signal_Buffer(legit_signal.copy())
+    legit_signal_buffer2 = Signal_Buffer(legit_signal.copy())
+    adv_signal_buffer = Signal_Buffer(adv_signal)
+
+    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+
+    sample_num = schurmann_calc_sample_num(
+        key_length, window_length, band_length, sr, ANTIALIASING_FILTER)
+
+    def bit_gen_algo(signal):
+        signal_chunk = signal.read(sample_num)
+        noisy_signal = add_gauss_noise(signal_chunk, target_snr)
+        return schurmann_wrapper_func(noisy_signal, window_length, band_length, sr, ANTIALIASING_FILTER)
+
+    evaluator = Evaluator(bit_gen_algo)
+    evaluator.evaluate(signals, trials)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+    
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")

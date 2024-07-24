@@ -6,7 +6,6 @@ import numpy as np
 from schurmann_tools import (
     ANTIALIASING_FILTER,
     MICROPHONE_SAMPLING_RATE,
-    add_gauss_noise,
     adversary_signal,
     golden_signal,
     schurmann_calc_sample_num,
@@ -14,44 +13,8 @@ from schurmann_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import cmp_bits  # noqa: E402
-
-
-def goldsig_plus_noise_eval(
-    window_length,
-    band_length,
-    key_length,
-    goldsig_sampling_freq,
-    antialias_freq,
-    target_snr,
-    trials,
-):
-    legit_bit_errs = []
-    adv_bit_errs = []
-    sample_num = schurmann_calc_sample_num(
-        key_length, window_length, band_length, goldsig_sampling_freq, antialias_freq
-    )
-    signal = golden_signal(sample_num, goldsig_sampling_freq)
-    adv_signal = adversary_signal(sample_num, goldsig_sampling_freq)
-    for i in range(trials):
-        sig1 = add_gauss_noise(signal, target_snr)
-        sig2 = add_gauss_noise(signal, target_snr)
-        adv_sig = add_gauss_noise(adv_signal, target_snr)
-        bits1 = schurmann_wrapper_func(
-            sig1, window_length, band_length, goldsig_sampling_freq, antialias_freq
-        )
-        bits2 = schurmann_wrapper_func(
-            sig2, window_length, band_length, goldsig_sampling_freq, antialias_freq
-        )
-        adv_bits = schurmann_wrapper_func(
-            adv_sig, window_length, band_length, goldsig_sampling_freq, antialias_freq
-        )
-        legit_bit_err = cmp_bits(bits1, bits2, key_length)
-        legit_bit_errs.append(legit_bit_err)
-        adv_bit_err = cmp_bits(bits1, adv_bits, key_length)
-        adv_bit_errs.append(adv_bit_err)
-    return legit_bit_errs, adv_bit_errs
-
+from eval_tools import add_gauss_noise, cmp_bits  # noqa: E402
+from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -65,17 +28,24 @@ if __name__ == "__main__":
     window_length = getattr(args, "window_length")
     band_length = getattr(args, "band_length")
     key_length = getattr(args, "key_length")
-    snr_level = getattr(args, "snr_level")
+    target_snr = getattr(args, "snr_level")
     trials = getattr(args, "trials")
 
-    legit_bit_errs, adv_bit_errs = goldsig_plus_noise_eval(
-        window_length,
-        band_length,
-        key_length,
-        MICROPHONE_SAMPLING_RATE,
-        ANTIALIASING_FILTER,
-        snr_level,
-        trials,
-    )
+    sample_num = schurmann_calc_sample_num(
+        key_length, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER)
+
+    signal1 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
+    signal2 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
+    adv_signal = adversary_signal(sample_num, MICROPHONE_SAMPLING_RATE)
+    signals = (signal1, signal2, adv_signal)
+
+    def bit_gen_algo(signal):
+        noisy_signal = add_gauss_noise(signal, target_snr)
+        return schurmann_wrapper_func(noisy_signal, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER)
+
+    evaluator = Evaluator(bit_gen_algo)
+    evaluator.evaluate(signals, trials)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+    
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
