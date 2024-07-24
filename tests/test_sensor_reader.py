@@ -58,10 +58,10 @@ def test_add_protocol():
 
     # checks to see if the status_queue is being written to 
     assert status_queue[1].qsize() > 0
-
     # checks to see if tuples are being added to the queue
     assert len(test_sen_reader.queues) > queue_size
-    
+    assert test_sen_reader.queues != 0
+
 def test_remove_protocol_queue():
     test_sensor = TestSensor(
       SEN_TEST, signal_type="sine"
@@ -77,11 +77,13 @@ def test_remove_protocol_queue():
     # add tuple to queues 
     test_sen_reader.add_protocol_queue(protocol_queue)
 
+    assert len(test_sen_reader.queues) == 1
+
     # call remove_protocol_queue 
     test_sen_reader.remove_protocol_queue(protocol_queue)
 
     # check to see if queues is empty
-    assert len(test_sen_reader.queues) <= queue_size
+    assert len(test_sen_reader.queues) == 0
 
 def test_poll():
     test_sensor = TestSensorWrapper(TestSensor(
