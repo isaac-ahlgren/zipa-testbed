@@ -21,6 +21,7 @@ def load_controlled_signal(file_name):
 
 
 if __name__ == "__main__":
+    # Setting up command-line argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument("-wl", "--window_length", type=int, default=16537)
     parser.add_argument("-bl", "--band_length", type=int, default=500)
@@ -28,6 +29,7 @@ if __name__ == "__main__":
     parser.add_argument("-snr", "--snr_level", type=float, default=20)
     parser.add_argument("-t", "--trials", type=int, default=1000)
 
+    # Parsing command-line arguments
     args = parser.parse_args()
     window_length = getattr(args, "window_length")
     band_length = getattr(args, "band_length")
@@ -35,30 +37,36 @@ if __name__ == "__main__":
     target_snr = getattr(args, "snr_level")
     trials = getattr(args, "trials")
 
+    # Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal(
-        "../../data/adversary_controlled_signal.wav"
-    )
+    adv_signal, sr = load_controlled_signal("../../data/adversary_controlled_signal.wav")
     legit_signal_buffer1 = Signal_Buffer(legit_signal.copy())
     legit_signal_buffer2 = Signal_Buffer(legit_signal.copy())
     adv_signal_buffer = Signal_Buffer(adv_signal)
 
+    # Grouping the signal buffers into a tuple
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
+    # Calculating the number of samples needed
     sample_num = schurmann_calc_sample_num(
         key_length, window_length, band_length, sr, ANTIALIASING_FILTER
     )
 
+    # Defining the bit generation algorithm
     def bit_gen_algo(signal):
-        signal_chunk = signal.read(sample_num)
-        noisy_signal = add_gauss_noise(signal_chunk, target_snr)
+        signal_chunk = signal.read(sample_num)  # Reading a chunk of the signal
+        noisy_signal = add_gauss_noise(signal_chunk, target_snr)  # Adding Gaussian noise
         return schurmann_wrapper_func(
             noisy_signal, window_length, band_length, sr, ANTIALIASING_FILTER
         )
 
+    # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
+    # Evaluating the signals with the specified number of trials
     evaluator.evaluate(signals, trials)
+    # Comparing the bit errors for legitimate and adversary signals
     legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
 
+    # Printing the average bit error rates
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
