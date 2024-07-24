@@ -32,9 +32,7 @@ def gen_min_events(
     top_th,
     bottom_th,
     lump_th,
-    a,
-    add_noise=False,
-    snr=20,
+    a, 
 ):
     events = []
     event_features = []
@@ -42,8 +40,6 @@ def gen_min_events(
     while len(events) < min_events:
         chunk = signal.read(chunk_size)
 
-        if add_noise is True:
-            chunk = add_gauss_noise(chunk, snr)
         found_events, found_event_features = get_events(
             chunk, top_th, bottom_th, lump_th, a
         )

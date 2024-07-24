@@ -11,14 +11,8 @@ from schurmann_tools import (
 from scipy.io import wavfile
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import Signal_Buffer, add_gauss_noise, cmp_bits  # noqa: E402
+from eval_tools import Signal_Buffer, add_gauss_noise, cmp_bits, load_controlled_signal  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
-
-
-def load_controlled_signal(file_name):
-    sr, data = wavfile.read(file_name)
-    return data.astype(np.int64), sr
-
 
 if __name__ == "__main__":
     # Setting up command-line argument parsing
@@ -40,8 +34,8 @@ if __name__ == "__main__":
     # Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
     adv_signal, sr = load_controlled_signal("../../data/adversary_controlled_signal.wav")
-    legit_signal_buffer1 = Signal_Buffer(legit_signal.copy())
-    legit_signal_buffer2 = Signal_Buffer(legit_signal.copy())
+    legit_signal_buffer1 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
+    legit_signal_buffer2 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
     adv_signal_buffer = Signal_Buffer(adv_signal)
 
     # Grouping the signal buffers into a tuple
@@ -55,9 +49,8 @@ if __name__ == "__main__":
     # Defining the bit generation algorithm
     def bit_gen_algo(signal):
         signal_chunk = signal.read(sample_num)  # Reading a chunk of the signal
-        noisy_signal = add_gauss_noise(signal_chunk, target_snr)  # Adding Gaussian noise
         return schurmann_wrapper_func(
-            noisy_signal, window_length, band_length, sr, ANTIALIASING_FILTER
+            signal_chunk, window_length, band_length, sr, ANTIALIASING_FILTER
         )
 
     # Creating an evaluator object with the bit generation algorithm

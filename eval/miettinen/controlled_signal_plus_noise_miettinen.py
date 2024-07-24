@@ -10,14 +10,8 @@ from miettinen_tools import (
 from scipy.io import wavfile
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import Signal_Buffer, add_gauss_noise, cmp_bits  # noqa: E402
+from eval_tools import Signal_Buffer, add_gauss_noise, cmp_bits, load_controlled_signal  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
-
-
-def load_controlled_signal(file_name):
-    sr, data = wavfile.read(file_name)
-    return data.astype(np.int64), sr
-
 
 if __name__ == "__main__":
      # Setting up command-line argument parsing
@@ -51,9 +45,9 @@ if __name__ == "__main__":
     # Calculating the number of samples needed
     sample_num = miettinen_calc_sample_num(key_length, w_in_samples, f_in_samples)
 
-    legit_signal_buffer1 = Signal_Buffer(legit_signal.copy())
-    legit_signal_buffer2 = Signal_Buffer(legit_signal.copy())
-    adv_signal_buffer = Signal_Buffer(adv_signal)
+    legit_signal_buffer1 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
+    legit_signal_buffer2 = Signal_Buffer(legit_signal.copy(), noise=True, target_snr=target_snr)
+    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
 
     # Grouping the signal buffers into a tuple
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
@@ -61,9 +55,8 @@ if __name__ == "__main__":
     # Defining the bit generation algorithm
     def bit_gen_algo(signal):
         signal_chunk = signal.read(sample_num)  # Reading a chunk of the signal
-        noisy_signal = add_gauss_noise(signal_chunk, target_snr)  # Adding Gaussian noise
         return miettinen_wrapper_func(
-            noisy_signal, f_in_samples, w_in_samples, rel_thresh, abs_thresh
+            signal_chunk, f_in_samples, w_in_samples, rel_thresh, abs_thresh
         )
 
     # Creating an evaluator object with the bit generation algorithm

@@ -59,7 +59,6 @@ if __name__ == "__main__":
             bottom_th,
             lump_th,
             a,
-            add_noise=False,
         )
         bits, grouped_events = generate_bits(
             signal_events,
