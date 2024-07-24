@@ -134,6 +134,8 @@ class Perceptio_Protocol(ProtocolInterface):
         parameters += f"bottom_th: {self.bottom_th}\n"
         parameters += f"time_length: {self.time_length}\n"
 
+        return parameters
+
     def device_protocol(self, host_socket: socket.socket) -> None:
         """
         Conducts the device protocol over a given socket.

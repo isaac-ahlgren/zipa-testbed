@@ -191,6 +191,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         parameters += f"band_length: {self.band_len}\n"
         parameters += f"time_length: {self.time_length}\n"
 
+        return parameters
+
     def device_protocol(self, host: socket.socket) -> None:
         """
         Executes the device side protocol which involves sending and receiving data to/from the host.
