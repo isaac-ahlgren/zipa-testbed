@@ -4,8 +4,8 @@ from multiprocessing import Lock, Process, Queue, Value
 from multiprocessing.shared_memory import ShareableList
 from typing import Any, List, Tuple
 
-from cryptography.hazmat.primitives import hashes
 import numpy as np
+from cryptography.hazmat.primitives import hashes
 
 from error_correction.corrector import Fuzzy_Commitment
 from error_correction.reed_solomon import ReedSolomonObj
@@ -29,6 +29,7 @@ class ProtocolInterface:
         self.logger = logger
         self.queue = Queue()
         self.flag = Value("i", 0)
+        self.processing = Value("i", 0)
         self.shm_active = Value("i", 0)
         self.key_length = parameters["key_length"]
         self.time_length = None  # To be calculated in implementation
@@ -76,28 +77,28 @@ class ProtocolInterface:
         for process in processes:
             process.join()
 
-    def capture_flag(self) -> None:
+    def capture_flag(shared_value: Any) -> None:
         """
         Grabs the shared value and sets it to `1`, meaning that the queue is
         ready for data collection.
         """
-        self.flag.value = 1
+        shared_value.value = 1
 
-    def release_flag(self) -> None:
+    def release_flag(shared_value: Any) -> None:
         """
         Grabs the shared value and sets it to `-1`, meaning that the queue
         is populated with data and can be shared across processes
         """
-        self.flag.value = -1
+        shared_value.value = -1
 
-    def reset_flag(self) -> None:
+    def reset_flag(shared_value: Any) -> None:
         """
         Grabs the shared value and sets it to `0`, meaning that the queue
         is ready to be captured again by a process to accumulate data
         """
-        self.flag.value = 0
+        shared_value.value = 0
 
-    def write_shm(self, byte_sequence: bytes) -> bytes:
+    def write_shm(self, byte_list: List[bytes]) -> bytes:
         """
         This function should write the bits generated to shared memory,
         allowing other processes access
@@ -107,10 +108,10 @@ class ProtocolInterface:
         # TODO: Handle bytes instead of signal
         ShareableList(
             name=self.name + "_Bytes",
-            sequence=[byte_sequence],
+            sequence=byte_list,
         )
 
-        return byte_sequence
+        return byte_list
 
     def read_shm(self) -> bytes:
         """
@@ -119,9 +120,9 @@ class ProtocolInterface:
         """
         shared_list = ShareableList(name=self.name + "_Bytes")
 
-        return shared_list[0]
+        return shared_list
 
-    def get_signal(self):
+    def old_get_signal(self):
         """
         Collects and returns signal data from a sensor until a specified time
         length is reached.
@@ -139,7 +140,7 @@ class ProtocolInterface:
         if self.flag.value == READY:
             with self.mutex:
                 signal = []
-                self.capture_flag()
+                ProtocolInterface.capture_flag(self.flag)
 
                 while self.flag.value == PROCESSING:
                     try:
@@ -160,6 +161,29 @@ class ProtocolInterface:
             byte_sequence = self.read_shm()
 
         return byte_sequence
+
+    def get_context(self) -> Any:
+        results = None
+
+        while self.processing == COMPLETE:
+            continue
+
+        # First process to grab the flag populates the list
+        if self.processing == READY:
+            with self.mutex:
+                ProtocolInterface.capture_flag(self.processing)
+                results = self.process_context()
+                self.write_shm(results)
+                ProtocolInterface.release_flag(self.processing)
+
+        # Other processes wait for first process to finish
+        else:
+            while self.processing == PROCESSING:
+                continue
+
+            results = self.read_shm()
+
+        return results
 
     # Must be implemented on a protocol basis
     def device_protocol(self, host: socket.socket) -> None:
@@ -187,19 +211,37 @@ class ProtocolInterface:
         :raises NotImplementedError: If the subclass does not implement this method.
         """
         raise NotImplementedError
-    
+
     def process_context(self) -> Any:
         raise NotImplementedError
 
     def read_samples(self, sample_num) -> Any:
+        # Assuming only one process is handling this.
         samples_read = 0
         output = np.array([])
+        # Signal status_queue is ready for data
+        ProtocolInterface.capture_flag(self.flag)
+
         while samples_read < sample_num:
             chunk = self.queue.get()
             output = np.append(output, chunk)
             samples_read += len(chunk)
+
+        # Signal status_queue doesn't need any more data
+        ProtocolInterface.reset_flag(self.flag)
+        self.clear_queue()
+
         return output[:sample_num]
 
+    def clear_queue(self) -> None:
+        """
+        Clears the status queue to assure fresh data the next time it's used.
+        """
+        try:
+            while True:
+                self.queue.get_nowait()
+        except queue.Empty:
+            pass
 
     def parameters(self, is_host: bool) -> str:
         """
