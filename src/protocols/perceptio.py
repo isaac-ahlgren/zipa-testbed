@@ -50,9 +50,8 @@ class Perceptio_Protocol(ProtocolInterface):
         self.lump_th = parameters["lump_th"]
         self.conf_threshold = parameters["conf_thresh"]
         self.max_iterations = parameters["max_iterations"]
-        self.sleep_time = parameters["sleep_time"]
-        self.max_no_events_detected = parameters["max_no_events_detected"]
-        self.time_length = parameters["time_length"]
+        self.min_events = parameters["min_events"]
+        self.chunk_size = parameters["chunk_size"]
         self.nonce_byte_size = 16
         self.count = 0
 
@@ -65,76 +64,47 @@ class Perceptio_Protocol(ProtocolInterface):
         :param socket: Communication socket.
         :return: A tuple of fingerprints, the signal data, and a boolean indicating if events were detected.
         """
-        events_detected = False
-        for i in range(self.max_no_events_detected):
-            self.shm_active.value += 1
-            signal = self.get_signal()
-            fps, events = Perceptio_Protocol.perceptio(
-                signal,
-                self.commitment_length,
-                self.sensor.sensor.sample_rate,
-                self.a,
-                self.cluster_sizes_to_check,
-                self.cluster_th,
-                self.bottom_th,
-                self.top_th,
-                self.lump_th,
-            )
+        pass
+    
+    def process_context(self) -> Any:
+        events = []
+        event_features = []
+        iteration = 0
+        while len(events) < self.min_events:
+            chunk = self.read_samples(self.chunk_size)
+        
+            received_events = Perceptio_Protocol.get_events(chunk, self.a, self.bottom_th, self.top_th, self.lump_th)
 
-            # Check if fingerprints were generated
-            if len(fps) > 0:
-                events_detected = True
+            received_event_features = Perceptio_Protocol.get_event_features(events, chunk)
 
-            # Send current status
-            send_status(socket, events_detected)
+            # Reconciling lumping adjacent events across windows 
+            if len(received_events) != 0 and len(events) != 0 and received_events[0][0] - events[-1][1] <= self.lump_th:
+                events[-1] = (events[-1][0], received_events[0][1])
+                length = events[-1][1] - events[-1][0] + 1
+                max_amp = np.max([event_features[-1][1], received_event_features[0][1]])
+                event_features[-1] = (length, max_amp)
 
-            # Check if other device also succeeded
-            status = status_standby(socket, self.timeout)
-
-            if status is None:
-                events_detected = status
+                events.extend(received_events[1:])
+                event_features.extend(received_event_features[1:])
             else:
-                events_detected = events_detected and status
+                events.extend(received_events)
+                event_features.extend(received_event_features)
+            iteration += 1
 
-            self.shm_active.value -= 1
+        labels, k = Perceptio_Protocol.kmeans_w_elbow_method(
+            event_features, self.cluster_sizes_to_check, self.cluster_th
+        )
 
-            if self.shm_active.value == 0:
-                shared_memory = SharedMemory(
-                    name=self.name + "_Signal",
-                    create=False,
-                    size=self.sensor.sensor.data_type.itemsize * self.time_length,
-                )
-                shared_memory.unlink()
-                self.flag.value = 0
+        grouped_events = Perceptio_Protocol.group_events(events, labels, k)
 
-            # Break out of the loop if event was detected
-            if events_detected:
-                break
+        fps = Perceptio_Protocol.gen_fingerprints(grouped_events, k, self.key_size, self.Fs) # I know the variables are wrong, could someone fix them for me? -Isaac
 
-            time.sleep(self.sleep_time)
+        return fps
 
-        return fps, signal, events_detected
 
     #  TODO: Fix why this does not save correctly to drive
     def parameters(self, is_host: bool) -> str:
-        """
-        Generate a string of current protocol parameters.
-
-        :param is_host: Boolean indicating if the current device is the host.
-        :return: Formatted string of parameters.
-        """
-        parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
-        parameters += f"sensor: {self.sensor.sensor.name}\n"
-        parameters += f"key_length: {self.key_length}\n"
-        parameters += f"parity_symbols: {self.parity_symbols}\n"
-        parameters += f"a: {self.a}\n"
-        parameters += f"cluster_sizes_to_check: {self.cluster_sizes_to_check}\n"
-        parameters += f"cluster_th: {self.cluster_th}\n"
-        parameters += f"top_th: {self.cluster_th}\n"
-        parameters += f"bottom_th: {self.bottom_th}\n"
-        parameters += f"time_length: {self.time_length}\n"
-
-        return parameters
+        pass
 
     def device_protocol(self, host_socket: socket.socket) -> None:
         """
@@ -482,6 +452,11 @@ class Perceptio_Protocol(ProtocolInterface):
         if found_event:
             events.append((beg_event_num, i))
 
+        events = Perceptio_Protocol.lump_events(events, lump_th)
+
+        return events
+        
+    def lump_events(events, lump_th):
         i = 0
         while i < len(events) - 1:
             if events[i + 1][0] - events[i][1] <= lump_th:
@@ -491,8 +466,6 @@ class Perceptio_Protocol(ProtocolInterface):
                 events.insert(i, new_element)
             else:
                 i += 1
-
-        return events
 
     def get_event_features(
         events: List[Tuple[int, int]], signal: np.ndarray

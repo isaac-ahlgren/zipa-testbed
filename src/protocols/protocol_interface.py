@@ -5,6 +5,7 @@ from multiprocessing.shared_memory import ShareableList
 from typing import Any, List, Tuple
 
 from cryptography.hazmat.primitives import hashes
+import numpy as np
 
 from error_correction.corrector import Fuzzy_Commitment
 from error_correction.reed_solomon import ReedSolomonObj
@@ -186,6 +187,19 @@ class ProtocolInterface:
         :raises NotImplementedError: If the subclass does not implement this method.
         """
         raise NotImplementedError
+    
+    def process_context(self) -> Any:
+        raise NotImplementedError
+
+    def read_samples(self, sample_num) -> Any:
+        samples_read = 0
+        output = np.array([])
+        while samples_read < sample_num:
+            chunk = self.queue.get()
+            output = np.append(output, chunk)
+            samples_read += len(chunk)
+        return output[:sample_num]
+
 
     def parameters(self, is_host: bool) -> str:
         """
