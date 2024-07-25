@@ -28,8 +28,8 @@ class ProtocolInterface:
         self.sensor = sensor
         self.logger = logger
         self.queue = Queue()
-        self.flag = Value("i", 0)
-        self.processing = Value("i", 0)
+        self.queue_flag = Value("i", 0)
+        self.processing_flag = Value("i", 0)
         self.shm_active = Value("i", 0)
         self.key_length = parameters["key_length"]
         self.time_length = None  # To be calculated in implementation
@@ -41,7 +41,7 @@ class ProtocolInterface:
         self.re = Fuzzy_Commitment(
             ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
-        self.sensor.add_protocol_queue((self.flag, self.queue))
+        self.sensor.add_protocol_queue((self.queue_flag, self.queue))
 
     def hash_function(self, bytes_data: bytes) -> bytes:
         """
@@ -132,21 +132,21 @@ class ProtocolInterface:
         # Keep track if shared list is being used
         self.shm_active.value += 1
 
-        while self.processing == COMPLETE and self.shm_active.value != 0:
+        while self.processing_flag == COMPLETE and self.shm_active.value != 0:
             continue
 
         # First process to grab the flag populates the list
-        if self.processing == READY:
+        if self.processing_flag == READY:
             with self.mutex:
-                ProtocolInterface.capture_flag(self.processing)
+                ProtocolInterface.capture_flag(self.processing_flag)
                 self.destroy_shm()
                 results = self.process_context()
                 self.write_shm(results)
-                ProtocolInterface.release_flag(self.processing)
+                ProtocolInterface.release_flag(self.processing_flag)
 
         # Other processes wait for first process to finish
         else:
-            while self.processing == PROCESSING:
+            while self.processing_flag == PROCESSING:
                 continue
 
             results = self.read_shm()
@@ -190,7 +190,7 @@ class ProtocolInterface:
         samples_read = 0
         output = np.array([])
         # Signal status_queue is ready for data
-        ProtocolInterface.capture_flag(self.flag)
+        ProtocolInterface.capture_flag(self.queue_flag)
 
         while samples_read < sample_num:
             chunk = self.queue.get()
@@ -198,7 +198,7 @@ class ProtocolInterface:
             samples_read += len(chunk)
 
         # Signal status_queue doesn't need any more data
-        ProtocolInterface.reset_flag(self.flag)
+        ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()
 
         return output[:sample_num]
