@@ -130,23 +130,26 @@ class ProtocolInterface:
     def get_context(self) -> Any:
         results = None
         # Keep track if shared list is being used
-        self.shm_active.value += 1
 
-        while self.processing_flag == COMPLETE and self.shm_active.value != 0:
+        while self.processing_flag.value == COMPLETE and self.shm_active.value != 0:
             continue
 
+        self.shm_active.value += 1
         # First process to grab the flag populates the list
-        if self.processing_flag == READY:
+        if self.processing_flag.value == READY:
             with self.mutex:
                 ProtocolInterface.capture_flag(self.processing_flag)
-                self.destroy_shm()
+                try:
+                    self.destroy_shm()
+                except FileNotFoundError:
+                    pass  # No shared memory instance to destroy
                 results = self.process_context()
                 self.write_shm(results)
                 ProtocolInterface.release_flag(self.processing_flag)
 
         # Other processes wait for first process to finish
         else:
-            while self.processing_flag == PROCESSING:
+            while self.processing_flag.value == PROCESSING:
                 continue
 
             results = self.read_shm()
