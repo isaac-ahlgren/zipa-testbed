@@ -1,4 +1,3 @@
-from multiprocessing.shared_memory import SharedMemory
 from typing import Any, List, Optional, Tuple
 
 import numpy as np
@@ -15,7 +14,6 @@ from networking.network import (
     send_status,
     socket,
     status_standby,
-    time,
 )
 from protocols.common_protocols import (
     send_nonce_msg_to_device,
@@ -65,20 +63,28 @@ class Perceptio_Protocol(ProtocolInterface):
         :return: A tuple of fingerprints, the signal data, and a boolean indicating if events were detected.
         """
         pass
-    
+
     def process_context(self) -> Any:
         events = []
         event_features = []
         iteration = 0
         while len(events) < self.min_events:
             chunk = self.read_samples(self.chunk_size)
-        
-            received_events = Perceptio_Protocol.get_events(chunk, self.a, self.bottom_th, self.top_th, self.lump_th)
 
-            received_event_features = Perceptio_Protocol.get_event_features(events, chunk)
+            received_events = Perceptio_Protocol.get_events(
+                chunk, self.a, self.bottom_th, self.top_th, self.lump_th
+            )
 
-            # Reconciling lumping adjacent events across windows 
-            if len(received_events) != 0 and len(events) != 0 and received_events[0][0] - events[-1][1] <= self.lump_th:
+            received_event_features = Perceptio_Protocol.get_event_features(
+                events, chunk
+            )
+
+            # Reconciling lumping adjacent events across windows
+            if (
+                len(received_events) != 0
+                and len(events) != 0
+                and received_events[0][0] - events[-1][1] <= self.lump_th
+            ):
                 events[-1] = (events[-1][0], received_events[0][1])
                 length = events[-1][1] - events[-1][0] + 1
                 max_amp = np.max([event_features[-1][1], received_event_features[0][1]])
@@ -91,16 +97,21 @@ class Perceptio_Protocol(ProtocolInterface):
                 event_features.extend(received_event_features)
             iteration += 1
 
+        # Extracted from read_samples function in protocol_interface
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
+
         labels, k = Perceptio_Protocol.kmeans_w_elbow_method(
             event_features, self.cluster_sizes_to_check, self.cluster_th
         )
 
         grouped_events = Perceptio_Protocol.group_events(events, labels, k)
 
-        fps = Perceptio_Protocol.gen_fingerprints(grouped_events, k, self.key_size, self.Fs) # I know the variables are wrong, could someone fix them for me? -Isaac
+        fps = Perceptio_Protocol.gen_fingerprints(
+            grouped_events, k, self.key_size, self.Fs
+        )  # I know the variables are wrong, could someone fix them for me? -Isaac
 
         return fps
-
 
     #  TODO: Fix why this does not save correctly to drive
     def parameters(self, is_host: bool) -> str:
@@ -145,7 +156,11 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("Extracting context\n")
 
             # Extract bits from sensor
-            witnesses, signal, status = self.extract_context(host_socket)
+            # witnesses, signal, status = self.extract_context(host_socket)
+            witnesses = self.process_context()
+            # TODO: Must log signal somehow, and how does status play with new flow?
+            signal = None
+            status = True
 
             if status is None:
                 if self.verbose:
@@ -288,7 +303,9 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("Extracting context\n")
             # Extract bits from sensor
-            witnesses, signal, status = self.extract_context(device_socket)
+            witnesses = self.process_context()
+            signal = None
+            status = True
 
             if status is None:
                 if self.verbose:
@@ -455,7 +472,7 @@ class Perceptio_Protocol(ProtocolInterface):
         events = Perceptio_Protocol.lump_events(events, lump_th)
 
         return events
-        
+
     def lump_events(events, lump_th):
         i = 0
         while i < len(events) - 1:

@@ -200,9 +200,10 @@ class ProtocolInterface:
             output = np.append(output, chunk)
             samples_read += len(chunk)
 
+        # TODO Must be implemented on a protocol basis
         # Signal status_queue doesn't need any more data
-        ProtocolInterface.reset_flag(self.queue_flag)
-        self.clear_queue()
+        # ProtocolInterface.reset_flag(self.queue_flag)
+        # self.clear_queue()
 
         return output[:sample_num]
 

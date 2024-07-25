@@ -159,6 +159,11 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
     def process_context(self) -> List[bytes]:
         # TODO: Signal must be logged somehow
         signal = self.read_samples(self.time_length)
+
+        # Taken from read_samples in protocol_interface
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
+
         bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
             signal,
             self.sensor.sensor.antialias_sample_rate,

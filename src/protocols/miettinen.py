@@ -114,6 +114,11 @@ class Miettinen_Protocol(ProtocolInterface):
     def process_context(self) -> List[bytes]:
         # TODO: Signal must be logged somehow
         signal = self.read_samples(self.time_length)
+
+        # Taken from read_samples in protocol_interface
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
+
         bits = Miettinen_Protocol.miettinen_algo(
             signal, self.f, self.w, self.rel_thresh, self.abs_thresh
         )
