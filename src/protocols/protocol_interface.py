@@ -23,7 +23,10 @@ class ProtocolInterface:
         self.verbose = parameters["verbose"]
         self.sensor = sensor
         self.logger = logger
+        self.manager = Manager()
+        self.list = self.manager.list()
         self.queue = Queue()
+        self.mutex = self.manager.Lock()
         self.flag = Value("i", 0)
         self.shm_active = Value("i", 0)
         self.key_length = parameters["key_length"]
@@ -96,7 +99,7 @@ class ProtocolInterface:
                     try:
                         data = self.queue.get()
                         signal.extend(data)
-                    except queue.Empty:
+                    except self.queue.Empty:
                         continue
 
                     if len(signal) >= self.time_length:
