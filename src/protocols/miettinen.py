@@ -1,7 +1,6 @@
 # TODO compare with Seemoo lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/Miettinen.ipynb
 import os
-from multiprocessing.shared_memory import SharedMemory
-from typing import Any, Tuple
+from typing import Any, List
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time, hashes, hmac
@@ -112,17 +111,14 @@ class Miettinen_Protocol(ProtocolInterface):
         key = Miettinen_Protocol.gen_key(signal, rel_thresh, abs_thresh)
         return bitstring_to_bytes(key)
 
-    def extract_context(self) -> Tuple[bytes, np.ndarray]:
-        """
-        Reads the sensor data and applies the Miettinen algorithm to extract cryptographic key material.
-
-        :return: A tuple of the generated key bits and the raw sensor signal.
-        """
-        signal = self.get_signal()
+    def process_context(self) -> List[bytes]:
+        # TODO: Signal must be logged somehow
+        signal = self.read_samples(self.time_length)
         bits = Miettinen_Protocol.miettinen_algo(
             signal, self.f, self.w, self.rel_thresh, self.abs_thresh
         )
-        return bits, signal
+
+        return [bits]
 
     def parameters(self, is_host: bool) -> str:
         """
@@ -203,7 +199,8 @@ class Miettinen_Protocol(ProtocolInterface):
             success = False
 
             # Extract bits from sensor
-            witness, signal = self.extract_context()
+            witness = self.process_context()
+            witness = witness[0]
 
             # Wait for Commitment
             if self.verbose:
@@ -271,24 +268,13 @@ class Miettinen_Protocol(ProtocolInterface):
                     ("witness", "txt", witness),
                     ("commitment", "txt", commitment),
                     ("success", "txt", str(success)),
-                    ("signal", "csv", signal),
+                    # ("signal", "csv", signal),
                 ],
                 count=total_iterations,
             )
 
             # Increment total number of iterations key evolution has occured
             total_iterations += 1
-
-            try:
-                shared_memory = SharedMemory(
-                    name=self.name + "_Signal",
-                    create=False,
-                    size=self.sensor.sensor.data_type.itemsize * self.time_length,
-                )
-                shared_memory.unlink()
-            # Shared Memory instance is already wiped out
-            except FileNotFoundError:
-                pass
 
         if self.verbose:
             if successes / total_iterations >= self.auth_threshold:
@@ -356,7 +342,8 @@ class Miettinen_Protocol(ProtocolInterface):
 
             # Extract key from sensor
             self.shm_active.value += 1
-            witness, signal = self.extract_context()
+            witness = self.process_context()
+            witness = witness[0]
 
             # Commit Secret
             if self.verbose:
@@ -410,7 +397,7 @@ class Miettinen_Protocol(ProtocolInterface):
                     ("witness", "txt", witness),
                     ("commitment", "txt", commitment),
                     ("success", "txt", str(success)),
-                    ("signal", "csv", signal),
+                    # ("signal", "csv", signal),
                 ],
                 count=total_iterations,
                 ip_addr=device_ip_addr,
@@ -418,16 +405,6 @@ class Miettinen_Protocol(ProtocolInterface):
 
             # Increment total times key evolution has occured
             total_iterations += 1
-            self.shm_active.value -= 1
-
-            if self.shm_active.value == 0:
-                shared_memory = SharedMemory(
-                    name=self.name + "_Signal",
-                    create=False,
-                    size=self.sensor.sensor.data_type.itemsize * self.time_length,
-                )
-                shared_memory.unlink()
-                self.flag.value = 0
 
             if self.verbose:
                 print(
