@@ -233,7 +233,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # Extract bits from mic
         if self.verbose:
             print("Extracting context\n")
-        witness, signal = self.get_context()
+        witness = self.get_context()
+        witness = witness[0]
 
         if self.verbose:
             print("witness: " + str(witness))
@@ -271,7 +272,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                 ("witness", "txt", witness),
                 ("commitment", "txt", commitment),
                 ("success", "txt", str(success)),
-                ("signal", "csv", ", ".join(str(num) for num in signal)),
+                # ("signal", "csv", ", ".join(str(num) for num in signal)),
             ]
         )
 
@@ -299,7 +300,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # Extract key from mic
         if self.verbose:
             print("Extracting Context\n")
-        witness, signal = self.get_context()
+        witness = self.get_context()
+        witness = witness[0]
 
         # Commit Secret
         if self.verbose:
@@ -321,7 +323,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             [
                 ("witness", "txt", str(witness)),
                 ("commitment", "txt", commitment),
-                ("signal", "csv", ", ".join(str(num) for num in signal)),
+                # ("signal", "csv", ", ".join(str(num) for num in signal)),
             ]
         )
 
