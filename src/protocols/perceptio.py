@@ -157,7 +157,7 @@ class Perceptio_Protocol(ProtocolInterface):
 
             # Extract bits from sensor
             # witnesses, signal, status = self.extract_context(host_socket)
-            witnesses = self.process_context()
+            witnesses = self.get_context()
             # TODO: Must log signal somehow, and how does status play with new flow?
             signal = None
             status = True
@@ -264,7 +264,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 (
                     "pairing_statistics",
                     "txt",
-                    f"successes: {successes} total_iterations: {iterations} succeeded: {successes >= self.conf_threshold})",
+                    f"successes: {successes} total_iterations: {iterations} succeeded: {successes >= self.conf_threshold}",
                 )
             ]
         )
@@ -303,7 +303,7 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("Extracting context\n")
             # Extract bits from sensor
-            witnesses = self.process_context()
+            witnesses = self.get_context()
             signal = None
             status = True
 
@@ -483,6 +483,8 @@ class Perceptio_Protocol(ProtocolInterface):
                 events.insert(i, new_element)
             else:
                 i += 1
+
+        return events
 
     def get_event_features(
         events: List[Tuple[int, int]], signal: np.ndarray
