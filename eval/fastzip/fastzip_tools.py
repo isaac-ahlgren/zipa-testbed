@@ -12,9 +12,9 @@ from protocols.fastzip import FastZIP_Protocol
 
 SAMPLING_RATE = 100
 
-def fastzip_wrapper_function(sensor_arr, bits, power_thr, snr_thr, peak_thr, bias, sample_rate, eqd_delta):
+def fastzip_wrapper_function(sensor_arr, bits, power_thr, snr_thr, peak_thr, bias, sample_rate, eqd_delta, ewma_filter=None, alpha=None, remove_noise=None, normalize=None):
     return FastZIP_Protocol.fastzip_algo(
-        [sensor_arr], [bits], [power_thr], [snr_thr], [peak_thr], [bias], [sample_rate], [eqd_delta]
+        [sensor_arr], [bits], [power_thr], [snr_thr], [peak_thr], [bias], [sample_rate], [eqd_delta], [ewma_filter], [alpha], [remove_noise], [normalize]
     )
 
 #Change the golden signal to output random numbers given a seed

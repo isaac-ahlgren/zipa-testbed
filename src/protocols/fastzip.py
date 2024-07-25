@@ -157,6 +157,8 @@ class FastZIP_Protocol(ProtocolInterface):
         chunk = np.copy(data)
         print("Chunk: ", chunk)
 
+        print("Normalize status: ", normalize)
+
         if normalize:
             chunk = FastZIP_Protocol.normalize_signal(chunk)
 
@@ -166,9 +168,10 @@ class FastZIP_Protocol(ProtocolInterface):
         #activity = True
         print("Activity detected:", activity)
         if activity:
+            print("Noise removal status: ", remove_noise)
             if remove_noise:
                 chunk = FastZIP_Protocol.remove_noise(chunk)
-
+            print("Ewma filter status: ", ewma_filter)
             if ewma_filter:
                 chunk = FastZIP_Protocol.ewma_filter(abs(chunk), alpha=alpha)
 
@@ -238,7 +241,7 @@ class FastZIP_Protocol(ProtocolInterface):
             if normalize_list == None:
                 normalize = False
             else:
-                normalize = normalize[i]
+                normalize = normalize_list[i]
 
             bits = FastZIP_Protocol.compute_fingerprint(
                 data,

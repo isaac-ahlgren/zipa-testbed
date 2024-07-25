@@ -9,6 +9,7 @@ from eval_tools import cmp_bits
 
 from fastzip_tools import (
     SAMPLING_RATE,
+    add_gauss_noise,
     adversary_signal,
     golden_signal,
     fastzip_calc_sample_num,
@@ -16,7 +17,7 @@ from fastzip_tools import (
 )
 
 #rewrite to work with fastzip
-def goldsig_eval(
+def goldsig_plus_noise_eval(
     window_length,
     band_length,
     key_length,
@@ -40,10 +41,13 @@ def goldsig_eval(
     for i in range(trials):
         #power_thr, snr_thr, peaks = grab_parameters(signal, sampling_freq)
         #adv_power_thr, adv_snr_thr, adv_peaks = grab_parameters(adv_signal, sampling_freq)
-        
-        bits1 = fastzip_wrapper_function(signal, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
-        bits2 = fastzip_wrapper_function(signal, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
-        adv_bits = fastzip_wrapper_function(adv_signal, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
+        sig1 = add_gauss_noise(signal, snr_thr)
+        sig2 = add_gauss_noise(signal, snr_thr)
+        adv_sig = add_gauss_noise(adv_signal, snr_thr)
+
+        bits1 = fastzip_wrapper_function(sig1, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
+        bits2 = fastzip_wrapper_function(sig2, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
+        adv_bits = fastzip_wrapper_function(adv_sig, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
         
         legit_bit_err = cmp_bits(bits1, bits2, key_length)
         legit_bit_errs.append(legit_bit_err)
@@ -82,7 +86,7 @@ if __name__ == "__main__":
     number_peaks = getattr(args, "number_peaks")
     trials = getattr(args, "trials")
 
-    legit_bit_errs, adv_bit_errs = goldsig_eval(
+    legit_bit_errs, adv_bit_errs = goldsig_plus_noise_eval(
         window_length,
         band_length,
         key_length,
