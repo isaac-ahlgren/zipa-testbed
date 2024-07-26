@@ -117,7 +117,7 @@ class ProtocolInterface:
         """
         shared_list = ShareableList(name=self.name + "_Bytes")
 
-        return shared_list
+        return list(shared_list)
 
     def destroy_shm(self) -> None:
         """

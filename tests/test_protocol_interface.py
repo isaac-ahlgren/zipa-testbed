@@ -1,5 +1,6 @@
 import os
 import sys
+from multiprocessing.shared_memory import ShareableList
 
 sys.path.insert(1, "/src")
 sys.path.insert(1, os.getcwd() + "/src/sensors")
@@ -49,7 +50,22 @@ def test_flag_changes() -> None:
 
 
 def test_shared_memory() -> None:
-    pass
+    test_sensor = TestSensor(SEN_TEST, signal_type="sine")
+    test_sensor_reader = SensorReader(test_sensor)
+    test_interface = ProtocolInterface(DUMMY_PARAMETERS, test_sensor_reader, None)
+
+    # Create dummy protocol name and dummy byte string
+    test_interface.name = "Test_Interface"
+    dummy_byte_list = [bytes([1, 2, 3]), bytes([4, 5, 6])]
+
+    # Send dummy list to shared memory and check if its there
+    test_interface.write_shm(dummy_byte_list)
+    write_shm_shared_list = list(ShareableList(name=test_interface.name + "_Bytes"))
+    assert dummy_byte_list == write_shm_shared_list  # nosec
+
+    # Check if dummy list is the same when retreiving using read_shm()
+    read_shm_shared_list = test_interface.read_shm()
+    assert dummy_byte_list == read_shm_shared_list  # nosec
 
 
 def test_get_context() -> None:
