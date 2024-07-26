@@ -1,6 +1,7 @@
 import os
 import sys
 from multiprocessing.shared_memory import ShareableList
+from typing import List
 
 sys.path.insert(1, "/src")
 sys.path.insert(1, os.getcwd() + "/src/sensors")
@@ -60,6 +61,7 @@ def test_shared_memory() -> None:
 
     # Send dummy list to shared memory and check if its there
     test_interface.write_shm(dummy_byte_list)
+    # Need to get the shared memory's list, not the object itself
     write_shm_shared_list = list(ShareableList(name=test_interface.name + "_Bytes"))
     assert dummy_byte_list == write_shm_shared_list  # nosec
 
@@ -69,6 +71,19 @@ def test_shared_memory() -> None:
 
 
 def test_get_context() -> None:
+    """
+    Create two processes, one will process data, the other will standby.
+    Got to check for both these cases. Create a quick process_context function
+    here.
+    """
+
+    def process_context(self) -> List[bytes]:
+        return [bytes([1, 2, 3], [4, 5, 6])]
+
+    """
+    test_sensor = TestSensor(SEN_TEST, signal_type="sine")
+    test_sensor_reader = SensorReader(test_sensor)
+    """
     pass
 
 
