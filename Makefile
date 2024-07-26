@@ -16,7 +16,7 @@ create-dev:
 	)
 
 activate:
-	. env/bin/activate
+	source ./env/bin/activate
 
 create-docs:
 	sphinx-apidoc src --output-dir src-docs --maxdepth 100 --separate

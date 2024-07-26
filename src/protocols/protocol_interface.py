@@ -27,6 +27,7 @@ class ProtocolInterface:
         self.verbose = parameters["verbose"]
         self.sensor = sensor
         self.logger = logger
+        self.list = self.manager.list()
         self.queue = Queue()
         self.queue_flag = Value("i", 0)
         self.processing_flag = Value("i", 0)

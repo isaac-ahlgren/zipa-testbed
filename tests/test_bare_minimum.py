@@ -17,7 +17,7 @@ def testing_schurmann_bit_generation_interface():
         1000,
     )
 
-    assert isinstance(outcome, bytes)  # nosec
+    assert type(outcome) is bytes  # nosec
 
 
 def testing_miettinen_bit_generation_interface():
@@ -29,7 +29,7 @@ def testing_miettinen_bit_generation_interface():
         np.sin(np.arange(50000)), 1000, 1000, 0.5, 0.5
     )
 
-    assert isinstance(outcome, bytes)  # nosec
+    assert type(outcome) is bytes  # nosec
 
 
 def testing_perceptio_bit_generation_interface():
@@ -42,5 +42,5 @@ def testing_perceptio_bit_generation_interface():
 
     fps, events = Perceptio_Protocol.perceptio(signal, 4, 48000, 0.75, 2, 0.1, 2, 5, 3)
 
-    assert isinstance(fps, list)  # nosec
-    assert isinstance(fps[0], bytes)  # nosec
+    assert type(fps) is list  # nosec
+    assert type(fps[0]) is bytes  # nosec

@@ -1,4 +1,5 @@
 adafruit-circuitpython-sht31d
+chardet
 cryptography
 gpiozero
 matplotlib
@@ -9,6 +10,8 @@ pandas
 poetry
 pytest
 pyyaml
+scikit-fuzzy
 scikit-learn
 scipy
+tsfresh
 zeroconf
