@@ -1,14 +1,30 @@
 import math
+from typing import Any, List
 
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
+from scipy.fft import rfft
 
-from networking.network import *
+from networking.network import (
+    ack,
+    ack_standby,
+    commit_standby,
+    send_commit,
+    socket,
+)
 from protocols.protocol_interface import ProtocolInterface
 
 
 class Shurmann_Siggs_Protocol(ProtocolInterface):
-    def __init__(self, parameters, sensor, logger):
+    def __init__(self, parameters: dict, sensor: Any, logger: Any) -> None:
+        """
+        Implements a signal processing protocol to extract features using Fourier transforms
+        and derive cryptographic keys or commitments based on the extracted features.
+
+        :param parameters: Configuration parameters including window length, band length, and other protocol-specific settings.
+        :param sensor: Sensor object used to collect data samples.
+        :param logger: Logger object for logging protocol operations and data.
+        """
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "Shurmann_Siggs_Protocol"
         self.wip = False
@@ -27,15 +43,24 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             * self.window_len
         )
 
-    def sigs_algo(self, x1, window_len=10000, bands=1000):
-        def bitstring_to_bytes(s):
+    def sigs_algo(x1: List[float], window_len: int = 10000, bands: int = 1000) -> bytes:
+        """
+        Signal processing algorithm that computes a bit string based on the energy difference between bands of Fourier transforms.
+
+        :param x1: Input signal array.
+        :param window_len: Length of the window for Fourier transform.
+        :param bands: Number of frequency bands to consider.
+        :return: A bit string converted to bytes based on the energy differences.
+        """
+
+        def bitstring_to_bytes(s: str) -> bytes:
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         FFTs = []
-        from scipy.fft import fft, fftfreq, ifft, irfft, rfft
+        # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
         if window_len == 0:
-            window_len = len(x)
+            window_len = len(x1)  # renamed x to x1 because x was undefined
 
         x = np.array(x1.copy())
         # wind = scipy.signal.windows.hann(window_len)
@@ -60,7 +85,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
 
         bs = ""
 
-        count = 0
+        # count = 0
         for i in range(1, len(FFTs)):
             for j in range(0, len(bands_lst[i]) - 1):
                 if E[(i, j)] - E[(i, j + 1)] - (E[(i - 1, j)] - E[(i - 1, j + 1)]) > 0:
@@ -70,16 +95,31 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         return bitstring_to_bytes(bs)
 
     def zero_out_antialias_sigs_algo(
-        x1, antialias_freq, sampling_freq, window_len=10000, bands=1000
-    ):
-        def bitstring_to_bytes(s):
+        x1: List[float],
+        antialias_freq: float,
+        sampling_freq: float,
+        window_len: int = 10000,
+        bands: int = 1000,
+    ) -> bytes:
+        """
+        Similar to sigs_algo but zeroes out frequencies above the anti-aliasing frequency before computing the bit string.
+
+        :param x1: Input signal array.
+        :param antialias_freq: Anti-aliasing frequency threshold.
+        :param sampling_freq: Sampling frequency of the input signal.
+        :param window_len: Length of the window for Fourier transform.
+        :param bands: Number of frequency bands to consider.
+        :return: A bit string converted to bytes.
+        """
+
+        def bitstring_to_bytes(s: str) -> bytes:
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         FFTs = []
-        from scipy.fft import fft, fftfreq, ifft, irfft, rfft
+        # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
 
         if window_len == 0:
-            window_len = len(x)
+            window_len = len(x1)  # renamed x to x1 because x is not defined
 
         freq_bin_len = (sampling_freq / 2) / (int(window_len / 2) + 1)
         antialias_bin = int(antialias_freq / freq_bin_len)
@@ -116,12 +156,31 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                     bs += "0"
         return bitstring_to_bytes(bs)
 
-    def extract_context(self):
-        signal = self.sensor.read(self.time_length)
-        bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
-        return bits, signal
+    def process_context(self) -> List[bytes]:
+        # TODO: Signal must be logged somehow
+        signal = self.read_samples(self.time_length)
 
-    def parameters(self, is_host):
+        # Taken from read_samples in protocol_interface
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
+
+        bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
+            signal,
+            self.sensor.sensor.antialias_sample_rate,
+            self.sensor.sensor.sample_rate,
+            self.window_len,
+            self.band_len,
+        )
+
+        return [bits]
+
+    def parameters(self, is_host: bool) -> str:
+        """
+        Returns a formatted string of protocol parameters for logging purposes.
+
+        :param is_host: Boolean indicating if the host's parameters are to be returned.
+        :return: Formatted string of parameters.
+        """
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
         parameters += f"sensor: {self.sensor.sensor.name}\n"
         parameters += f"key_length: {self.key_length}\n"
@@ -130,7 +189,14 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         parameters += f"band_length: {self.band_len}\n"
         parameters += f"time_length: {self.time_length}\n"
 
-    def device_protocol(self, host):
+        return parameters
+
+    def device_protocol(self, host: socket.socket) -> None:
+        """
+        Executes the device side protocol which involves sending and receiving data to/from the host.
+
+        :param host: Socket connection to the host.
+        """
         host.setblocking(1)
         if self.verbose:
             print(f"Iteration {str(self.count)}.\n")
@@ -154,7 +220,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # Extract bits from mic
         if self.verbose:
             print("Extracting context\n")
-        witness, signal = self.extract_context()
+        witness = self.get_context()
+        witness = witness[0]
 
         if self.verbose:
             print("witness: " + str(witness))
@@ -192,13 +259,18 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                 ("witness", "txt", witness),
                 ("commitment", "txt", commitment),
                 ("success", "txt", str(success)),
-                ("signal", "csv", ", ".join(str(num) for num in signal)),
+                # ("signal", "csv", ", ".join(str(num) for num in signal)),
             ]
         )
 
         self.count += 1
 
-    def host_protocol_single_threaded(self, device_socket):
+    def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
+        """
+        Manages the protocol operations for a single device connection in a threaded environment.
+
+        :param device_socket: The socket connection to a single device.
+        """
         # Exit early if no devices to pair with
         if not ack_standby(device_socket, self.timeout):
             if self.verbose:
@@ -215,7 +287,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # Extract key from mic
         if self.verbose:
             print("Extracting Context\n")
-        witness, signal = self.extract_context()
+        witness = self.get_context()
+        witness = witness[0]
 
         # Commit Secret
         if self.verbose:
@@ -237,7 +310,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             [
                 ("witness", "txt", str(witness)),
                 ("commitment", "txt", commitment),
-                ("signal", "csv", ", ".join(str(num) for num in signal)),
+                # ("signal", "csv", ", ".join(str(num) for num in signal)),
             ]
         )
 

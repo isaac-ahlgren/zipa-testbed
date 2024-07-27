@@ -1,11 +1,14 @@
 import json
 import socket
+from typing import Any, Dict, Tuple
 
-HOST = "host    "
-IP_ADDR = "192.168.1.248"
-TARGET_IP_ADDR = ("192.168.1.160", 5005)
+HOST: str = "host    "
+IP_ADDR: str = "192.168.1.187"
+TARGET_IP_ADDR: Tuple[str, int] = ("192.168.1.160", 5005)
 
-SHURMANN = {
+ProtocolParameters = Dict[str, Any]
+
+SHURMANN: Dict[str, ProtocolParameters] = {
     "name": "Shurmann_Siggs_Protocol",
     "parameters": {
         "window_len": 10000,
@@ -18,7 +21,7 @@ SHURMANN = {
     },
 }
 
-MIETTINEN = {
+MIETTINEN: Dict[str, ProtocolParameters] = {
     "name": "Miettinen_Protocol",
     "parameters": {
         "f": 5,
@@ -36,7 +39,7 @@ MIETTINEN = {
     },
 }
 
-VOLTKEY = {
+VOLTKEY: Dict[str, ProtocolParameters] = {
     "name": "VoltkeyProtocol",
     "parameters": {
         "periods": 16,
@@ -49,7 +52,7 @@ VOLTKEY = {
     },
 }
 
-PERCEPTIO = {
+PERCEPTIO: Dict[str, ProtocolParameters] = {
     "name": "Perceptio_Protocol",
     "parameters": {
         "a": 0.3,
@@ -59,7 +62,9 @@ PERCEPTIO = {
         "bottom_th": 0.5,
         "lump_th": 5,
         "conf_thresh": 5,
+        "min_events": 5,  # TODO Check what this size should be
         "max_iterations": 20,
+        "chunk_size": 48_000 * 5,  # TODO Check what this size should be
         "sleep_time": 5,
         "max_no_events_detected": 10,
         "timeout": 10,
@@ -72,9 +77,14 @@ PERCEPTIO = {
     },
 }
 
-SELECTED_PROTOCOL = SHURMANN
+SELECTED_PROTOCOL: Dict[str, ProtocolParameters] = PERCEPTIO
 
 if __name__ == "__main__":
+    """
+    Main execution function that prepares and sends protocol configuration data over a TCP socket.
+    This function sets up a socket, connects to a specified target IP address, and sends the selected
+    protocol configuration.
+    """
     # Pack up message
     bytestream = json.dumps(SELECTED_PROTOCOL).encode("utf8")
     length = len(bytestream).to_bytes(4, byteorder="big")

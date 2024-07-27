@@ -1,4 +1,5 @@
 import time
+from typing import Any, Dict
 
 import adafruit_veml7700
 import board
@@ -8,30 +9,53 @@ from sensors.sensor_interface import SensorInterface
 
 
 class VEML7700(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, chunk_size):
+    """
+    A sensor interface for the VEML7700, a high accuracy ambient light sensor. This class manages
+    the configuration and data collection from the VEML7700 sensor, storing lux readings in a buffer.
+
+    :param config: Configuration dictionary that includes sample rate, time collected, and chunk size.
+    """
+
+    def __init__(self, config: Dict[str, Any]) -> None:
+        """
+        Initializes the VEML7700 sensor interface with configuration settings.
+
+        :param config: A dictionary containing configuration parameters such as sample rate, time collected,
+                       and chunk size for data reading.
+        """
         SensorInterface.__init__(self)
-        self.name = "lux"
+        self.name = "VEML7700"
         # Sensor configuration parameters
-        self.sample_rate = sample_rate
-        self.buffer_size = buffer_size
-        self.chunk_size = chunk_size
+        self.sample_rate = config.get("sample_rate")
+        self.buffer_size = config.get("sample_rate") * config.get("time_collected")
+        self.chunk_size = config.get("chunk_size")
         self.chunks = int(self.buffer_size / self.chunk_size)
         self.buffer = np.zeros(
-            chunk_size, np.float32()
+            self.chunk_size, np.float32()
         )  # Initialize buffer for lux readings
         self.buffer_index = 0
         self.buffer_full = False
         self.data_type = self.buffer.dtype
         self.light = adafruit_veml7700.VEML7700(board.I2C())
-        self.start_thread()
 
-    def start(self):
+    def start(self) -> None:
+        """
+        Start the sensor (not implemented as VEML7700 has no specific start requirements).
+        """
         pass
 
-    def stop(self):
+    def stop(self) -> None:
+        """
+        Stop the sensor (not implemented as VEML7700 has no specific stop requirements).
+        """
         pass
 
-    def read(self):
+    def read(self) -> np.ndarray:
+        """
+        Reads lux data from the VEML7700 sensor and returns it as a NumPy array.
+
+        :return: A NumPy array containing lux readings from the sensor.
+        """
         data = np.empty(self.chunk_size, self.data_type)
 
         for i in range(self.chunk_size):

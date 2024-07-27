@@ -1,28 +1,48 @@
-import multiprocessing as mp
+from typing import Any
 
 
 class SensorInterface:
-    def __init__(self):
-        self.queue = mp.Queue()
-        self.process = mp.Process(target=self.poll)
+    """
+    An abstract base class for sensors that outlines the mandatory methods that need to be implemented
+    by any specific sensor class inheriting from it. This ensures a consistent interface for starting,
+    stopping, and reading data from various sensors.
+
+    This class is meant to be inherited by sensor-specific classes that define actual hardware interaction
+    logic tailored to their specific requirements.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initializes the SensorInterface. This constructor is typically called by constructors of
+        derived classes to ensure the base class is properly initialized, even though this base class
+        itself does not hold any initialization logic.
+        """
+        pass
 
     # start, stop, read, must be implemented on a sensor basis
-    def start(self):
+    def start(self) -> None:
+        """
+        Starts the sensor operation. This method needs to be overridden by derived classes to include
+        logic to initiate the sensor's data collection.
+
+        :raises NotImplementedError: If the method is not implemented by the derived class.
+        """
         raise NotImplementedError
 
-    def stop(self):
+    def stop(self) -> None:
+        """
+        Stops the sensor operation. This method needs to be overridden by derived classes to include
+        logic to stop the sensor's data collection safely and cleanly.
+
+        :raises NotImplementedError: If the method is not implemented by the derived class.
+        """
         raise NotImplementedError
 
-    def read(self):
+    def read(self) -> Any:
+        """
+        Reads data from the sensor. This method must be implemented by derived classes to handle the
+        specifics of data acquisition from the sensor.
+
+        :raises NotImplementedError: If the method is not implemented by the derived class.
+        """
         raise NotImplementedError
-
-    def extract(self):
-        return self.queue.get()
-
-    def poll(self):
-        while True:
-            buf = self.read()
-            self.queue.put(buf)
-
-    def start_thread(self):
-        self.process.start()

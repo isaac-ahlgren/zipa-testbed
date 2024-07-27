@@ -1,28 +1,63 @@
-import numpy as np
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+# TODO compare with Seemoo lab implementation: https://github.com/seemoo-lab/ubicomp19_zero_interaction_security/blob/master/Visualization/Miettinen.ipynb
+import os
+from typing import Any, List
 
-from networking.network import *
-from protocols.common_protocols import *
+import numpy as np
+from cryptography.hazmat.primitives import constant_time, hashes, hmac
+from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+
+from networking.network import (
+    ack,
+    ack_standby,
+    commit_standby,
+    dh_exchange,
+    dh_exchange_standby,
+    get_nonce_msg_standby,
+    send_commit,
+    send_nonce_msg,
+    socket,
+)
 from protocols.protocol_interface import ProtocolInterface
 
 
 class Miettinen_Protocol(ProtocolInterface):
-    def __init__(self, parameters, sensor, logger):
+    def __init__(self, parameters: dict, sensor: Any, logger: Any):
+        """
+        Initializes a new instance of the Miettinen Protocol with specified parameters for key generation and communication.
+
+        :param sensor: The sensor object that provides access to real-time data.
+        :param logger: A logging object used to record protocol activity and debugging information.
+        :param parameters: A dictionary filled with the parameters needed to initialize and run the protocol
+        """
         ProtocolInterface.__init__(self, parameters, sensor, logger)
-        self.name = "Miettinen_Protocol"
-        self.wip = False
-        self.f = int(parameters["f"] * self.sensor.sensor.sample_rate)
-        self.w = int(parameters["w"] * self.sensor.sensor.sample_rate)
+        self.f = parameters["f"] * self.sensor.sensor.sample_rate
+        self.w = parameters["w"] * self.sensor.sensor.sample_rate
         self.rel_thresh = parameters["rel_thresh"]
         self.abs_thresh = parameters["abs_thresh"]
-        self.auth_thresh = parameters["auth_thresh"]
-        self.success_thresh = parameters["success_thresh"]
+        self.auth_threshold = parameters["auth_thresh"]
+        self.success_threshold = parameters["success_thresh"]
         self.max_iterations = parameters["max_iterations"]
+        self.timeout = parameters["timeout"]
+        self.name = "Miettinen_Protocol"
+        self.wip = False
+        self.ec_curve = ec.SECP384R1()
         self.nonce_byte_size = 16
         self.time_length = (self.w + self.f) * (self.commitment_length * 8 + 1)
         self.count = 0
 
-    def signal_preprocessing(signal, no_snap_shot_width, snap_shot_width):
+    def signal_preprocessing(
+        signal: np.ndarray, no_snap_shot_width: int, snap_shot_width: int
+    ) -> np.ndarray:
+        """
+        Processes the given signal into chunks based on specified snapshot widths and calculates the average of each chunk.
+
+        :param signal: The raw signal data as a numpy array.
+        :param no_snap_shot_width: Width of non-snapshot portion of the signal in samples.
+        :param snap_shot_width: Width of the snapshot portion of the signal in samples.
+        :return: A numpy array containing the mean value of each snapshot segment.
+        """
         block_num = int(len(signal) / (no_snap_shot_width + snap_shot_width))
         c = np.zeros(block_num)
         for i in range(block_num):
@@ -36,7 +71,15 @@ class Miettinen_Protocol(ProtocolInterface):
             )
         return c
 
-    def gen_key(c, rel_thresh, abs_thresh):
+    def gen_key(c: np.ndarray, rel_thresh: float, abs_thresh: float) -> str:
+        """
+        Generates a key based on the relative and absolute thresholds applied to the processed signal.
+
+        :param c: The processed signal data from `signal_preprocessing`.
+        :param rel_thresh: The relative threshold for generating bits.
+        :param abs_thresh: The absolute threshold for generating bits.
+        :return: A binary string representing the generated key.
+        """
         bits = ""
         for i in range(len(c) - 1):
             feature1 = np.abs((c[i] / c[i - 1]) - 1)
@@ -47,25 +90,48 @@ class Miettinen_Protocol(ProtocolInterface):
                 bits += "0"
         return bits
 
-    def miettinen_algo(x, f, w, rel_thresh, abs_thresh):
+    def miettinen_algo(
+        x: np.ndarray, f: int, w: int, rel_thresh: float, abs_thresh: float
+    ) -> bytes:
+        """
+        Main algorithm for key generation using signal processing and threshold-based key derivation.
+
+        :param x: The raw signal data.
+        :param f: The frame rate factor, used to calculate the window size for the signal processing.
+        :param w: The window size factor, used alongside the frame rate to define the granularity of signal analysis.
+        :param rel_thresh: The relative threshold for feature extraction in key generation.
+        :param abs_thresh: The absolute threshold for feature extraction in key generation.
+        :return: A byte string of the generated key.
+        """
+
         def bitstring_to_bytes(s):
             return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
         signal = Miettinen_Protocol.signal_preprocessing(x, f, w)
         key = Miettinen_Protocol.gen_key(signal, rel_thresh, abs_thresh)
-
         return bitstring_to_bytes(key)
 
-    def extract_context(self):
-        signal = self.sensor.read(
-            int(self.time_length * self.sensor.sensor.sample_rate)
-        )
+    def process_context(self) -> List[bytes]:
+        # TODO: Signal must be logged somehow
+        signal = self.read_samples(self.time_length)
+
+        # Taken from read_samples in protocol_interface
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
+
         bits = Miettinen_Protocol.miettinen_algo(
             signal, self.f, self.w, self.rel_thresh, self.abs_thresh
         )
-        return bits, signal
 
-    def parameters(self, is_host):
+        return [bits]
+
+    def parameters(self, is_host: bool) -> str:
+        """
+        Constructs a string detailing the current settings and parameters of the protocol.
+
+        :param is_host: Boolean indicating whether the device is host.
+        :return: A string containing formatted protocol parameters.
+        """
         parameters = ""
         parameters += "protocol: " + self.name
         parameters += "is_host: " + str(is_host)
@@ -78,13 +144,18 @@ class Miettinen_Protocol(ProtocolInterface):
         parameters += "\nw: " + str(self.w)
         parameters += "\nrel_thresh: " + str(self.rel_thresh)
         parameters += "\nabs_thresh: " + str(self.abs_thresh)
-        parameters += "\nsuccess_threshold: " + str(self.success_thresh)
-        parameters += "\nauthentication_threshold: " + str(self.auth_thresh)
+        parameters += "\nsuccess_threshold: " + str(self.success_threshold)
+        parameters += "\nauthentication_threshold: " + str(self.auth_threshold)
         parameters += "\nmax_iterations: " + str(self.max_iterations)
         parameters += "\ntime_length: " + str(self.time_length)
         return parameters
 
-    def device_protocol(self, host_socket):
+    def device_protocol(self, host_socket: socket.socket) -> None:
+        """
+        Implements the device side of the protocol, handling communications and key exchange operations.
+
+        :param host_socket: The socket connected to the host.
+        """
         host_socket.setblocking(1)
 
         if self.verbose:
@@ -114,7 +185,8 @@ class Miettinen_Protocol(ProtocolInterface):
         successes = 0
         total_iterations = 0
         while (
-            successes < self.success_thresh and total_iterations < self.max_iterations
+            successes < self.success_threshold
+            and total_iterations < self.max_iterations
         ):
             # Sending ack that they are ready to begin
 
@@ -132,7 +204,8 @@ class Miettinen_Protocol(ProtocolInterface):
             success = False
 
             # Extract bits from sensor
-            witness, signal = self.extract_context()
+            witness = self.process_context()
+            witness = witness[0]
 
             # Wait for Commitment
             if self.verbose:
@@ -168,7 +241,7 @@ class Miettinen_Protocol(ProtocolInterface):
             pd_key_hash = self.hash_function(prederived_key)
 
             # Send nonce message to host
-            generated_nonce = send_nonce_msg_to_host(
+            generated_nonce = self.send_nonce_msg_to_host(
                 host_socket, pd_key_hash, derived_key
             )
 
@@ -182,7 +255,9 @@ class Miettinen_Protocol(ProtocolInterface):
                 return
 
             # If hashes are equal, then it was successful
-            if verify_mac_from_host(recieved_nonce_msg, generated_nonce, derived_key):
+            if self.verify_mac_from_host(
+                recieved_nonce_msg, generated_nonce, derived_key
+            ):
                 success = True
                 successes += 1
                 current_key = derived_key
@@ -190,12 +265,7 @@ class Miettinen_Protocol(ProtocolInterface):
             if self.verbose:
                 print("Produced Key: " + str(derived_key))
                 print(
-                    "success: "
-                    + str(success)
-                    + ", Number of successes: "
-                    + str(successes)
-                    + ", Total number of iterations: "
-                    + str(total_iterations)
+                    f"success: f{str(success)}, Number of successes: f{str(successes)}, Total number of iterations: {str(total_iterations)}"
                 )
 
             self.logger.log(
@@ -203,7 +273,7 @@ class Miettinen_Protocol(ProtocolInterface):
                     ("witness", "txt", witness),
                     ("commitment", "txt", commitment),
                     ("success", "txt", str(success)),
-                    ("signal", "csv", signal),
+                    # ("signal", "csv", signal),
                 ],
                 count=total_iterations,
             )
@@ -212,15 +282,13 @@ class Miettinen_Protocol(ProtocolInterface):
             total_iterations += 1
 
         if self.verbose:
-            if successes / total_iterations >= self.auth_thresh:
+            if successes / total_iterations >= self.auth_threshold:
                 print(
-                    "Total Key Pairing Success: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Success: auth - {str(successes / total_iterations)}"
                 )
             else:
                 print(
-                    "Total Key Pairing Failure: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Failure: auth - {str(successes / total_iterations)}"
                 )
 
         self.logger.log(
@@ -228,19 +296,19 @@ class Miettinen_Protocol(ProtocolInterface):
                 (
                     "pairing_statistics",
                     "txt",
-                    "successes: "
-                    + str(successes)
-                    + " total_iterations: "
-                    + str(total_iterations)
-                    + " succeeded: "
-                    + str(successes / total_iterations >= self.auth_thresh),
+                    f"successes: {str(successes)} total_iterations: {str(total_iterations)} succeeded: {str(successes / total_iterations >= self.auth_threshold)}",
                 )
             ]
         )
 
         self.count += 1
 
-    def host_protocol_single_threaded(self, device_socket):
+    def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
+        """
+        Handles protocol operations for a single device from the host's perspective in a separate thread.
+
+        :param device_socket: The socket for communication with a specific device.
+        """
         device_socket.setblocking(1)
 
         device_ip_addr, device_port = device_socket.getpeername()
@@ -261,7 +329,8 @@ class Miettinen_Protocol(ProtocolInterface):
         total_iterations = 0
         successes = 0
         while (
-            successes < self.success_thresh and total_iterations < self.max_iterations
+            successes < self.success_threshold
+            and total_iterations < self.max_iterations
         ):
             success = False
             # ACK device
@@ -277,7 +346,9 @@ class Miettinen_Protocol(ProtocolInterface):
                 print("Successfully ACKed participating device\n")
 
             # Extract key from sensor
-            witness, signal = self.extract_context()
+            self.shm_active.value += 1
+            witness = self.process_context()
+            witness = witness[0]
 
             # Commit Secret
             if self.verbose:
@@ -292,12 +363,11 @@ class Miettinen_Protocol(ProtocolInterface):
                 print("Sending commitment")
                 print()
 
-            send_commit([commitment], None, device_socket)
-
-            # Key Confirmation Phase
-
             # Hash prederived key
             pd_key_hash = self.hash_function(prederived_key)
+
+            # Key Confirmation Phase
+            send_commit([commitment], [pd_key_hash], device_socket)
 
             # Recieve nonce message
             recieved_nonce_msg = get_nonce_msg_standby(device_socket, self.timeout)
@@ -315,13 +385,15 @@ class Miettinen_Protocol(ProtocolInterface):
             )
             derived_key = kdf.derive(prederived_key + current_key)
 
-            if verify_mac_from_device(recieved_nonce_msg, derived_key, pd_key_hash):
+            if self.verify_mac_from_device(
+                recieved_nonce_msg, derived_key, pd_key_hash
+            ):
                 success = True
                 successes += 1
                 current_key = derived_key
 
             # Create and send key confirmation value
-            send_nonce_msg_to_device(
+            self.send_nonce_msg_to_device(
                 device_socket, recieved_nonce_msg, derived_key, pd_key_hash
             )
 
@@ -330,7 +402,7 @@ class Miettinen_Protocol(ProtocolInterface):
                     ("witness", "txt", witness),
                     ("commitment", "txt", commitment),
                     ("success", "txt", str(success)),
-                    ("signal", "csv", signal),
+                    # ("signal", "csv", signal),
                 ],
                 count=total_iterations,
                 ip_addr=device_ip_addr,
@@ -341,25 +413,18 @@ class Miettinen_Protocol(ProtocolInterface):
 
             if self.verbose:
                 print(
-                    "success: "
-                    + str(success)
-                    + ", Number of successes: "
-                    + str(successes)
-                    + ", Total number of iterations: "
-                    + str(total_iterations)
+                    f"success: {str(success)}, Number of successes: {str(successes)}, Total number of iterations: {str(total_iterations)}"
                 )
                 print()
 
         if self.verbose:
-            if successes / total_iterations >= self.auth_thresh:
+            if successes / total_iterations >= self.auth_threshold:
                 print(
-                    "Total Key Pairing Success: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Success: auth - {str(successes / total_iterations)}"
                 )
             else:
                 print(
-                    "Total Key Pairing Failure: auth - "
-                    + str(successes / total_iterations)
+                    f"Total Key Pairing Failure: auth - {str(successes / total_iterations)}"
                 )
 
         self.logger.log(
@@ -367,18 +432,187 @@ class Miettinen_Protocol(ProtocolInterface):
                 (
                     "pairing_statistics",
                     "txt",
-                    "successes: "
-                    + str(successes)
-                    + " total_iterations: "
-                    + str(total_iterations)
-                    + " succeeded: "
-                    + str(successes / total_iterations >= self.auth_thresh),
+                    f"successes: {str(successes)} total_iterations: {str(total_iterations)} succeeded: {str(successes / total_iterations >= self.auth_threshold)}",
                 )
             ],
             ip_addr=device_ip_addr,
         )
 
         self.count += 1
+
+    # TODO: Refactor by putting in common_protocols.py, then change all references to this version to the common_protocols.py version
+    def diffie_hellman(self, socket: socket.socket) -> bytes:
+        """
+        Performs the Diffie-Hellman key exchange over a given socket to securely generate a shared secret.
+
+        :param socket: The socket object used for the exchange.
+        :return: The derived shared key as a byte string.
+        """
+        # Generate initial private key for Diffie-Helman
+        initial_private_key = ec.generate_private_key(self.ec_curve)
+
+        public_key = initial_private_key.public_key().public_bytes(
+            Encoding.X962, PublicFormat.CompressedPoint
+        )
+
+        # Send initial key for Diffie-Helman
+        if self.verbose:
+            print("Send DH public key\n")
+
+        dh_exchange(socket, public_key)
+
+        # Recieve other devices key
+        if self.verbose:
+            print("Waiting for DH public key\n")
+
+        other_public_key_bytes = dh_exchange_standby(socket, self.timeout)
+
+        if other_public_key_bytes is None:
+            if self.verbose:
+                print("No initial key for Diffie-Helman recieved - early exit\n")
+            return
+
+        other_public_key = ec.EllipticCurvePublicKey.from_encoded_point(
+            self.ec_curve, other_public_key_bytes
+        )
+
+        # Shared key generated
+        shared_key = initial_private_key.exchange(ec.ECDH(), other_public_key)
+
+        return shared_key
+
+    def hash_function(self, bytes: bytes) -> bytes:
+        """
+        Generates a cryptographic hash of the given byte sequence using SHA-256.
+
+        :param bytes: The data to hash.
+        :return: The resulting hash as a byte string.
+        """
+
+        hash_func = hashes.Hash(self.hash_func)
+        hash_func.update(bytes)
+        return hash_func.finalize()
+
+    # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
+    def send_nonce_msg_to_device(
+        self,
+        connection: socket.socket,
+        recieved_nonce_msg: bytes,
+        derived_key: bytes,
+        prederived_key_hash: bytes,
+    ) -> bytes:
+        """
+        Sends a nonce message to a device, including a HMAC tag for verification.
+
+        :param connection: The network connection object.
+        :param received_nonce_msg: The nonce message received from the host.
+        :param derived_key: The cryptographic key derived from an earlier exchange.
+        :param prederived_key_hash: The hash of the key derived prior to this function.
+        :return: The nonce generated in this function.
+        """
+        nonce = os.urandom(self.nonce_byte_size)
+
+        # Concatenate nonces together
+        pd_hash_len = len(prederived_key_hash)
+        recieved_nonce = recieved_nonce_msg[
+            pd_hash_len : pd_hash_len + self.nonce_byte_size
+        ]
+        concat_nonce = nonce + recieved_nonce
+
+        # Create tag of Nonce
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(concat_nonce)
+        tag = mac.finalize()
+
+        # Construct nonce message
+        nonce_msg = nonce + tag
+
+        send_nonce_msg(connection, nonce_msg)
+
+        return nonce
+
+    # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
+    def send_nonce_msg_to_host(
+        self, connection: socket.socket, prederived_key_hash: bytes, derived_key: bytes
+    ) -> bytes:
+        """
+        Sends a nonce message to the host, including a HMAC tag for verification.
+
+        :param connection: The network connection object.
+        :param prederived_key_hash: The hash of the pre-derived key.
+        :param derived_key: The cryptographic key derived from an earlier exchange.
+        :return: The nonce generated in this function.
+        """
+        # Generate Nonce
+        nonce = os.urandom(self.nonce_byte_size)
+
+        # Create tag of Nonce
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(nonce)
+        tag = mac.finalize()
+
+        # Create key confirmation message
+        nonce_msg = prederived_key_hash + nonce + tag
+
+        send_nonce_msg(connection, nonce_msg)
+
+        return nonce
+
+    # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
+    def verify_mac_from_host(
+        self, recieved_nonce_msg: bytes, generated_nonce: bytes, derived_key: bytes
+    ) -> bool:
+        """
+        Verifies the HMAC tag received from the host.
+
+        :param received_nonce_msg: The nonce message received from the host.
+        :param generated_nonce: The nonce generated by the host, expected to match.
+        :param derived_key: The cryptographic key used for HMAC.
+        :return: True if the verification is successful, False otherwise.
+        """
+        success = False
+
+        recieved_nonce = recieved_nonce_msg[0 : self.nonce_byte_size]
+
+        # Create tag of Nonce
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(recieved_nonce + generated_nonce)
+        generated_tag = mac.finalize()
+
+        recieved_tag = recieved_nonce_msg[self.nonce_byte_size :]
+        if constant_time.bytes_eq(generated_tag, recieved_tag):
+            success = True
+        return success
+
+    # TODO: Already refactored by putting it in common_protocols.py, delete and change all reference from this to common_protocols.py version
+    def verify_mac_from_device(
+        self, recieved_nonce_msg: bytes, derived_key: bytes, prederived_key_hash: bytes
+    ) -> bool:
+        """
+        Verifies the HMAC tag received from a device.
+
+        :param received_nonce_msg: The nonce message received from the device.
+        :param derived_key: The cryptographic key used for HMAC.
+        :param prederived_key_hash: The hash of the pre-derived key.
+        :return: True if the verification is successful, False otherwise.
+        """
+        success = False
+
+        # Retrieve nonce used by device
+        pd_hash_len = len(prederived_key_hash)
+        recieved_nonce = recieved_nonce_msg[
+            pd_hash_len : pd_hash_len + self.nonce_byte_size
+        ]
+
+        # Generate new MAC tag for the nonce with respect to the derived key
+        mac = hmac.HMAC(derived_key, self.hash_func)
+        mac.update(recieved_nonce)
+        generated_tag = mac.finalize()
+
+        recieved_tag = recieved_nonce_msg[pd_hash_len + self.nonce_byte_size :]
+        if constant_time.bytes_eq(generated_tag, recieved_tag):
+            success = True
+        return success
 
 
 """###TESTING CODE###

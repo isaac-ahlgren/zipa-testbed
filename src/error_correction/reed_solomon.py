@@ -1,13 +1,32 @@
 import ctypes
 import os
-import random
 
 import numpy as np
+
+# import random
+# from typing import List, Tuple
+
+
+# import random
 
 
 # Currently built to assume block size will be 8 bits
 class ReedSolomonObj:
-    def __init__(self, n, k):
+    """
+    A class for Reed-Solomon error-correcting code operations, interfacing with an external C library via ctypes.
+    This class assumes a block size of 8 bits and is used for encoding and decoding data, handling errors, and managing memory for the underlying C library operations.
+
+    :param n: The total number of symbols in the codeword (including both data and error-correction symbols).
+    :type n: int
+    :param k: The number of data symbols in the codeword.
+    :type k: int
+    :raises Exception: If `k` is greater than `n` or if `n` is greater than 255, due to limitations of the Galois Field size.
+    """
+
+    def __init__(self, n: int, k: int) -> None:
+        """
+        Initializes the Reed-Solomon encoder/decoder instance with specified parameters and loads the necessary functions from the external C library.
+        """
         if k > n:
             raise Exception("k has to be this relation to n, k <= n")
         if n > 255:
@@ -72,12 +91,28 @@ class ReedSolomonObj:
         ]
 
     def encode(self, key: bytearray) -> bytearray:
+        """
+        Encodes a bytearray using the Reed-Solomon error correction code.
+
+        :param key: The data to be encoded.
+        :type key: bytearray
+        :returns: The encoded data, with error correction codes appended.
+        :rtype: bytearray
+        """
         np_key = np.frombuffer(key, dtype=np.int8)
         C = np.zeros(self.t + len(key), dtype=np.int8)
         self.encode_data(np_key, len(key), C, self.rs_instance)
         return bytearray(C.tobytes())
 
     def decode(self, C: bytearray) -> bytearray:
+        """
+        Decodes a bytearray previously encoded with the Reed-Solomon error correction code.
+
+        :param C: The codeword to be decoded, including error-correction data.
+        :type C: bytearray
+        :returns: The original data after error correction and decoding.
+        :rtype: bytearray
+        """
         np_C = np.frombuffer(C, dtype=np.int8)
         erasures = np.zeros(8, dtype=np.intc)
 

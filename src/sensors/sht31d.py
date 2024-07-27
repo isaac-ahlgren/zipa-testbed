@@ -1,4 +1,5 @@
 import time
+from typing import Any
 
 import adafruit_sht31d
 import board
@@ -8,27 +9,50 @@ from sensors.sensor_interface import SensorInterface
 
 
 class SHT31D(SensorInterface):
-    def __init__(self, sample_rate, buffer_size, chunk_size):
+    """
+    A sensor interface for the SHT31D, a high-accuracy temperature and humidity sensor. This class manages
+    reading humidity data from the sensor and buffers it for consumption.
+
+    :param config: Configuration dictionary that includes sample rate, time collected, and chunk size.
+    """
+
+    def __init__(self, config: dict[str, Any]) -> None:
+        """
+        Initializes the SHT31D sensor interface with configuration settings.
+
+        :param config: A dictionary with configuration settings such as sample rate, time collected,
+                       and chunk size for data reading.
+        """
         SensorInterface.__init__(self)
-        self.sample_rate = sample_rate
-        self.buffer_size = buffer_size
-        self.chunk_size = chunk_size
-        self.chunks = int(self.buffer_size / self.chunk_size)
-        self.name = "sht31d"
-        self.buffer = np.zeros(chunk_size, np.float32())
-        self.buffer_index = 0
-        self.buffer_full = False
-        self.data_type = self.buffer.dtype
+        self.sample_rate: int = config.get("sample_rate")
+        self.buffer_size: int = config.get("sample_rate") * config.get("time_collected")
+        self.chunk_size: int = config.get("chunk_size")
+        self.chunks: int = int(self.buffer_size / self.chunk_size)
+        self.name: str = "SHT31D"
+        self.buffer: np.ndarray = np.zeros(self.chunk_size, np.float32())
+        self.buffer_index: int = 0
+        self.buffer_full: bool = False
+        self.data_type: np.dtype = self.buffer.dtype
         self.sensor = adafruit_sht31d.SHT31D(board.I2C())
-        self.start_thread()
 
-    def start(self):
+    def start(self) -> None:
+        """
+        Start the sensor (placeholder for actual start commands if necessary).
+        """
         pass
 
-    def stop(self):
+    def stop(self) -> None:
+        """
+        Stop the sensor (placeholder for actual stop commands if necessary).
+        """
         pass
 
-    def read(self):
+    def read(self) -> np.ndarray:
+        """
+        Reads humidity data from the sensor and returns it as a NumPy array.
+
+        :return: A NumPy array containing humidity readings from the sensor.
+        """
         data = np.empty(self.chunk_size, self.data_type)
 
         for i in range(self.chunk_size):

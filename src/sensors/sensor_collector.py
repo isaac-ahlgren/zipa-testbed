@@ -1,25 +1,44 @@
 import multiprocessing as mp
 
 from networking.nfs import NFSLogger
+from sensors.sensor_interface import SensorInterface
 
 
 class Sensor_Collector:
-    def __init__(self, device, logger):
+    """
+    A class designed to manage sensor data collection in a multiprocessing environment, logging the
+    collected data using NFSLogger.
+
+    :param device: The sensor device from which data is to be collected.
+    :param logger: An instance of NFSLogger to log the collected sensor data.
+    """
+
+    def __init__(self, device: SensorInterface, logger: NFSLogger) -> None:
+        """
+        Initializes the Sensor_Collector with a specified sensor device and logger.
+
+        :param device: The sensor device from which data is to be collected.
+        :param logger: An NFSLogger to handle logging the collected data.
+        """
         self.sensor = device
         self.logger = logger
         self.sensor.start()
         self.poll_process = mp.Process(target=self.poll, name=device.name)
         self.poll_process.start()
 
-    def poll(self):
+    def poll(self) -> None:
+        """
+        Continuously polls data from the sensor and logs it using the configured NFSLogger.
+        This function runs in a separate process.
+        """
         while True:
-            data = self.sensor.extract()
+            data = self.sensor.read()
             self.logger.log_signal(self.sensor.name, data)
 
 
 if __name__ == "__main__":
 
-    def sen_thread(sen):
+    def sen_thread(sen: Sensor_Collector) -> None:
         p = mp.Process(target=sen.poll)
         p.start()
 
@@ -30,7 +49,7 @@ if __name__ == "__main__":
         ts,
         NFSLogger(
             user="USERNAME",
-            password="PASSWORD",
+            password="PASSWORD",  # nosec
             host="SERVER IP",
             database="file_log",
             nfs_server_dir="/mnt/data",  # Make sure this directory exists and is writable

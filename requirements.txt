@@ -1,0 +1,17 @@
+adafruit-circuitpython-sht31d
+chardet
+cryptography
+gpiozero
+matplotlib
+mysql-connector-python
+netifaces
+numpy
+pandas
+poetry
+pytest
+pyyaml
+scikit-fuzzy
+scikit-learn
+scipy
+tsfresh
+zeroconf
