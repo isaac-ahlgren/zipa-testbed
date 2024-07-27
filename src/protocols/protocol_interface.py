@@ -2,7 +2,6 @@ import queue
 import socket
 from multiprocessing import Lock, Process, Queue, Value
 from multiprocessing.shared_memory import ShareableList
-from multiprocessing.synchronize import Synchronized
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -78,21 +77,21 @@ class ProtocolInterface:
         for process in processes:
             process.join()
 
-    def capture_flag(shared_value: Synchronized) -> None:
+    def capture_flag(shared_value: Any) -> None:
         """
         Grabs the shared value and sets it to `1`, meaning that the queue is
         ready for data collection.
         """
         shared_value.value = 1
 
-    def release_flag(shared_value: Synchronized) -> None:
+    def release_flag(shared_value: Any) -> None:
         """
         Grabs the shared value and sets it to `-1`, meaning that the queue
         is populated with data and can be shared across processes
         """
         shared_value.value = -1
 
-    def reset_flag(shared_value: Synchronized) -> None:
+    def reset_flag(shared_value: Any) -> None:
         """
         Grabs the shared value and sets it to `0`, meaning that the queue
         is ready to be captured again by a process to accumulate data
