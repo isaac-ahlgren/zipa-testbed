@@ -2,58 +2,18 @@ import argparse
 import os
 import sys
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-
 import numpy as np
-from eval_tools import cmp_bits
-
 from fastzip_tools import (
     SAMPLING_RATE,
-    add_gauss_noise,
     adversary_signal,
-    golden_signal,
     fastzip_calc_sample_num,
     fastzip_wrapper_function,
+    golden_signal,
 )
 
-#rewrite to work with fastzip
-def goldsig_plus_noise_eval(
-    window_length,
-    band_length,
-    key_length,
-    sampling_freq,
-    bias,
-    eqd_delta,
-    ewma_filter,
-    alpha,
-    remove_noise,
-    normalize,
-    power_thr,
-    snr_thr,
-    peaks,
-    trials
-):
-    legit_bit_errs = []
-    adv_bit_errs = []
-    sample_num = fastzip_calc_sample_num(key_length, window_length)
-    signal = golden_signal(sample_num, seed=0)
-    adv_signal = adversary_signal(sample_num, seed=12)
-    for i in range(trials):
-        #power_thr, snr_thr, peaks = grab_parameters(signal, sampling_freq)
-        #adv_power_thr, adv_snr_thr, adv_peaks = grab_parameters(adv_signal, sampling_freq)
-        sig1 = add_gauss_noise(signal, snr_thr)
-        sig2 = add_gauss_noise(signal, snr_thr)
-        adv_sig = add_gauss_noise(adv_signal, snr_thr)
-
-        bits1 = fastzip_wrapper_function(sig1, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
-        bits2 = fastzip_wrapper_function(sig2, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
-        adv_bits = fastzip_wrapper_function(adv_sig, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
-        
-        legit_bit_err = cmp_bits(bits1, bits2, key_length)
-        legit_bit_errs.append(legit_bit_err)
-        adv_bit_err = cmp_bits(bits1, adv_bits, key_length)
-        adv_bit_errs.append(adv_bit_err)
-    return legit_bit_errs, adv_bit_errs
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import add_gauss_noise, cmp_bits  # noqa: E402
+from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -86,21 +46,35 @@ if __name__ == "__main__":
     number_peaks = getattr(args, "number_peaks")
     trials = getattr(args, "trials")
 
-    legit_bit_errs, adv_bit_errs = goldsig_plus_noise_eval(
-        window_length,
-        band_length,
-        key_length,
-        SAMPLING_RATE,
-        bias,
-        eqd_delta,
-        ewma_filter,
-        alpha,
-        remove_noise,
-        normalize,
-        power_threshold,
-        snr_threshold,
-        number_peaks,
-        trials
-    )
+    sample_num = fastzip_calc_sample_num(key_length, window_length)
+    signal1 = golden_signal(sample_num, seed=0)
+    signal2 = golden_signal(sample_num, seed=0)
+    adv_signal = adversary_signal(sample_num, seed=12)
+    signals = (signal1, signal2, adv_signal)
+
+    def bit_gen_algo(signal):
+        noisy_signal = add_gauss_noise(signal, snr_threshold)
+        return fastzip_wrapper_function(
+            noisy_signal,
+            key_length,
+            power_threshold,
+            snr_threshold,
+            number_peaks,
+            bias,
+            SAMPLING_RATE,
+            eqd_delta,
+            ewma_filter,
+            alpha,
+            remove_noise,
+            normalize,
+        )
+
+    # Creating an evaluator object with the bit generation algorithm
+    evaluator = Evaluator(bit_gen_algo)
+    # Evaluating the signals with the specified number of trials
+    evaluator.evaluate(signals, trials)
+    # Comparing the bit errors for legitimate and adversary signals
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")

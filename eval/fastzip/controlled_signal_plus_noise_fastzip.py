@@ -2,85 +2,22 @@ import argparse
 import os
 import sys
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-
 import numpy as np
-from eval_tools import cmp_bits
-
 from fastzip_tools import (
     SAMPLING_RATE,
-    add_gauss_noise,
-    adversary_signal,
-    golden_signal,
     fastzip_calc_sample_num,
     fastzip_wrapper_function,
 )
-from scipy.io import wavfile
 
-#rewrite to work with fastzip
-def controlled_sig_plus_noise_eval(
-    window_length,
-    band_length,
-    key_length,
-    sampling_freq,
-    bias,
-    eqd_delta,
-    ewma_filter,
-    alpha,
-    remove_noise,
-    normalize,
-    power_thr,
-    snr_thr,
-    peaks,
-    trials
-):
-    legit_bit_errs = []
-    adv_bit_errs = []
-    
-    signal, sr = load_controlled_signal("../controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal("../adversary_controlled_signal.wav")
-    #Need to improve upon how sample number is calculated
-    sample_num = fastzip_calc_sample_num(key_length, window_length)
-    index = 0
-    adv_index = 0
-    for i in range(trials):
-        signal_part, index = wrap_around_read(signal, index, sample_num)
-        adv_part, adv_index = wrap_around_read(adv_signal, adv_index, sample_num)
-        sig1 = add_gauss_noise(signal_part, snr_thr)
-        sig2 = add_gauss_noise(signal_part, snr_thr)
-        adv_sig = add_gauss_noise(adv_part, snr_thr)
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import (  # noqa: E402
+    Signal_Buffer,
+    cmp_bits,
+    load_controlled_signal,
+)
+from evaluator import Evaluator  # noqa: E402
 
-        bits1 = fastzip_wrapper_function(sig1, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
-        bits2 = fastzip_wrapper_function(sig2, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
-        adv_bits = fastzip_wrapper_function(adv_sig, key_length, power_thr, snr_thr, peaks, bias, sampling_freq, eqd_delta, ewma_filter, alpha, remove_noise, normalize)
-        
-        legit_bit_err = cmp_bits(bits1, bits2, key_length)
-        legit_bit_errs.append(legit_bit_err)
-        adv_bit_err = cmp_bits(bits1, adv_bits, key_length)
-        adv_bit_errs.append(adv_bit_err)
-    return legit_bit_errs, adv_bit_errs
-
-
-def load_controlled_signal(file_name):
-    sr, data = wavfile.read(file_name)
-    return data.astype(np.int64) + 2**16, sr
-
-
-def wrap_around_read(buffer, index, samples_to_read):
-    output = np.array([])
-    while samples_to_read != 0:
-        samples_can_read = len(buffer) - index
-        if samples_can_read <= samples_to_read:
-            buf = buffer[index : index + samples_can_read]
-            output = np.append(output, buf)
-            samples_to_read = samples_to_read - samples_can_read
-            index = 0
-        else:
-            buf = buffer[index : index + samples_to_read]
-            output = np.append(output, buf)
-            index = index + samples_to_read
-            samples_to_read = 0
-    return output, index
+# rewrite to work with fastzip
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -113,22 +50,46 @@ if __name__ == "__main__":
     number_peaks = getattr(args, "number_peaks")
     trials = getattr(args, "trials")
 
-    legit_bit_errs, adv_bit_errs = controlled_sig_plus_noise_eval(
-        window_length,
-        band_length,
-        key_length,
-        SAMPLING_RATE,
-        bias,
-        eqd_delta,
-        ewma_filter,
-        alpha,
-        remove_noise,
-        normalize,
-        power_threshold,
-        snr_threshold,
-        number_peaks,
-        trials
+    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
     )
+
+    legit_signal_buffer1 = Signal_Buffer(
+        legit_signal.copy(), noise=True, target_snr=snr_threshold
+    )
+    legit_signal_buffer2 = Signal_Buffer(
+        legit_signal.copy(), noise=True, target_snr=snr_threshold
+    )
+    adv_signal_buffer = Signal_Buffer(adv_signal)
+
+    # Grouping the signal buffers into a tuple
+    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+
+    sample_num = fastzip_calc_sample_num(key_length, window_length)
+
+    def bit_gen_algo(signal):
+        signal_chunk = signal.read(sample_num)  # Reading a chunk of the signal
+        return fastzip_wrapper_function(
+            signal_chunk,
+            key_length,
+            power_threshold,
+            snr_threshold,
+            number_peaks,
+            bias,
+            SAMPLING_RATE,
+            eqd_delta,
+            ewma_filter,
+            alpha,
+            remove_noise,
+            normalize,
+        )
+
+    evaluator = Evaluator(bit_gen_algo)
+    # Evaluating the signals with the specified number of trials
+    evaluator.evaluate(signals, trials)
+    # Comparing the bit errors for legitimate and adversary signals
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
-
