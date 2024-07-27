@@ -3,7 +3,7 @@ import os
 import sys
 
 import numpy as np
-from perceptio_tools import (
+from iotcupid_tools import (
     adversary_signal,
     gen_min_events,
     generate_bits,
@@ -26,6 +26,9 @@ if __name__ == "__main__":
     parser.add_argument("-fs", "--sampling_frequency", type=float, default=10000)
     parser.add_argument("-ch", "--chunk_size", type=int, default=100)
     parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
+    parser.add_argument("-ws", "--window_size", type=int, default=10000)
+    parser.add_argument("-fd", "--feature_dimensions", type=int, default=3)
+    parser.add_argument("-w", "--quantization_factor", type=int, default=1000)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
     parser.add_argument("-t", "--trials", type=int, default=100)
 
@@ -41,6 +44,9 @@ if __name__ == "__main__":
     Fs = getattr(args, "sampling_frequency")
     chunk_size = getattr(args, "chunk_size")
     buffer_size = getattr(args, "buffer_size")
+    window_size = getattr(args, "window_size")
+    feature_dimensions = getattr(args, "feature_dimensions")
+    w = getattr(args, "quantization_factor")
     key_size_in_bytes = getattr(args, "key_length") // 8
     trials = getattr(args, "trials")
 
@@ -64,12 +70,18 @@ if __name__ == "__main__":
             bottom_th,
             lump_th,
             a,
+            window_size,
+            feature_dim
         )
         bits, grouped_events = generate_bits(
             signal_events,
-            signal_event_features,
-            cluster_sizes_to_check,
+            event_features,
+            max_clusters,
             cluster_th,
+            m_start,
+            m_end,
+            m_searches,
+            quantization_factor,
             Fs,
             key_size_in_bytes,
         )

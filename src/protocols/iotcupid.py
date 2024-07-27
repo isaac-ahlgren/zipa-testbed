@@ -3,7 +3,6 @@ import os
 from datetime import datetime as dt
 from typing import Any, Dict, List, Optional, Tuple
 
-import chardet
 import numpy as np
 import pandas as pd
 import skfuzzy as fuzz
@@ -70,17 +69,59 @@ class IoTCupid_Protocol:
     def extract_context(self) -> None:
         pass
 
+    def process_context(self) -> Any:
+        events = []
+        event_features = []
+        iteration = 0
+        while len(events) < self.min_events:
+            chunk = self.read_samples(self.chunk_size)
+
+            smoothed_data = IoTCupid_Protocol.ewma_filter(chunk, self.a)
+
+            derivatives = IoTCupid_Protocol.compute_derivative(smoothed_data, self.window_size)
+           
+            received_events = IoTCupid_Protocol.detect_events(derivatives, self.bottom_th, self.top_th, self.agg_th)
+     
+            event_features = IoTCupid_Protocol.get_event_features(recieved_events, signal_data, self.feature_dim)
+
+            # Reconciling lumping adjacent events across windows
+            if (
+                len(received_events) != 0
+                and len(events) != 0
+                and received_events[0][0] - events[-1][1] <= self.lump_th
+            ):
+                events[-1] = (events[-1][0], received_events[0][1])
+                length = events[-1][1] - events[-1][0] + 1
+                max_amp = np.max([event_features[-1][1], received_event_features[0][1]])
+                event_features[-1] = (length, max_amp)
+
+                events.extend(received_events[1:])
+                event_features.extend(received_event_features[1:])
+            else:
+                events.extend(received_events)
+                event_features.extend(received_event_features)
+            iteration += 1
+
+        # Extracted from read_samples function in protocol_interface
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
+
+        fuzzy_cmeans_w_elbow_method(
+            event_features, self.max_clusters, self.cluster_th, self.m_start, self.m_end, self.m_searches
+        )
+
+        grouped_events = self.group_events(events, u)
+
+        inter_event_timings = self.calculate_inter_event_timings(grouped_events)
+
+        encoded_timings = self.encode_timings_to_bits(
+            inter_event_timings, quantization_factor
+        )
+
+        return encoded_timings
+
     def parameters(self, is_host: bool) -> str:
-        parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
-        parameters += f"sensor: {self.sensor.sensor.name}\n"
-        parameters += f"key_length: {self.key_length}\n"
-        parameters += f"alpha: {a}\n"
-        parameters += f"cluster_sizes_to_check: {cluster_sizes_to_check}\n"
-        parameters += f"features_dim: {self.features_dim}\n"
-        parameters += f"quantization_factor: {quantization_factor}\n"
-        parameters += f"cluster_th: {cluster_th}\n"
-        parameters += f"parity_symbols: {self.parity_symbols}\n"
-        parameters += f"time_length: {self.time_length}\n"
+        pass
 
     def device_protocol(self, host: Any) -> None:
         pass
@@ -99,27 +140,24 @@ class IoTCupid_Protocol:
     def host_protocol_single_threaded(self, device_socket: Any) -> None:
         pass
 
-    def ewma_filter(
-        self, dataframe: pd.DataFrame, column_name: str, alpha: float = 0.15
-    ) -> pd.DataFrame:
+    def ewma(signal: np.ndarray, a: float) -> np.ndarray:
         """
-        Applies Exponential Weighted Moving Average filtering to a specified column in a DataFrame.
+        Computes the exponentially weighted moving average (EWMA) of a signal.
 
-        :param dataframe: Pandas DataFrame containing the data to filter.
-        :param column_name: The name of the column to apply the filter on.
-        :param alpha: The decay factor for the EWMA filter.
-        :return: The DataFrame with the filtered data.
+        :param signal: The input signal as a NumPy array.
+        :param a: The smoothing factor used in the EWMA calculation.
+        :return: The EWMA of the signal as a NumPy array.
         """
-        # Commented out the normalization
-        # dataframe[column_name] = dataframe[column_name] - dataframe[column_name].mean()
-        dataframe[column_name] = (
-            dataframe[column_name].ewm(alpha=alpha, adjust=False).mean()
-        )
-        return dataframe
+        y = np.zeros(len(signal))
+
+        y[0] = a * signal[0]
+        for i in range(1, len(signal)):
+            y[i] = a * signal[i] + (1 - a) * y[i - 1]
+        return y
 
     def compute_derivative(
-        self, signal: pd.DataFrame, window_size: int
-    ) -> pd.DataFrame:
+        signal, window_size: int
+    ) -> np.ndarray:
         """
         Computes the derivative of a signal based on a specified window size.
 
@@ -127,24 +165,11 @@ class IoTCupid_Protocol:
         :param window_size: The size of the window over which to compute the derivative.
         :return: DataFrame containing the derivatives.
         """
-        signal["timestamp"] = pd.to_datetime(
-            signal["timestamp"]
-        )  # Ensure datetime type
         derivative_values = []
-        derivative_times = []
-        for i in range(window_size, len(signal)):
-            window = signal.iloc[i - window_size : i]
-            derivative = (
-                window["rms_db"].iloc[-1] - window["rms_db"].iloc[0]
-            ) / window_size
+        for i in range(len(signal) - window_size + 1):
+            derivative = (signal[i + window_size] - signal[i]) / window_size
             derivative_values.append(derivative)
-            derivative_times.append(signal["timestamp"].iloc[i])
-
-        derivative_df = pd.DataFrame(
-            {"timestamp": derivative_times, "derivative": derivative_values}
-        )
-        print("Derivative dataframe:", derivative_df)
-        return derivative_df
+        return np.array(derivative_values)
 
     def detect_events(
         self, derivatives: pd.DataFrame, bottom_th: float, top_th: float, agg_th: int
@@ -220,8 +245,29 @@ class IoTCupid_Protocol:
 
         return reduced_dim
 
+    def grid_search_cmeans(features, c, m_start, m_end, m_searches):
+        best_cntr = None
+        best_u = None
+        best_fpc = None
+        for m in np.linspace(m_start, m_end, m_searches):  # m values from 1.1 to 2.0
+            cntr, u, u0, d, jm, p, fpc = fuzz.cluster.cmeans(
+                    features,
+                    c=c,
+                    m=m,
+                    error=0.005,
+                    maxiter=100,
+                    init=None,
+                    seed=0,
+                )
+            if best_fpc == None or best_fpc < fpc:
+                best_fpc = fpc
+                best_u = u
+                best_cntr = cntr
+        return best_fpc, best_u, best_cntr
+        
+
     def fuzzy_cmeans_w_elbow_method(
-        self, features: np.ndarray, max_clusters: int, m: float, cluster_th: float
+        features: np.ndarray, max_clusters: int, cluster_th: float, m_start: float, m_end: float, m_searches: int
     ) -> Tuple[np.ndarray, np.ndarray, int, List[float]]:
         """
         Performs fuzzy C-means clustering with an elbow method to determine the optimal number of clusters.
@@ -233,33 +279,42 @@ class IoTCupid_Protocol:
         :return: A tuple containing the cluster centers, the membership matrix, the optimal number of clusters, and the FPC for each number of clusters tested.
         """
         # Array to store the Fuzzy Partition Coefficient (FPC)
-        fpcs = []
+        
+        best_fpc, best_u, best_cntr = IoTCupid_Protocol.grid_search_cmeans(features, 1, m_start, m_end, m_searches)
+        x1 = best_fpc
+        rel_val = x1
+        c = 1
 
-        for num_clusters in range(2, max_clusters + 1):
-            cntr, u, u0, d, jm, p, fpc = fuzz.cluster.cmeans(
-                features,
-                c=num_clusters,
-                m=m,
-                error=0.005,
-                maxiter=1000,
-                init=None,
-                seed=0,
-            )
-            fpcs.append(fpc)
+        prev_fpc = best_fpc
+        prev_u = best_u
+        prev_cntr = best_cntr
+        for i in range(2, max_clusters + 1):
 
-        # Find the elbow point in the FPC array
-        optimal_clusters = 2  # Minimum clusters possible
-        for i in range(1, len(fpcs) - 1):
-            if abs(fpcs[i] - fpcs[i - 1]) < cluster_th:
-                optimal_clusters = i + 2
+            fpc, u, cntr = IoTCupid_Protocol.grid_search_cmeans(features, i, m_start, m_end, m_searches)
+            x2 = fpc
+
+            perc = (x1 - x2) / rel_val
+            x1 = x2
+
+            # Break if reached elbow
+            if perc <= cluster_th or i == max_clusters:
+                c = i-1
+                best_fpc = prev_fpc
+                best_u = prev_u
+                best_cntr = prev_cntr
                 break
 
-        # Once optimal clusters are determined, re-run the Fuzzy C-Means with optimal clusters
-        cntr, u, u0, d, jm, p, fpc = fuzz.cluster.cmeans(
-            features.T, c=optimal_clusters, m=m, error=0.005, maxiter=1000, init=None
-        )
+            if i == max_clusters:
+                c = i
+                best_fpc = fpc
+                best_u = u
+                best_cntr = cntr
 
-        return cntr, u, optimal_clusters, fpcs
+            prev_fpc = fpc
+            prev_u = u
+            prev_cntr = cntr
+
+        return best_cntr, best_u, c, best_fpc
 
     def calculate_cluster_dispersion(
         self, features: np.ndarray, u: np.ndarray, cntr: np.ndarray
@@ -284,7 +339,7 @@ class IoTCupid_Protocol:
         dispersion = np.sum(u**2 * distances**2)
         return dispersion
 
-    def grid_search_m(self, features: np.ndarray, max_clusters: int) -> float:
+    def grid_search_m(features: np.ndarray, max_clusters: int) -> float:
         """
         Conducts a grid search over possible values of 'm' to find the one that minimizes cluster dispersion.
 
@@ -307,7 +362,7 @@ class IoTCupid_Protocol:
         return best_m
 
     def group_events(
-        self, events: List[Tuple[int, int]], u: np.ndarray
+        events: List[Tuple[int, int]], u: np.ndarray
     ) -> List[List[Tuple[int, int]]]:
         """
         Groups detected events based on their highest membership values from fuzzy clustering.
@@ -324,7 +379,7 @@ class IoTCupid_Protocol:
         return event_groups
 
     def calculate_inter_event_timings(
-        self, grouped_events: List[List[Tuple[int, int]]]
+        grouped_events: List[List[Tuple[int, int]]], Fs
     ) -> Dict[int, np.ndarray]:
         """
         Calculates the timings between consecutive events within each group.
@@ -332,14 +387,23 @@ class IoTCupid_Protocol:
         :param grouped_events: The grouped events as determined by the clustering.
         :return: A dictionary with cluster IDs as keys and arrays of inter-event timings as values.
         """
-        inter_event_timings = {}
+        fp = []
         for cluster_id, events in enumerate(grouped_events):
-            if len(events) > 1:
-                start_times = [event[0] for event in events]
-                # Calculate time intervals between consecutive events
-                intervals = np.diff(start_times)
-                inter_event_timings[cluster_id] = intervals
-        return inter_event_timings
+            event_list = grouped_events[i]
+            key = bytearray()
+            for j in range(len(event_list) - 1):
+                interval = (event_list[j + 1][0] - event_list[j][0]) / Fs
+                in_microseconds = int(
+                    timedelta(seconds=interval) / timedelta(microseconds=1)
+                )
+                key += in_microseconds.to_bytes(
+                    4, "big"
+                )  # Going to treat every interval as a 4 byte integer
+
+            if len(key) >= key_size:
+                key = bytes(key[:key_size])
+                fp.append(key)
+        return fp
 
     def encode_timings_to_bits(
         self, inter_event_timings: Dict[int, np.ndarray], quantization_factor: int = 100
@@ -367,6 +431,29 @@ class IoTCupid_Protocol:
         :return: A numpy array containing the values from the specified column.
         """
         return df[column_name].values
+
+    def calculate_cluster_dispersion(
+        self, features: np.ndarray, u: np.ndarray, cntr: np.ndarray
+    ) -> float:
+        """
+        Calculates the dispersion of clusters based on membership values and distances to cluster centers.
+
+        :param features: The dataset that has been clustered.
+        :param u: The membership matrix from the fuzzy C-means clustering.
+        :param cntr: The cluster centers from the fuzzy C-means clustering.
+        :return: The dispersion value calculated as the weighted sum of squared distances.
+        """
+        # Recalculate distances from each sample to each cluster center
+        distances = np.zeros(
+            (u.shape[0], features.shape[0])
+        )  # Initialize distance array
+        for j in range(u.shape[0]):  # For each cluster
+            for i in range(features.shape[0]):  # For each feature set
+                distances[j, i] = np.linalg.norm(features[i] - cntr[j])
+
+        # Calculate dispersion as the weighted sum of squared distances
+        dispersion = np.sum(u**2 * distances**2)
+        return dispersion
 
     def iotcupid(
         self,
@@ -403,7 +490,7 @@ class IoTCupid_Protocol:
         :param agg_th: Threshold for aggregating detected events.
         :return: Tuple containing encoded timings and grouped events.
         """
-        smoothed_data = self.ewma_filter(raw, "rms_db", a)
+        smoothed_data = IoTCupid_Protocol.ewma_filter(raw, a)
 
         derivatives = self.compute_derivative(smoothed_data, window_size)
 
