@@ -65,6 +65,11 @@ class Perceptio_Protocol(ProtocolInterface):
         pass
 
     def process_context(self) -> Any:
+        """
+        Processes the sensor data to detect events and generate cryptographic keys or fingerprints from them.
+
+        :return: The fingerprints generated from the processed data.
+        """
         events = []
         event_features = []
         iteration = 0
@@ -473,7 +478,16 @@ class Perceptio_Protocol(ProtocolInterface):
 
         return events
 
-    def lump_events(events, lump_th):
+    def lump_events(
+        events: List[Tuple[int, int]], lump_th: int
+    ) -> List[Tuple[int, int]]:
+        """
+        Combines closely spaced events into single events based on a lumping threshold.
+
+        :param events: A list of tuples, where each tuple contains the start and end indices of an event.
+        :param lump_th: The threshold for lumping adjacent events. If the start of the next event minus the end of the current event is less than or equal to this threshold, they will be lumped together.
+        :return: A list of tuples with potentially fewer, larger events, where close events have been combined.
+        """
         i = 0
         while i < len(events) - 1:
             if events[i + 1][0] - events[i][1] <= lump_th:

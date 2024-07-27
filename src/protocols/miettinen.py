@@ -112,6 +112,14 @@ class Miettinen_Protocol(ProtocolInterface):
         return bitstring_to_bytes(key)
 
     def process_context(self) -> List[bytes]:
+        """
+        Processes the captured context to detect signals and generate binary representations.
+
+        This method reads samples using a predefined time length, resets flags, clears any existing queues,
+        and applies a specific algorithm to process the signal into a binary format suitable for cryptographic or other forms of processing.
+
+        :return: A list containing a single bytes object which is the binary representation of the processed signal.
+        """
         # TODO: Signal must be logged somehow
         signal = self.read_samples(self.time_length)
 

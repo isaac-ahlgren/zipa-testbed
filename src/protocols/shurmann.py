@@ -157,6 +157,12 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         return bitstring_to_bytes(bs)
 
     def process_context(self) -> List[bytes]:
+        """
+        Processes the captured context by applying a zero-out anti-aliasing signal processing algorithm,
+        extracting bits suitable for cryptographic operations.
+
+        :return: A list containing the processed bytes.
+        """
         # TODO: Signal must be logged somehow
         signal = self.read_samples(self.time_length)
 

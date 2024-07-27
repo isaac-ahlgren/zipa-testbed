@@ -2,6 +2,7 @@ import queue
 import socket
 from multiprocessing import Lock, Process, Queue, Value
 from multiprocessing.shared_memory import ShareableList
+from multiprocessing.synchronize import Synchronized
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -77,21 +78,21 @@ class ProtocolInterface:
         for process in processes:
             process.join()
 
-    def capture_flag(shared_value: Any) -> None:
+    def capture_flag(shared_value: Synchronized) -> None:
         """
         Grabs the shared value and sets it to `1`, meaning that the queue is
         ready for data collection.
         """
         shared_value.value = 1
 
-    def release_flag(shared_value: Any) -> None:
+    def release_flag(shared_value: Synchronized) -> None:
         """
         Grabs the shared value and sets it to `-1`, meaning that the queue
         is populated with data and can be shared across processes
         """
         shared_value.value = -1
 
-    def reset_flag(shared_value: Any) -> None:
+    def reset_flag(shared_value: Synchronized) -> None:
         """
         Grabs the shared value and sets it to `0`, meaning that the queue
         is ready to be captured again by a process to accumulate data
@@ -128,6 +129,9 @@ class ProtocolInterface:
         shared_list.shm.unlink()
 
     def get_context(self) -> Any:
+        """
+        Manages the shared list usage for retrieving context data.
+        """
         results = None
         # Keep track if shared list is being used
 
@@ -186,9 +190,18 @@ class ProtocolInterface:
         raise NotImplementedError
 
     def process_context(self) -> Any:
+        """
+        Processes the collected data. Must be implemented by subclasses.
+        """
         raise NotImplementedError
 
-    def read_samples(self, sample_num) -> Any:
+    def read_samples(self, sample_num: int) -> np.ndarray:
+        """
+        Reads specified number of samples from the queue.
+
+        :param sample_num: The number of samples to read.
+        :return: An array of the collected samples.
+        """
         # Assuming only one process is handling this.
         samples_read = 0
         output = np.array([])
