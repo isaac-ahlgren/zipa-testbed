@@ -35,7 +35,7 @@ def testing_miettinen_bit_generation_interface():
 def testing_perceptio_bit_generation_interface():
     import numpy as np
 
-    from src.signal_processing.perceptio import PerceptioProcessing
+    from signal_processing.perceptio import PerceptioProcessing
 
     rng = np.random.default_rng(0)
     signal = rng.integers(0, 10, size=100000)
