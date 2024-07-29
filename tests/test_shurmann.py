@@ -36,13 +36,17 @@ def test_process_context():
     data_reader = ProtocolInterface(DUMMY_PARAMETERS, test_sensor_reader, None)
     Shurmann_Interface = Shurmann_Siggs_Protocol(SHURMANN_TEST, test_sensor_reader, None)
 
-    data = test_sensor.read()
-    signal = data_reader.read_samples(data)
+    data_reader.time_length = Shurmann_Interface.time_length
+    test_sensor.antialias_sample_rate = 23000
+    test_sensor.samplr_rate = 44100
     
-    shurmann_data = Shurmann_Interface.zero_out_antialias_sigs_algo(
+    data = test_sensor.read()
+    signal = data_reader.read_samples(data_reader.time_length)
+    
+    shurmann_data = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
         signal,
-        1800,
-        2400,
+        23000,
+        44100,
     )
 
     process_bits = Shurmann_Interface.process_context()
