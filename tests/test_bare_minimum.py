@@ -10,7 +10,7 @@ def testing_schurmann_bit_generation_interface():
     from protocols.shurmann import Shurmann_Siggs_Protocol
 
     outcome = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
-        np.sin(np.arange(50000)),
+        np.sin(np.arange(50000)).tolist(),
         18000,
         24000,
         10000,
