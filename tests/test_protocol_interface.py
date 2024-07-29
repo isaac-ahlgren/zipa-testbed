@@ -6,7 +6,6 @@ from typing import List
 sys.path.insert(1, "/src")
 sys.path.insert(1, os.getcwd() + "/src/sensors")
 
-
 from src.protocols.protocol_interface import (  # noqa: E402
     COMPLETE,
     PROCESSING,
@@ -15,6 +14,7 @@ from src.protocols.protocol_interface import (  # noqa: E402
 )
 from src.sensors.sensor_reader import SensorReader  # noqa: E402
 from src.sensors.test_sensor import TestSensor  # noqa: E402
+from src.protocols.shurmann import Shurmann_Siggs_Protocol
 
 DUMMY_PARAMETERS = {
     "verbose": "True",
@@ -69,7 +69,8 @@ def test_shared_memory() -> None:
     read_shm_shared_list = test_interface.read_shm()
     assert dummy_byte_list == read_shm_shared_list  # nosec
 
-
+# TODO: run get_context wtih one process running 
+# if it runs get_context, it has the same bits as process_context
 def test_get_context() -> None:
     """
     Create two processes, one will process data, the other will standby.
@@ -77,14 +78,21 @@ def test_get_context() -> None:
     here.
     """
 
-    def process_context(self) -> List[bytes]:
-        return [bytes([1, 2, 3], [4, 5, 6])]
+    def process_context() -> List[bytes]:
+        return [bytes([1, 2, 3]), bytes([4, 5, 6])]
 
-    """
     test_sensor = TestSensor(SEN_TEST, signal_type="sine")
     test_sensor_reader = SensorReader(test_sensor)
-    """
-    pass
+    pi = ProtocolInterface(DUMMY_PARAMETERS, test_sensor_reader, None)
+    # a_protocol = Shurmann_Siggs_Protocol(ProtocolInterface)
+    pi.name = "Test_Interface"
+    pi.process_context = process_context
+    bits = pi.get_context()
+
+    print(f'process_context: {pi.process_context()}')
+    print(f'get_context: {bits}')
+
+    assert bits == pi.process_context()
 
 
 def test_read_samples() -> None:
