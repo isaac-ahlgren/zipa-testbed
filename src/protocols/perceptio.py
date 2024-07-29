@@ -407,45 +407,6 @@ class Perceptio_Protocol(ProtocolInterface):
             ip_addr=device_ip_addr,
         )
 
-    def perceptio(
-        signal: np.ndarray,
-        key_size: int,
-        Fs: int,
-        a: float,
-        cluster_sizes_to_check: int,
-        cluster_th: float,
-        bottom_th: float,
-        top_th: float,
-        lump_th: int,
-    ) -> Tuple[List[bytes], List[Tuple[int, int]]]:
-        """
-        Processes a signal to extract events, features, and generate fingerprints using k-means clustering.
-
-        :param signal: The input signal to process.
-        :param key_size: The size of the key or fingerprint to be generated.
-        :param Fs: Sampling frequency of the signal.
-        :param a: Smoothing factor used in EWMA for processing the signal.
-        :param cluster_sizes_to_check: Maximum number of clusters to evaluate.
-        :param cluster_th: Threshold to determine the elbow in k-means clustering.
-        :param bottom_th: Lower threshold for event detection.
-        :param top_th: Upper threshold for event detection.
-        :param lump_th: Threshold for lumping close events together.
-        :return: A tuple containing the generated fingerprints and the grouped events.
-        """
-        events = PerceptioProcessing.get_events(signal, a, bottom_th, top_th, lump_th)
-
-        event_features = PerceptioProcessing.get_event_features(events, signal)
-
-        labels, k = PerceptioProcessing.kmeans_w_elbow_method(
-            event_features, cluster_sizes_to_check, cluster_th
-        )
-
-        grouped_events = PerceptioProcessing.group_events(events, labels, k)
-
-        fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size, Fs)
-
-        return fps, grouped_events
-
     def host_verify_mac(
         self,
         keys: List[bytes],
