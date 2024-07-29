@@ -89,15 +89,17 @@ def test_get_context() -> None:
     pi.process_context = process_context
     bits = pi.get_context()
 
-    print(f'process_context: {pi.process_context()}')
-    print(f'get_context: {bits}')
+    # print(f'process_context: {pi.process_context()}')
+    # print(f'get_context: {bits}')
 
     assert bits == pi.process_context()
 
-
+# TODO: check to see if the array is not empty
+# check to see if the array size is the same size as the chunk
+# check to see if chunk data is the same as the output data
 def test_read_samples() -> None:
     pass
 
-
+# TODO: check to see if the queue is empty
 def test_clear_queue() -> None:
     pass
