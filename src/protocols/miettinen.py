@@ -11,6 +11,13 @@ from networking.network import (
     send_commit,
     socket,
 )
+from protocols.common_protocols import (
+    diffie_hellman,
+    send_nonce_msg_to_device,
+    send_nonce_msg_to_host,
+    verify_mac_from_device,
+    verify_mac_from_host,
+)
 from protocols.protocol_interface import ProtocolInterface
 from signal_processing.miettinen import MiettinenProcessing
 
@@ -56,7 +63,7 @@ class Miettinen_Protocol(ProtocolInterface):
         ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()
 
-        bits = Miettinen_Protocol.miettinen_algo(
+        bits = MiettinenProcessing.miettinen_algo(
             signal, self.f, self.w, self.rel_thresh, self.abs_thresh
         )
 
@@ -116,7 +123,9 @@ class Miettinen_Protocol(ProtocolInterface):
             return
 
         # Shared key generated
-        shared_key = self.diffie_hellman(host_socket)
+        shared_key = diffie_hellman(
+            host_socket, self.ec_curve, self.timeout, self.verbose
+        )
 
         current_key = shared_key
         successes = 0
@@ -178,7 +187,7 @@ class Miettinen_Protocol(ProtocolInterface):
             pd_key_hash = self.hash_function(prederived_key)
 
             # Send nonce message to host
-            generated_nonce = MiettinenProcessing.send_nonce_msg_to_host(
+            generated_nonce = send_nonce_msg_to_host(
                 host_socket,
                 pd_key_hash,
                 derived_key,
@@ -196,7 +205,7 @@ class Miettinen_Protocol(ProtocolInterface):
                 return
 
             # If hashes are equal, then it was successful
-            if MiettinenProcessing.verify_mac_from_host(
+            if verify_mac_from_host(
                 recieved_nonce_msg,
                 generated_nonce,
                 derived_key,
@@ -268,7 +277,9 @@ class Miettinen_Protocol(ProtocolInterface):
         ack(device_socket)
 
         # Shared key generated
-        shared_key = self.diffie_hellman(device_socket)
+        shared_key = diffie_hellman(
+            device_socket, self.ec_curve, self.timeout, self.verbose
+        )
 
         current_key = shared_key
         total_iterations = 0
@@ -330,7 +341,7 @@ class Miettinen_Protocol(ProtocolInterface):
             )
             derived_key = kdf.derive(prederived_key + current_key)
 
-            if MiettinenProcessing.verify_mac_from_device(
+            if verify_mac_from_device(
                 recieved_nonce_msg,
                 derived_key,
                 pd_key_hash,
@@ -342,7 +353,7 @@ class Miettinen_Protocol(ProtocolInterface):
                 current_key = derived_key
 
             # Create and send key confirmation value
-            MiettinenProcessing.send_nonce_msg_to_device(
+            send_nonce_msg_to_device(
                 device_socket,
                 recieved_nonce_msg,
                 derived_key,
