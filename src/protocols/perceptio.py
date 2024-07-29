@@ -3,7 +3,6 @@ from typing import Any, List, Optional, Tuple
 import numpy as np
 from cryptography.hazmat.primitives import constant_time
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from sklearn.cluster import KMeans
 
 from networking.network import (
     ack,
@@ -21,7 +20,8 @@ from protocols.common_protocols import (
     verify_mac_from_device,
     verify_mac_from_host,
 )
-from protocols.protocol_interface import ProtocolInterface, hashes
+from protocols.protocol_interface import ProtocolInterface
+from signal_processing.perceptio import PerceptioProcessing
 
 
 class Perceptio_Protocol(ProtocolInterface):
@@ -53,17 +53,6 @@ class Perceptio_Protocol(ProtocolInterface):
         self.nonce_byte_size = 16
         self.count = 0
 
-    def extract_context(
-        self, socket: socket.socket
-    ) -> Tuple[List[bytes], np.ndarray, bool]:
-        """
-        Extract context from sensor data and check for events.
-
-        :param socket: Communication socket.
-        :return: A tuple of fingerprints, the signal data, and a boolean indicating if events were detected.
-        """
-        pass
-
     def process_context(self) -> Any:
         """
         Processes the sensor data to detect events and generate cryptographic keys or fingerprints from them.
@@ -76,11 +65,11 @@ class Perceptio_Protocol(ProtocolInterface):
         while len(events) < self.min_events:
             chunk = self.read_samples(self.chunk_size)
 
-            received_events = Perceptio_Protocol.get_events(
+            received_events = PerceptioProcessing.get_events(
                 chunk, self.a, self.bottom_th, self.top_th, self.lump_th
             )
 
-            received_event_features = Perceptio_Protocol.get_event_features(
+            received_event_features = PerceptioProcessing.get_event_features(
                 events, chunk
             )
 
@@ -106,13 +95,13 @@ class Perceptio_Protocol(ProtocolInterface):
         ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()
 
-        labels, k = Perceptio_Protocol.kmeans_w_elbow_method(
+        labels, k = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, self.cluster_sizes_to_check, self.cluster_th
         )
 
-        grouped_events = Perceptio_Protocol.group_events(events, labels, k)
+        grouped_events = PerceptioProcessing.group_events(events, labels, k)
 
-        fps = Perceptio_Protocol.gen_fingerprints(
+        fps = PerceptioProcessing.gen_fingerprints(
             grouped_events, k, self.key_size, self.Fs
         )  # I know the variables are wrong, could someone fix them for me? -Isaac
 
@@ -418,205 +407,6 @@ class Perceptio_Protocol(ProtocolInterface):
             ip_addr=device_ip_addr,
         )
 
-    def hash_function(self, bytes: bytes) -> bytes:
-        """
-        Computes a cryptographic hash of the given byte sequence.
-
-        :param bytes: Bytes to be hashed.
-        :return: The hash of the input bytes.
-        """
-        hash_func = hashes.Hash(self.hash_func)
-        hash_func.update(bytes)
-        return hash_func.finalize()
-
-    def ewma(signal: np.ndarray, a: float) -> np.ndarray:
-        """
-        Computes the exponentially weighted moving average (EWMA) of a signal.
-
-        :param signal: The input signal as a NumPy array.
-        :param a: The smoothing factor used in the EWMA calculation.
-        :return: The EWMA of the signal as a NumPy array.
-        """
-        y = np.zeros(len(signal))
-
-        y[0] = a * signal[0]
-        for i in range(1, len(signal)):
-            y[i] = a * signal[i] + (1 - a) * y[i - 1]
-        return y
-
-    def get_events(
-        signal: np.ndarray, a: float, bottom_th: float, top_th: float, lump_th: int
-    ) -> List[Tuple[int, int]]:
-        """
-        Identifies events in a signal based on thresholds and lumping criteria.
-
-        :param signal: The input signal.
-        :param a: Smoothing factor for the EWMA.
-        :param bottom_th: Lower threshold for event detection.
-        :param top_th: Upper threshold for event detection.
-        :param lump_th: Threshold for lumping close events together.
-        :return: A list of tuples representing the start and end indices of each detected event.
-        """
-        signal = Perceptio_Protocol.ewma(np.abs(signal), a)
-
-        # Get events that are within the threshold
-        events = []
-        found_event = False
-        beg_event_num = None
-        for i in range(len(signal)):
-            if not found_event and signal[i] >= bottom_th and signal[i] <= top_th:
-                found_event = True
-                beg_event_num = i
-            elif found_event and (signal[i] < bottom_th or signal[i] > top_th):
-                found_event = False
-                found_event = None
-                events.append((beg_event_num, i))
-        if found_event:
-            events.append((beg_event_num, i))
-
-        events = Perceptio_Protocol.lump_events(events, lump_th)
-
-        return events
-
-    def lump_events(
-        events: List[Tuple[int, int]], lump_th: int
-    ) -> List[Tuple[int, int]]:
-        """
-        Combines closely spaced events into single events based on a lumping threshold.
-
-        :param events: A list of tuples, where each tuple contains the start and end indices of an event.
-        :param lump_th: The threshold for lumping adjacent events. If the start of the next event minus the end of the current event is less than or equal to this threshold, they will be lumped together.
-        :return: A list of tuples with potentially fewer, larger events, where close events have been combined.
-        """
-        i = 0
-        while i < len(events) - 1:
-            if events[i + 1][0] - events[i][1] <= lump_th:
-                new_element = (events[i][0], events[i + 1][1])
-                events.pop(i)
-                events.pop(i)
-                events.insert(i, new_element)
-            else:
-                i += 1
-
-        return events
-
-    def get_event_features(
-        events: List[Tuple[int, int]], signal: np.ndarray
-    ) -> List[Tuple[int, float]]:
-        """
-        Extracts features from each event in a signal.
-
-        :param events: List of tuples with start and end indices for each event.
-        :param signal: The original signal from which events were detected.
-        :return: A list of tuples containing the length and maximum amplitude of each event.
-        """
-        event_features = []
-        for i in range(len(events)):
-            length = events[i][1] - events[i][0] + 1
-            if length == 1:
-                max_amplitude = signal[events[i][1]]
-            else:
-                max_amplitude = np.max(signal[events[i][0] : events[i][1]])
-            event_features.append((length, max_amplitude))
-        return event_features
-
-    def kmeans_w_elbow_method(
-        event_features: List[Tuple[int, float]],
-        cluster_sizes_to_check: int,
-        cluster_th: float,
-    ) -> Tuple[np.ndarray, int]:
-        """
-        Applies K-means clustering to event features to determine optimal cluster count using the elbow method.
-
-        :param event_features: List of event features.
-        :param cluster_sizes_to_check: Maximum number of clusters to consider.
-        :param cluster_th: Threshold for determining the elbow point in clustering.
-        :return: Cluster labels and the determined number of clusters.
-        """
-
-        if len(event_features) < cluster_sizes_to_check:
-            return np.zeros(len(event_features), dtype=int), 1
-
-        km = KMeans(1, n_init=50, random_state=0).fit(event_features)
-        x1 = km.inertia_
-        rel_inert = x1
-
-        k = 1
-        labels = km.labels_
-        inertias = [rel_inert]
-
-        for i in range(2, cluster_sizes_to_check + 1):
-            labels = km.labels_
-
-            km = KMeans(i, n_init=50, random_state=0).fit(event_features)
-            x2 = km.inertia_
-
-            inertias.append(x2)
-            perc = (x1 - x2) / rel_inert
-
-            x1 = x2
-
-            # Break if reached elbow
-            if perc <= cluster_th:
-                k = i - 1
-                break
-
-            # Break if reached end
-            if i == cluster_sizes_to_check - 1:
-                labels = km.labels_
-                k = i
-                break
-
-        return labels, k
-
-    def group_events(
-        events: List[Tuple[int, int]], labels: np.ndarray, k: int
-    ) -> List[List[Tuple[int, int]]]:
-        """
-        Groups detected events according to their cluster labels.
-
-        :param events: List of detected events.
-        :param labels: Cluster labels for each event.
-        :param k: Number of clusters.
-        :return: A list of lists, where each sublist contains events belonging to the same cluster.
-        """
-        event_groups = [[] for i in range(k)]
-        for i in range(len(events)):
-            event_groups[labels[i]].append(events[i])
-        return event_groups
-
-    def gen_fingerprints(
-        grouped_events: List[List[Tuple[int, int]]], k: int, key_size: int, Fs: int
-    ) -> List[bytes]:
-        """
-        Generates fingerprints from grouped events by calculating the time intervals between them.
-
-        :param grouped_events: List of event groups.
-        :param k: Number of clusters.
-        :param key_size: Desired key size in bytes.
-        :param Fs: Sampling frequency of the original signal.
-        :return: List of generated fingerprints.
-        """
-        from datetime import timedelta
-
-        fp = []
-        for i in range(k):
-            event_list = grouped_events[i]
-            key = bytearray()
-            for j in range(len(event_list) - 1):
-                interval = (event_list[j + 1][0] - event_list[j][0]) / Fs
-                in_microseconds = int(
-                    timedelta(seconds=interval) / timedelta(microseconds=1)
-                )
-                key += in_microseconds.to_bytes(
-                    4, "big"
-                )  # Going to treat every interval as a 4 byte integer
-
-            if len(key) >= key_size:
-                key = bytes(key[:key_size])
-                fp.append(key)
-        return fp
-
     def perceptio(
         signal: np.ndarray,
         key_size: int,
@@ -642,17 +432,17 @@ class Perceptio_Protocol(ProtocolInterface):
         :param lump_th: Threshold for lumping close events together.
         :return: A tuple containing the generated fingerprints and the grouped events.
         """
-        events = Perceptio_Protocol.get_events(signal, a, bottom_th, top_th, lump_th)
+        events = PerceptioProcessing.get_events(signal, a, bottom_th, top_th, lump_th)
 
-        event_features = Perceptio_Protocol.get_event_features(events, signal)
+        event_features = PerceptioProcessing.get_event_features(events, signal)
 
-        labels, k = Perceptio_Protocol.kmeans_w_elbow_method(
+        labels, k = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, cluster_sizes_to_check, cluster_th
         )
 
-        grouped_events = Perceptio_Protocol.group_events(events, labels, k)
+        grouped_events = PerceptioProcessing.group_events(events, labels, k)
 
-        fps = Perceptio_Protocol.gen_fingerprints(grouped_events, k, key_size, Fs)
+        fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size, Fs)
 
         return fps, grouped_events
 
