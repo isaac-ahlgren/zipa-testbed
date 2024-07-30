@@ -28,7 +28,10 @@ if __name__ == "__main__":
     parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
     parser.add_argument("-ws", "--window_size", type=int, default=10000)
     parser.add_argument("-fd", "--feature_dimensions", type=int, default=3)
-    parser.add_argument("-w", "--quantization_factor", type=int, default=1000)
+    parser.add_argument("-w", "--quantization_factor", type=float, default=1000)
+    parser.add_argument("-mstart", "--mstart", type=float, default=1)
+    parser.add_argument("-msteps", "--msteps", type=int, default=10)
+    parser.add_argument("-mend", "--mend", type=float, default=2)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
     parser.add_argument("-t", "--trials", type=int, default=100)
 
@@ -47,6 +50,9 @@ if __name__ == "__main__":
     window_size = getattr(args, "window_size")
     feature_dimensions = getattr(args, "feature_dimensions")
     w = getattr(args, "quantization_factor")
+    m_start = getattr(args, "mstart")
+    m_steps = getattr(args, "msteps")
+    m_end = getattr(args, "mend")
     key_size_in_bytes = getattr(args, "key_length") // 8
     trials = getattr(args, "trials")
 
@@ -71,17 +77,17 @@ if __name__ == "__main__":
             lump_th,
             a,
             window_size,
-            feature_dim
+            feature_dimensions
         )
         bits, grouped_events = generate_bits(
             signal_events,
-            event_features,
-            max_clusters,
+            signal_event_features,
+            cluster_sizes_to_check,
             cluster_th,
             m_start,
             m_end,
-            m_searches,
-            quantization_factor,
+            m_steps,
+            w,
             Fs,
             key_size_in_bytes,
         )

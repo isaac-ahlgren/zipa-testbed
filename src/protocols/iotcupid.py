@@ -172,7 +172,7 @@ class IoTCupid_Protocol:
         return np.array(derivative_values)
 
     def detect_events(
-        self, derivatives: pd.DataFrame, bottom_th: float, top_th: float, agg_th: int
+        derivatives: np.ndarray, bottom_th: float, top_th: float, agg_th: int
     ) -> List[Tuple[int, int]]:
         """
         Detects events based on derivative thresholds and aggregation criteria.
@@ -183,31 +183,35 @@ class IoTCupid_Protocol:
         :param agg_th: Minimum length of an event to be considered significant.
         :return: A list of tuples representing the start and end indices of detected events.
         """
+        # Get events that are within the threshold
         events = []
-        event_start = None
-        in_event = False
+        found_event = False
+        beg_event_num = None
+        for i in range(len(derivatives)):
+            if not found_event and derivatives[i] >= bottom_th and derivatives[i] <= top_th:
+                found_event = True
+                beg_event_num = i
+            elif found_event and (derivatives[i] < bottom_th or derivatives[i] > top_th):
+                found_event = False
+                found_event = None
+                events.append((beg_event_num, i))
+        if found_event:
+            events.append((beg_event_num, i))
 
-        # Iterate over the derivative values directly
-        for i, derivative in enumerate(derivatives["derivative"]):
-            # Check if the absolute value of the derivative is within the thresholds
-            if bottom_th <= abs(derivative) <= top_th:
-                if not in_event:
-                    event_start = i  # Start of a new event
-                    in_event = True
+        i = 0
+        while i < len(events) - 1:
+            if events[i + 1][0] - events[i][1] <= agg_th:
+                new_element = (events[i][0], events[i + 1][1])
+                events.pop(i)
+                events.pop(i)
+                events.insert(i, new_element)
             else:
-                if in_event:
-                    # End the current event if it exceeds the aggregation threshold
-                    if i - event_start > agg_th:
-                        events.append((event_start, i))
-                    in_event = False
-
-        if in_event:
-            events.append((event_start, len(derivatives)))
+                i += 1
 
         return events
 
     def get_event_features(
-        self, events: List[Tuple[int, int]], sensor_data: np.ndarray, feature_dim: int
+        events: List[Tuple[int, int]], sensor_data: np.ndarray, feature_dim: int
     ) -> np.ndarray:
         """
         Extracts features from event data using TSFresh for dimensionality reduction with PCA.
@@ -233,17 +237,10 @@ class IoTCupid_Protocol:
             impute_function=None,
         )
 
-        # Adjust PCA dimensions based on available features
-        # replaces features_dim if you want to swap in n_components
-        n_features = extracted_features.shape[1]
-        print("Number of features extracted:", n_features)
-        print("Number of events:", len(events))
-        # n_components = min(feature_dim, n_features)
-
-        pca = PCA(n_components=feature_dim)
+        pca = PCA(n_components=feature_dim, random_state=0)
         reduced_dim = pca.fit_transform(extracted_features)
 
-        return reduced_dim
+        return reduced_dim.to_numpy()
 
     def grid_search_cmeans(features, c, m_start, m_end, m_searches):
         best_cntr = None
@@ -379,7 +376,7 @@ class IoTCupid_Protocol:
         return event_groups
 
     def calculate_inter_event_timings(
-        grouped_events: List[List[Tuple[int, int]]], Fs
+        grouped_events: List[List[Tuple[int, int]]], Fs, key_size
     ) -> Dict[int, np.ndarray]:
         """
         Calculates the timings between consecutive events within each group.
@@ -387,8 +384,9 @@ class IoTCupid_Protocol:
         :param grouped_events: The grouped events as determined by the clustering.
         :return: A dictionary with cluster IDs as keys and arrays of inter-event timings as values.
         """
+        from datetime import timedelta
         fp = []
-        for cluster_id, events in enumerate(grouped_events):
+        for i in range(len(grouped_events)):
             event_list = grouped_events[i]
             key = bytearray()
             for j in range(len(event_list) - 1):
