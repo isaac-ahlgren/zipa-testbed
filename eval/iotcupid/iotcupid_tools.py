@@ -32,10 +32,9 @@ def gen_min_events(
     agg_th,
     a,
     window_size,
-    feature_dim
 ):
     events = []
-    event_features = []
+    event_signals = []
     iteration = 0
     while len(events) < min_events:
         chunk = signal.read(chunk_size)
@@ -44,13 +43,13 @@ def gen_min_events(
 
         derivatives = IoTCupid_Protocol.compute_derivative(smoothed_data, window_size)
            
-        received_events = IoTCupid_Protocol.detect_events(derivatives, bottom_th, top_th, agg_th)
+        received_events = IoTCupid_Protocol.detect_events(abs(derivatives), bottom_th, top_th, agg_th)
         
         if len(received_events) != 0:
-            received_event_features = IoTCupid_Protocol.get_event_features(received_events, smoothed_data, feature_dim)
+            received_event_signals = IoTCupid_Protocol.get_event_signals(received_events, smoothed_data)
 
-            for i in range(len(events)):
-                events[i] = (
+            for i in range(len(recieved_events)):
+                recieved_events[i] = (
                     received_events[i][0] + chunk_size * iteration,
                     received_events[i][1] + chunk_size * iteration,
                 )
@@ -62,17 +61,15 @@ def gen_min_events(
                 and received_events[0][0] - events[-1][1] <= agg_th
             ):
                 events[-1] = (events[-1][0], received_events[0][1])
-                length = events[-1][1] - events[-1][0] + 1
-                max_amp = np.max([event_features[-1][1], received_event_features[0][1]])
-                event_features[-1] = (length, max_amp)
+                event_signals[-1] = np.append(event_signals[-1][1], recieved_event_signals)
 
                 events.extend(received_events[1:])
-                event_features.extend(received_event_features[1:])
+                event_signals.extend(received_event_signals[1:])
             else:
                 events.extend(received_events)
-                event_features.extend(received_event_features)
-        quit()
+                event_signals.extend(received_event_signals)
         iteration += 1
+    return events, event_signals
 
 
 def generate_bits(
@@ -84,9 +81,12 @@ def generate_bits(
     m_end,
     m_searches,
     quantization_factor,
+    feature_dim,
     Fs,
     key_size_in_bytes,
 ):
+    event_features = IoTCupid_Protocol.get_event_features(event_signals, feature_dim)
+
     cntr, u, optimal_clusters, fpcs  = IoTCupid_Protocol.fuzzy_cmeans_w_elbow_method(
             event_features, max_clusters, cluster_th, m_start, m_end, m_searches
         )

@@ -166,7 +166,7 @@ class IoTCupid_Protocol:
         :return: DataFrame containing the derivatives.
         """
         derivative_values = []
-        for i in range(len(signal) - window_size + 1):
+        for i in range(len(signal) - window_size):
             derivative = (signal[i + window_size] - signal[i]) / window_size
             derivative_values.append(derivative)
         return np.array(derivative_values)
@@ -210,8 +210,8 @@ class IoTCupid_Protocol:
 
         return events
 
-    def get_event_features(
-        events: List[Tuple[int, int]], sensor_data: np.ndarray, feature_dim: int
+    def get_event_signals(
+        events: List[Tuple[int, int]], sensor_data: np.ndarray,
     ) -> np.ndarray:
         """
         Extracts features from event data using TSFresh for dimensionality reduction with PCA.
@@ -221,10 +221,18 @@ class IoTCupid_Protocol:
         :param feature_dim: Dimension of the feature space after PCA.
         :return: Array of reduced dimensionality features.
         """
-        timeseries = []
+        event_signals = []
         for i, (start, end) in enumerate(events):
-            for time_point in range(start, end):
-                timeseries.append((i, time_point, sensor_data[time_point]))
+            event_signals.append(sensor_data[start : end])
+
+        return event_signals
+
+    def get_event_features(event_signals, feature_dim):
+        timeseries = []
+        for i in range(len(event_signals)):
+            sensor_data = event_signals[1]
+            for j in range(len(sensor_data)):
+                timeseries.append((i, j , sensor_data[j]))
 
         df = pd.DataFrame(timeseries, columns=["id", "time", "value"])
 
@@ -236,11 +244,11 @@ class IoTCupid_Protocol:
             disable_progressbar=True,
             impute_function=None,
         )
-
         pca = PCA(n_components=feature_dim, random_state=0)
         reduced_dim = pca.fit_transform(extracted_features)
 
-        return reduced_dim.to_numpy()
+        return reduced_dim
+
 
     def grid_search_cmeans(features, c, m_start, m_end, m_searches):
         best_cntr = None

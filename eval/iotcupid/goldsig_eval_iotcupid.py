@@ -17,16 +17,16 @@ from evaluator import Evaluator  # noqa: E402
 if __name__ == "__main__":
     # Setting up command-line argument parsing
     parser = argparse.ArgumentParser()
-    parser.add_argument("-tt", "--top_threshold", type=float, default=6)
-    parser.add_argument("-bt", "--bottom_threshold", type=float, default=4)
+    parser.add_argument("-tt", "--top_threshold", type=float, default=0.07)
+    parser.add_argument("-bt", "--bottom_threshold", type=float, default=0.05)
     parser.add_argument("-lt", "--lump_threshold", type=int, default=4)
     parser.add_argument("-a", "--ewma_a", type=float, default=0.75)
     parser.add_argument("-cl", "--cluster_sizes_to_check", type=int, default=4)
     parser.add_argument("-min", "--minimum_events", type=int, default=16)
     parser.add_argument("-fs", "--sampling_frequency", type=float, default=10000)
-    parser.add_argument("-ch", "--chunk_size", type=int, default=100)
+    parser.add_argument("-ch", "--chunk_size", type=int, default=10000)
     parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
-    parser.add_argument("-ws", "--window_size", type=int, default=10000)
+    parser.add_argument("-ws", "--window_size", type=int, default=10)
     parser.add_argument("-fd", "--feature_dimensions", type=int, default=3)
     parser.add_argument("-w", "--quantization_factor", type=float, default=1000)
     parser.add_argument("-mstart", "--mstart", type=float, default=1)
@@ -92,7 +92,6 @@ if __name__ == "__main__":
             key_size_in_bytes,
         )
         return bits
-
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
