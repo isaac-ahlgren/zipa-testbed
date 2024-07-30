@@ -46,33 +46,31 @@ def gen_min_events(
            
         received_events = IoTCupid_Protocol.detect_events(derivatives, bottom_th, top_th, agg_th)
         
-
-        print(received_events)
         if len(received_events) != 0:
             received_event_features = IoTCupid_Protocol.get_event_features(received_events, smoothed_data, feature_dim)
 
-        for i in range(len(events)):
-            events[i] = (
-                received_events[i][0] + chunk_size * iteration,
-                received_events[i][1] + chunk_size * iteration,
-            )
+            for i in range(len(events)):
+                events[i] = (
+                    received_events[i][0] + chunk_size * iteration,
+                    received_events[i][1] + chunk_size * iteration,
+                )
 
-        # Reconciling lumping adjacent events across windows
-        if (
-            len(received_events) != 0
-            and len(events) != 0
-            and received_events[0][0] - events[-1][1] <= agg_th
-        ):
-            events[-1] = (events[-1][0], received_events[0][1])
-            length = events[-1][1] - events[-1][0] + 1
-            max_amp = np.max([event_features[-1][1], received_event_features[0][1]])
-            event_features[-1] = (length, max_amp)
+            # Reconciling lumping adjacent events across windows
+            if (
+                len(received_events) != 0
+                and len(events) != 0
+                and received_events[0][0] - events[-1][1] <= agg_th
+            ):
+                events[-1] = (events[-1][0], received_events[0][1])
+                length = events[-1][1] - events[-1][0] + 1
+                max_amp = np.max([event_features[-1][1], received_event_features[0][1]])
+                event_features[-1] = (length, max_amp)
 
-            events.extend(received_events[1:])
-            event_features.extend(received_event_features[1:])
-        else:
-            events.extend(received_events)
-            event_features.extend(received_event_features)
+                events.extend(received_events[1:])
+                event_features.extend(received_event_features[1:])
+            else:
+                events.extend(received_events)
+                event_features.extend(received_event_features)
         quit()
         iteration += 1
 
