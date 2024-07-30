@@ -1,5 +1,6 @@
 import multiprocessing as mp
 import os
+import math
 from datetime import datetime as dt
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -230,7 +231,7 @@ class IoTCupid_Protocol:
     def get_event_features(event_signals, feature_dim):
         timeseries = []
         for i in range(len(event_signals)):
-            sensor_data = event_signals[1]
+            sensor_data = event_signals[i]
             for j in range(len(sensor_data)):
                 timeseries.append((i, j , sensor_data[j]))
 
@@ -284,7 +285,6 @@ class IoTCupid_Protocol:
         :return: A tuple containing the cluster centers, the membership matrix, the optimal number of clusters, and the FPC for each number of clusters tested.
         """
         # Array to store the Fuzzy Partition Coefficient (FPC)
-        
         best_fpc, best_u, best_cntr = IoTCupid_Protocol.grid_search_cmeans(features, 1, m_start, m_end, m_searches)
         x1 = best_fpc
         rel_val = x1
@@ -384,7 +384,7 @@ class IoTCupid_Protocol:
         return event_groups
 
     def calculate_inter_event_timings(
-        grouped_events: List[List[Tuple[int, int]]], Fs, key_size
+        grouped_events: List[List[Tuple[int, int]]], Fs, quantization_factor, key_size
     ) -> Dict[int, np.ndarray]:
         """
         Calculates the timings between consecutive events within each group.
@@ -402,6 +402,7 @@ class IoTCupid_Protocol:
                 in_microseconds = int(
                     timedelta(seconds=interval) / timedelta(microseconds=1)
                 )
+                quantized_interval = int(math.floor(in_microseconds / quantization_factor))
                 key += in_microseconds.to_bytes(
                     4, "big"
                 )  # Going to treat every interval as a 4 byte integer

@@ -48,8 +48,8 @@ def gen_min_events(
         if len(received_events) != 0:
             received_event_signals = IoTCupid_Protocol.get_event_signals(received_events, smoothed_data)
 
-            for i in range(len(recieved_events)):
-                recieved_events[i] = (
+            for i in range(len(received_events)):
+                received_events[i] = (
                     received_events[i][0] + chunk_size * iteration,
                     received_events[i][1] + chunk_size * iteration,
                 )
@@ -74,7 +74,7 @@ def gen_min_events(
 
 def generate_bits(
     events,
-    event_features,
+    event_signals,
     max_clusters,
     cluster_th,
     m_start,
@@ -88,15 +88,11 @@ def generate_bits(
     event_features = IoTCupid_Protocol.get_event_features(event_signals, feature_dim)
 
     cntr, u, optimal_clusters, fpcs  = IoTCupid_Protocol.fuzzy_cmeans_w_elbow_method(
-            event_features, max_clusters, cluster_th, m_start, m_end, m_searches
+            event_features.T, max_clusters, cluster_th, m_start, m_end, m_searches
         )
 
     grouped_events = IoTCupid_Protocol.group_events(events, u)
 
-    inter_event_timings = IoTCupid_Protocol.calculate_inter_event_timings(grouped_events, Fs, key_size_in_bytes)
+    inter_event_timings = IoTCupid_Protocol.calculate_inter_event_timings(grouped_events, Fs, quantization_factor, key_size_in_bytes)
 
-    encoded_timings = IoTCupid_Protocol.encode_timings_to_bits(
-        inter_event_timings, quantization_factor
-    )
-
-    return encoded_timings, grouped_events
+    return inter_event_timings, grouped_events

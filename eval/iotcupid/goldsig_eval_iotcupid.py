@@ -28,8 +28,8 @@ if __name__ == "__main__":
     parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
     parser.add_argument("-ws", "--window_size", type=int, default=10)
     parser.add_argument("-fd", "--feature_dimensions", type=int, default=3)
-    parser.add_argument("-w", "--quantization_factor", type=float, default=1000)
-    parser.add_argument("-mstart", "--mstart", type=float, default=1)
+    parser.add_argument("-w", "--quantization_factor", type=float, default=1)
+    parser.add_argument("-mstart", "--mstart", type=float, default=1.1)
     parser.add_argument("-msteps", "--msteps", type=int, default=10)
     parser.add_argument("-mend", "--mend", type=float, default=2)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     # Defining the bit generation algorithm
     def bit_gen_algo(signal):
-        signal_events, signal_event_features = gen_min_events(
+        signal_events, signal_event_signals = gen_min_events(
             signal,
             chunk_size,
             min_events,
@@ -77,17 +77,17 @@ if __name__ == "__main__":
             lump_th,
             a,
             window_size,
-            feature_dimensions
         )
         bits, grouped_events = generate_bits(
             signal_events,
-            signal_event_features,
+            signal_event_signals,
             cluster_sizes_to_check,
             cluster_th,
             m_start,
             m_end,
             m_steps,
             w,
+            feature_dimensions,
             Fs,
             key_size_in_bytes,
         )
