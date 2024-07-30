@@ -1,10 +1,7 @@
 import math
-from multiprocessing.shared_memory import SharedMemory
-from typing import Any, List, Tuple  # ,Optional
+from typing import Any, List
 
-import numpy as np
 from cryptography.hazmat.primitives import constant_time
-from scipy.fft import rfft
 
 from networking.network import (
     ack,
@@ -14,6 +11,7 @@ from networking.network import (
     socket,
 )
 from protocols.protocol_interface import ProtocolInterface
+from signal_processing.shurmann import ShurmannProcessing
 
 
 class Shurmann_Siggs_Protocol(ProtocolInterface):
@@ -44,128 +42,21 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             * self.window_len
         )
 
-    def sigs_algo(x1: List[float], window_len: int = 10000, bands: int = 1000) -> bytes:
+    def process_context(self) -> List[bytes]:
         """
-        Signal processing algorithm that computes a bit string based on the energy difference between bands of Fourier transforms.
+        Processes the captured context by applying a zero-out anti-aliasing signal processing algorithm,
+        extracting bits suitable for cryptographic operations.
 
-        :param x1: Input signal array.
-        :param window_len: Length of the window for Fourier transform.
-        :param bands: Number of frequency bands to consider.
-        :return: A bit string converted to bytes based on the energy differences.
+        :return: A list containing the processed bytes.
         """
+        # TODO: Signal must be logged somehow
+        signal = self.read_samples(self.time_length)
 
-        def bitstring_to_bytes(s: str) -> bytes:
-            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
+        # Taken from read_samples in protocol_interface
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
 
-        FFTs = []
-        # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
-
-        if window_len == 0:
-            window_len = len(x1)  # renamed x to x1 because x was undefined
-
-        x = np.array(x1.copy())
-        # wind = scipy.signal.windows.hann(window_len)
-        for i in range(0, len(x), window_len):
-            if len(x[i : i + window_len]) < window_len:
-                # wind = scipy.signal.windows.hann(len(x[i:i+window_len]))
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
-            else:
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
-
-            FFTs.append(abs(rfft(x[i : i + window_len])))
-
-        E = {}
-        bands_lst = []
-        for i in range(0, len(FFTs)):
-            frame = FFTs[i]
-            bands_lst.append(
-                [frame[k : k + bands] for k in range(0, len(frame), bands)]
-            )
-            for j in range(0, len(bands_lst[i])):
-                E[(i, j)] = np.sum(bands_lst[i][j])
-
-        bs = ""
-
-        # count = 0
-        for i in range(1, len(FFTs)):
-            for j in range(0, len(bands_lst[i]) - 1):
-                if E[(i, j)] - E[(i, j + 1)] - (E[(i - 1, j)] - E[(i - 1, j + 1)]) > 0:
-                    bs += "1"
-                else:
-                    bs += "0"
-        return bitstring_to_bytes(bs)
-
-    def zero_out_antialias_sigs_algo(
-        x1: List[float],
-        antialias_freq: float,
-        sampling_freq: float,
-        window_len: int = 10000,
-        bands: int = 1000,
-    ) -> bytes:
-        """
-        Similar to sigs_algo but zeroes out frequencies above the anti-aliasing frequency before computing the bit string.
-
-        :param x1: Input signal array.
-        :param antialias_freq: Anti-aliasing frequency threshold.
-        :param sampling_freq: Sampling frequency of the input signal.
-        :param window_len: Length of the window for Fourier transform.
-        :param bands: Number of frequency bands to consider.
-        :return: A bit string converted to bytes.
-        """
-
-        def bitstring_to_bytes(s: str) -> bytes:
-            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
-
-        FFTs = []
-        # from scipy.fft import fft, fftfreq, ifft, irfft, rfft
-
-        if window_len == 0:
-            window_len = len(x1)  # renamed x to x1 because x is not defined
-
-        freq_bin_len = (sampling_freq / 2) / (int(window_len / 2) + 1)
-        antialias_bin = int(antialias_freq / freq_bin_len)
-
-        x = np.array(x1.copy())
-        # wind = scipy.signal.windows.hann(window_len)
-        for i in range(0, len(x), window_len):
-            if len(x[i : i + window_len]) < window_len:
-                # wind = scipy.signal.windows.hann(len(x[i:i+window_len]))
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
-            else:
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
-
-            fft_row = abs(rfft(x[i : i + window_len]))
-            FFTs.append(fft_row[:antialias_bin])
-        E = {}
-        bands_lst = []
-        for i in range(0, len(FFTs)):
-            frame = FFTs[i]
-            bands_lst.append(
-                [frame[k : k + bands] for k in range(0, len(frame), bands)]
-            )
-            for j in range(0, len(bands_lst[i])):
-                E[(i, j)] = np.sum(bands_lst[i][j])
-
-        bs = ""
-        for i in range(1, len(FFTs)):
-            for j in range(0, len(bands_lst[i]) - 1):
-                if (E[(i, j)] - E[(i, j + 1)]) - (
-                    E[(i - 1, j)] - E[(i - 1, j + 1)]
-                ) > 0:
-                    bs += "1"
-                else:
-                    bs += "0"
-        return bitstring_to_bytes(bs)
-
-    def extract_context(self) -> Tuple[bytes, List[float]]:
-        """
-        Extracts and processes the signal data from the sensor until the specified sample length is reached.
-
-        :return: Tuple containing the processed bits and the raw signal array.
-        """
-        signal = self.get_signal()
-
-        bits = Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
+        bits = ShurmannProcessing.zero_out_antialias_sigs_algo(
             signal,
             self.sensor.sensor.antialias_sample_rate,
             self.sensor.sensor.sample_rate,
@@ -173,8 +64,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             self.band_len,
         )
 
-        # bits = self.sigs_algo(signal, window_len=self.window_len, bands=self.band_len)
-        return bits, signal
+        return [bits]
 
     def parameters(self, is_host: bool) -> str:
         """
@@ -190,6 +80,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         parameters += f"window_length: {self.window_len}\n"
         parameters += f"band_length: {self.band_len}\n"
         parameters += f"time_length: {self.time_length}\n"
+
+        return parameters
 
     def device_protocol(self, host: socket.socket) -> None:
         """
@@ -220,7 +112,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # Extract bits from mic
         if self.verbose:
             print("Extracting context\n")
-        witness, signal = self.extract_context()
+        witness = self.get_context()
+        witness = witness[0]
 
         if self.verbose:
             print("witness: " + str(witness))
@@ -258,19 +151,11 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                 ("witness", "txt", witness),
                 ("commitment", "txt", commitment),
                 ("success", "txt", str(success)),
-                ("signal", "csv", ", ".join(str(num) for num in signal)),
+                # ("signal", "csv", ", ".join(str(num) for num in signal)),
             ]
         )
 
         self.count += 1
-
-        shared_memory = SharedMemory(
-            name=self.name + "_Signal",
-            create=False,
-            size=self.sensor.sensor.data_type.itemsize * self.time_length,
-        )
-
-        shared_memory.unlink()
 
     def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         """
@@ -279,8 +164,6 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         :param device_socket: The socket connection to a single device.
         """
         # Exit early if no devices to pair with
-        self.shm_active.value += 1
-
         if not ack_standby(device_socket, self.timeout):
             if self.verbose:
                 print("No ACK recieved within time limit - early exit.\n\n")
@@ -296,7 +179,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         # Extract key from mic
         if self.verbose:
             print("Extracting Context\n")
-        witness, signal = self.extract_context()
+        witness = self.get_context()
+        witness = witness[0]
 
         # Commit Secret
         if self.verbose:
@@ -318,21 +202,11 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
             [
                 ("witness", "txt", str(witness)),
                 ("commitment", "txt", commitment),
-                ("signal", "csv", ", ".join(str(num) for num in signal)),
+                # ("signal", "csv", ", ".join(str(num) for num in signal)),
             ]
         )
 
         self.count += 1
-        self.shm_active.value -= 1
-
-        if self.shm_active.value == 0:
-            shared_memory = SharedMemory(
-                name=self.name + "_Signal",
-                create=False,
-                size=self.sensor.sensor.data_type.itemsize * self.time_length,
-            )
-            shared_memory.unlink()
-            self.flag.value = 0
 
 
 """###TESTING CODE###

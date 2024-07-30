@@ -62,7 +62,9 @@ PERCEPTIO: Dict[str, ProtocolParameters] = {
         "bottom_th": 0.5,
         "lump_th": 5,
         "conf_thresh": 5,
+        "min_events": 5,  # TODO Check what this size should be
         "max_iterations": 20,
+        "chunk_size": 48_000 * 5,  # TODO Check what this size should be
         "sleep_time": 5,
         "max_no_events_detected": 10,
         "timeout": 10,
@@ -75,7 +77,7 @@ PERCEPTIO: Dict[str, ProtocolParameters] = {
     },
 }
 
-SELECTED_PROTOCOL: Dict[str, ProtocolParameters] = SHURMANN
+SELECTED_PROTOCOL: Dict[str, ProtocolParameters] = PERCEPTIO
 
 if __name__ == "__main__":
     """

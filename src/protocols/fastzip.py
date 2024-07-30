@@ -1,35 +1,24 @@
 from math import ceil
-from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
-from scipy.signal import savgol_filter
+from scipy.signal import savgol_filter, find_peaks
 
-from protocols.protocol_interface import Any, ProtocolInterface
+from protocols.protocol_interface import ProtocolInterface
 
 
 # WIP
 class FastZIP_Protocol(ProtocolInterface):
-    """
-    An implementation of a cryptographic protocol that uses signal processing to secure
-    communication between devices. It includes methods for normalizing signals, removing noise,
-    and detecting specific patterns or features within signals.
-
-    :param parameters: Configuration parameters for the protocol.
-    :param sensor: The sensor object to collect data from.
-    :param logger: Logger object for recording protocol operations.
-    """
-
-    def __init__(self, parameters: dict, sensor: Any, logger: Any) -> None:
+    def __init__(self, parameters, sensor, logger):
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "FastZIP_Protocol"
         self.wip = True
         self.count = 0
 
-    def extract_context(self) -> None:
+    def extract_context(self):
         pass
 
-    def parameters(self, is_host: bool) -> None:
+    def parameters(self, is_host):
         parameters = f"protocol: {self.name} is_host: {str(is_host)}\n"
         parameters += f"sensor: {self.sensor.sensor.name}\n"
         parameters += f"key_length: {self.key_length}\n"
@@ -38,19 +27,13 @@ class FastZIP_Protocol(ProtocolInterface):
         parameters += f"band_length: {self.band_len}\n"
         parameters += f"time_length: {self.time_length}\n"
 
-    def device_protocol(self, host: Any) -> None:
+    def device_protocol(self, host):
         pass
 
-    def host_protocol_single_threaded(self, device_socket: Any) -> None:
+    def host_protocol_single_threaded(self, device_socket):
         pass
 
-    def normalize_signal(sig: np.ndarray) -> np.ndarray:
-        """
-        Normalizes the signal by subtracting its mean.
-
-        :param sig: The signal to be normalized.
-        :returns: The normalized signal.
-        """
+    def normalize_signal(sig):
         # Check if sig is non-zero
         if len(sig) == 0:
             print("normalize_signal: signal must have non-zero length!")
@@ -64,97 +47,59 @@ class FastZIP_Protocol(ProtocolInterface):
 
         return norm_sig
 
-    def remove_noise(data: np.ndarray) -> np.ndarray:
-        """
-        Applies noise removal techniques to the data, including Gaussian and Savitzky-Golay filters.
-
-        :param data: The data from which noise is to be removed.
-        :returns: The data after noise removal.
-        """
+    def remove_noise(data):
         rn_data = np.zeros(data.shape)
         rn_data = gaussian_filter(savgol_filter(data, 5, 3), sigma=1.4)
 
         return rn_data
 
-    def ewma_filter(data: np.ndarray, alpha: float = 0.15) -> np.ndarray:
-        """
-        Applies an Exponentially Weighted Moving Average (EWMA) filter to the data.
-
-        :param data: The data to filter.
-        :param alpha: The decay factor for the EWMA filter.
-        :returns: The filtered data.
-        """
+    def ewma_filter(data, alpha=0.15):
         ewma_data = np.zeros(len(data))
         ewma_data[0] = data[0]
         for i in range(1, len(ewma_data)):
             ewma_data[i] = alpha * data[i] + (1 - alpha) * ewma_data[i - 1]
         return ewma_data
 
-    def compute_sig_power(sig: np.ndarray) -> float:
-        """
-        Computes the power of the signal.
-
-        :param sig: The signal whose power is to be computed.
-        :returns: The power of the signal in dB.
-        """
+    def compute_sig_power(sig):
         if len(sig) == 0:
             print("compute_sig_power: signal must have non-zero length!")
             return
         return 10 * np.log10(np.sum(sig**2) / len(sig))
 
-    def compute_snr(sig: np.ndarray) -> float:
-        """
-        Computes the Signal-to-Noise Ratio (SNR) of the signal.
-
-        :param sig: The signal whose SNR is to be computed.
-        :returns: The SNR of the signal.
-        """
+    def compute_snr(sig):
         if len(sig) == 0:
             print("compute_snr: signal must have non-zero length!")
             return
         return np.mean(abs(sig)) / np.std(abs(sig))
 
-    def get_peaks(sig: np.ndarray, sample_rate: int) -> int:
-        """
-        Identifies peaks in the signal based on average peak height.
-
-        :param sig: The signal to analyze.
-        :param sample_rate: The sample rate of the signal.
-        :returns: The number of peaks detected in the signal.
-        """
+    def get_peaks(sig, sample_rate):
         peak_height = np.mean(sorted(sig)[-9:]) * 0.2
-        peaks, _ = FastZIP_Protocol.find_peaks(
+        peaks, _ = find_peaks(
             sig, height=peak_height, distance=0.25 * sample_rate
         )
         return len(peaks)
 
-    def activity_filter(
-        signal: np.ndarray, power_thresh: float, snr_thresh: float, peak_thresh: int
-    ) -> bool:
-        """
-        Filters signals based on power, SNR, and peak thresholds to detect activity.
-
-        :param signal: The signal to filter.
-        :param power_thresh: The power threshold for detecting activity.
-        :param snr_thresh: The SNR threshold for detecting activity.
-        :param peak_thresh: The peak threshold for detecting activity.
-        :returns: True if activity is detected, False otherwise.
-        """
+    def activity_filter(signal, power_thresh, snr_thresh, peak_thresh, sample_rate):
         # Ensure signal is a numpy array
         signal = np.copy(signal)
 
         # Initialize metrics
-        power, snr = 0, 0
-        # n_peaks = 0
+        power, snr, n_peaks = 0, 0, 0
 
         # Compute signal power (similar for all sensor types
         power = FastZIP_Protocol.compute_sig_power(signal)
+        print("Power threshold: ", power_thresh)
+        print("Signal Power: ", power)
 
         # Find peaks
-        peaks = FastZIP_Protocol.get_peaks(signal)
+        peaks = FastZIP_Protocol.get_peaks(signal, sample_rate)
+        print("Peak threshold: ", peak_thresh)
+        print("Peaks: ", peaks)
 
         # Compute signal's SNR
         snr = FastZIP_Protocol.compute_snr(signal)
+        print("SNR Threshold: ", snr_thresh)
+        print("Signal SNR: ", snr)
 
         # Check against thresholds to determine if activity is present
         activity_detected = False
@@ -163,14 +108,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
         return activity_detected
 
-    def compute_qs_thr(chunk: np.ndarray, bias: float) -> float:
-        """
-        Computes a threshold for quantizing signals based on the median and a bias.
-
-        :param chunk: The data chunk to compute the threshold for.
-        :param bias: The bias to add to the median to compute the threshold.
-        :returns: The computed threshold.
-        """
+    def compute_qs_thr(chunk, bias):
         # Make a copy of chunk
         chunk_cpy = np.copy(chunk)
 
@@ -179,17 +117,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
         return np.median(chunk_cpy) + bias
 
-    def generate_equidist_points(
-        self, chunk_len: int, step: int, eqd_delta: int
-    ) -> Tuple[np.ndarray, int]:
-        """
-        Generates equidistant points within a data chunk.
-
-        :param chunk_len: The length of the data chunk.
-        :param step: The step size for generating points.
-        :param eqd_delta: The equidistant delta for point generation.
-        :returns: A list of equidistant points and the count of such points.
-        """
+    def generate_equidist_points(chunk_len, step, eqd_delta):
         # Equidistant delta cannot be bigger than the step
         if eqd_delta > step:
             print('generate_equidist_points: "eqd_delta" must be smaller than "step"')
@@ -204,64 +132,60 @@ class FastZIP_Protocol(ProtocolInterface):
                 np.arange(
                     0 + eqd_delta * i,
                     chunk_len + eqd_delta * i,
-                    ceil(chunk_len / self.n_bits),
+                    ceil(chunk_len / step),
                 )
                 % chunk_len
             )
 
-        return eqd_rand_points, len(eqd_rand_points)
+        return eqd_rand_points
 
     def compute_fingerprint(
-        data: np.ndarray,
-        n_bits: int,
-        power_thresh: float,
-        snr_thresh: float,
-        peak_thresh: int,
-        bias: float,
-        ewma_filter: bool = False,
-        alpha: float = 0.015,
-        remove_noise: bool = False,
-        normalize: bool = False,
-    ) -> Optional[str]:
-        """
-        Computes a binary fingerprint from sensor data using specified thresholds and filters.
-
-        :param data: The sensor data to process.
-        :param n_bits: The number of bits to generate for the fingerprint.
-        :param power_thresh: The power threshold for detecting activity.
-        :param snr_thresh: The SNR threshold for detecting activity.
-        :param peak_thresh: The peak threshold for detecting activity.
-        :param bias: The bias to use in quantization.
-        :param ewma_filter: Whether to apply an EWMA filter.
-        :param alpha: The alpha value for the EWMA filter.
-        :param remove_noise: Whether to remove noise from the data.
-        :param normalize: Whether to normalize the data.
-        :returns: A binary fingerprint of the data.
-        """
+        data,
+        n_bits,
+        power_thresh,
+        snr_thresh,
+        peak_thresh,
+        bias,
+        sample_rate,
+        eqd_delta,
+        ewma_filter=False,
+        alpha=0.015,
+        remove_noise=False,
+        normalize=False,
+    ):
         fp = None
+        chunk = np.copy(data)
+        print("Chunk: ", chunk)
+
+        print("Normalize status: ", normalize)
 
         if normalize:
             chunk = FastZIP_Protocol.normalize_signal(chunk)
 
         activity = FastZIP_Protocol.activity_filter(
-            chunk, power_thresh, snr_thresh, peak_thresh
+            chunk, power_thresh, snr_thresh, peak_thresh, sample_rate
         )
+        #activity = True
+        print("Activity detected:", activity)
         if activity:
+            print("Noise removal status: ", remove_noise)
             if remove_noise:
                 chunk = FastZIP_Protocol.remove_noise(chunk)
-
+            print("Ewma filter status: ", ewma_filter)
             if ewma_filter:
                 chunk = FastZIP_Protocol.ewma_filter(abs(chunk), alpha=alpha)
 
             qs_thr = FastZIP_Protocol.compute_qs_thr(chunk, bias)
+            print("qs threshold", qs_thr)
 
             pts = FastZIP_Protocol.generate_equidist_points(
-                len(data), n_bits, eqd_delta  # noqa: F821
+                len(data), n_bits, eqd_delta
             )
+            print("Points: ", pts)
 
             fp = ""
             for pt in pts:
-                if data[pt] > qs_thr:
+                if all(data[pt] > qs_thr):
                     fp += "1"
                 else:
                     fp += "0"
@@ -269,62 +193,55 @@ class FastZIP_Protocol(ProtocolInterface):
         return fp
 
     def fastzip_algo(
-        sensor_data_list: List[np.ndarray],
-        n_bits_list: List[int],
-        power_thresh_list: List[float],
-        snr_thresh_list: List[float],
-        peak_thresh_list: List[int],
-        bias_list: List[int],
-        ewma_filter_list: Optional[List[bool]] = None,
-        alpha_list: Optional[List[float]] = None,
-        remove_noise_list: Optional[List[bool]] = None,
-        normalize_list: Optional[List[bool]] = None,
-    ) -> str:
-        """
-        Aggregates the fingerprint generation for multiple sensors and configurations,
-        producing a single cryptographic key from multiple data sources.
+        sensor_data_list,
+        n_bits_list,
+        power_thresh_list,
+        snr_thresh_list,
+        peak_thresh_list,
+        bias_list,
+        sample_rate_list,
+        eqd_delta_list,
+        ewma_filter_list=None,
+        alpha_list=None,
+        remove_noise_list=None,
+        normalize_list=None,
+    ):
+        def bitstring_to_bytes(s):
+            if s == "":
+                return b""
+            return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
-        :param sensor_data_list: List of sensor data arrays from which fingerprints are derived.
-        :param n_bits_list: List of integers representing the number of bits to generate from each data set.
-        :param power_thresh_list: List of power thresholds for activity detection in each data set.
-        :param snr_thresh_list: List of SNR thresholds for activity detection in each data set.
-        :param peak_thresh_list: List of peak count thresholds for activity detection in each data set.
-        :param bias_list: List of biases used in the quantization step for each data set.
-        :param ewma_filter_list: Optional list of booleans indicating whether to apply EWMA filtering to each data set.
-        :param alpha_list: Optional list of alpha values for the EWMA filter for each data set.
-        :param remove_noise_list: Optional list of booleans indicating whether to apply noise removal to each data set.
-        :param normalize_list: Optional list of booleans indicating whether to normalize each data set before processing.
-        :returns: A concatenated string of '0' and '1' representing the cryptographic key derived from all data sets.
-        """
         key = ""
 
-        for i in range(len(sensor_data)):
+        for i in range(len(sensor_data_list)):
             data = sensor_data_list[i]
             n_bits = n_bits_list[i]
             power_thresh = power_thresh_list[i]
             snr_thresh = snr_thresh_list[i]
             peak_thresh = peak_thresh_list[i]
             bias = bias_list[i]
+            sample_rate = sample_rate_list[i]
+            eqd_delta = eqd_delta_list[i]
 
-            if ewma_filter_list is None:
+            if ewma_filter_list == None:
                 ewma_filter = False
             else:
                 ewma_filter = ewma_filter_list[i]
 
-            if alpha_list is None:
+            if alpha_list == None:
                 alpha = 0.015
             else:
                 alpha = alpha_list[i]
 
-            if remove_noise_list is None:
+            if remove_noise_list == None:
                 remove_noise = False
             else:
                 remove_noise = remove_noise_list[i]
 
-            if normalize_list is None:
+            if normalize_list == None:
                 normalize = False
             else:
-                normalize = normalize[i]
+                normalize = normalize_list[i]
 
             bits = FastZIP_Protocol.compute_fingerprint(
                 data,
@@ -333,15 +250,17 @@ class FastZIP_Protocol(ProtocolInterface):
                 snr_thresh,
                 peak_thresh,
                 bias,
+                sample_rate,
+                eqd_delta,
                 ewma_filter=ewma_filter,
                 alpha=alpha,
                 remove_noise=remove_noise,
                 normalize=normalize,
             )
 
-            if bits is not None:
+            if bits != None:
                 key += bits
-        return key
+        return bitstring_to_bytes(key)
 
 
 # Example usage:
