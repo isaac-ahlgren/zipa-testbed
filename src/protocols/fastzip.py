@@ -2,7 +2,7 @@ from math import ceil
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
-from scipy.signal import savgol_filter, find_peaks
+from scipy.signal import find_peaks, savgol_filter
 
 from protocols.protocol_interface import ProtocolInterface
 
@@ -74,9 +74,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
     def get_peaks(sig, sample_rate):
         peak_height = np.mean(sorted(sig)[-9:]) * 0.2
-        peaks, _ = find_peaks(
-            sig, height=peak_height, distance=0.25 * sample_rate
-        )
+        peaks, _ = find_peaks(sig, height=peak_height, distance=0.25 * sample_rate)
         return len(peaks)
 
     def activity_filter(signal, power_thresh, snr_thresh, peak_thresh, sample_rate):
@@ -84,7 +82,7 @@ class FastZIP_Protocol(ProtocolInterface):
         signal = np.copy(signal)
 
         # Initialize metrics
-        power, snr, n_peaks = 0, 0, 0
+        power, snr, peaks = 0, 0, 0
 
         # Compute signal power (similar for all sensor types
         power = FastZIP_Protocol.compute_sig_power(signal)
@@ -92,6 +90,7 @@ class FastZIP_Protocol(ProtocolInterface):
         print("Signal Power: ", power)
 
         # Find peaks
+        # This is only for the accelerometer so it needs to be constricted as such
         peaks = FastZIP_Protocol.get_peaks(signal, sample_rate)
         print("Peak threshold: ", peak_thresh)
         print("Peaks: ", peaks)
@@ -141,7 +140,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
     def compute_fingerprint(
         data,
-        n_bits,
+        step,
         power_thresh,
         snr_thresh,
         peak_thresh,
@@ -153,9 +152,8 @@ class FastZIP_Protocol(ProtocolInterface):
         remove_noise=False,
         normalize=False,
     ):
-        fp = None
         chunk = np.copy(data)
-        print("Chunk: ", chunk)
+        fp = None
 
         print("Normalize status: ", normalize)
 
@@ -165,7 +163,7 @@ class FastZIP_Protocol(ProtocolInterface):
         activity = FastZIP_Protocol.activity_filter(
             chunk, power_thresh, snr_thresh, peak_thresh, sample_rate
         )
-        #activity = True
+        # activity = True
         print("Activity detected:", activity)
         if activity:
             print("Noise removal status: ", remove_noise)
@@ -178,10 +176,8 @@ class FastZIP_Protocol(ProtocolInterface):
             qs_thr = FastZIP_Protocol.compute_qs_thr(chunk, bias)
             print("qs threshold", qs_thr)
 
-            pts = FastZIP_Protocol.generate_equidist_points(
-                len(data), n_bits, eqd_delta
-            )
-            print("Points: ", pts)
+            pts = FastZIP_Protocol.generate_equidist_points(len(data), step, eqd_delta)
+            # print("Points: ", pts)
 
             fp = ""
             for pt in pts:
@@ -194,7 +190,8 @@ class FastZIP_Protocol(ProtocolInterface):
 
     def fastzip_algo(
         sensor_data_list,
-        n_bits_list,
+        chunk_size_list,
+        step_list,
         power_thresh_list,
         snr_thresh_list,
         peak_thresh_list,
@@ -215,7 +212,8 @@ class FastZIP_Protocol(ProtocolInterface):
 
         for i in range(len(sensor_data_list)):
             data = sensor_data_list[i]
-            n_bits = n_bits_list[i]
+            chunk_size = chunk_size_list[i]
+            step = step_list[i]
             power_thresh = power_thresh_list[i]
             snr_thresh = snr_thresh_list[i]
             peak_thresh = peak_thresh_list[i]
@@ -243,23 +241,45 @@ class FastZIP_Protocol(ProtocolInterface):
             else:
                 normalize = normalize_list[i]
 
-            bits = FastZIP_Protocol.compute_fingerprint(
-                data,
-                n_bits,
-                power_thresh,
-                snr_thresh,
-                peak_thresh,
-                bias,
-                sample_rate,
-                eqd_delta,
-                ewma_filter=ewma_filter,
-                alpha=alpha,
-                remove_noise=remove_noise,
-                normalize=normalize,
+            win_size = int(chunk_size / 4)
+            overlap_size = win_size / 2
+            step_size = win_size - overlap_size
+
+            # n_chunks = int(len(data) / (win_size * sample_rate)) - int((chunk_size - win_size) / win_size)
+            n_chunks = (
+                int((len(data) - chunk_size * sample_rate) / (step_size * sample_rate))
+                + 1
             )
 
-            if bits != None:
-                key += bits
+            print("n_chunks: ", n_chunks)
+
+            for i in range(0, n_chunks):
+                start_index = i * int(step_size * sample_rate)
+                end_index = start_index + int(chunk_size * sample_rate)
+                if end_index > len(data):
+                    break  # Avoid going out of bounds
+                chunk = data[start_index:end_index]
+
+                # chunk = data[i * win_size * sample_rate:(i * win_size + chunk_size)]
+                # print("Chunk: ", chunk)
+
+                bits = FastZIP_Protocol.compute_fingerprint(
+                    chunk,
+                    step,
+                    power_thresh,
+                    snr_thresh,
+                    peak_thresh,
+                    bias,
+                    sample_rate,
+                    eqd_delta,
+                    ewma_filter=ewma_filter,
+                    alpha=alpha,
+                    remove_noise=remove_noise,
+                    normalize=normalize,
+                )
+
+                if bits != None:
+                    key += bits
         return bitstring_to_bytes(key)
 
 

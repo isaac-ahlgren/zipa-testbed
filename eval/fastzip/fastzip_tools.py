@@ -8,11 +8,12 @@ sys.path.insert(
 )  # Gives us path to Fastzip algorithm in /src
 from protocols.fastzip import FastZIP_Protocol  # noqa: E402
 
-SAMPLING_RATE = 100
+SAMPLING_RATE = 50
 
 
 def fastzip_wrapper_function(
     sensor_arr,
+    chunk_size,
     bits,
     power_thr,
     snr_thr,
@@ -27,6 +28,7 @@ def fastzip_wrapper_function(
 ):
     return FastZIP_Protocol.fastzip_algo(
         [sensor_arr],
+        [chunk_size],
         [bits],
         [power_thr],
         [snr_thr],

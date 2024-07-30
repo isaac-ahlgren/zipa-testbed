@@ -6,7 +6,6 @@ import numpy as np
 from fastzip_tools import (
     SAMPLING_RATE,
     adversary_signal,
-    fastzip_calc_sample_num,
     fastzip_wrapper_function,
     golden_signal,
 )
@@ -17,23 +16,25 @@ from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-wl", "--window_length", type=int, default=50)
-    parser.add_argument("-bl", "--band_length", type=int, default=500)
+    parser.add_argument("-cs", "--chunk_size", type=int, default=20)
+    parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
+    parser.add_argument("-s", "--step", type=int, default=5)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
     parser.add_argument("-b", "--bias", type=int, default=0)
     parser.add_argument("-ed", "--eqd_delta", type=int, default=1)
     parser.add_argument("-ef", "--ewma_filter", type=bool, default=None)
     parser.add_argument("-a", "--alpha", type=float, default=None)
     parser.add_argument("-rn", "--remove_noise", type=bool, default=None)
-    parser.add_argument("-n", "--normalize", type=bool, default=None)
+    parser.add_argument("-n", "--normalize", type=bool, default=True)
     parser.add_argument("-pt", "--power_threshold", type=int, default=-12)
     parser.add_argument("-st", "--snr_threshold", type=int, default=1.2)
-    parser.add_argument("-np", "--number_peaks", type=int, default=14)
+    parser.add_argument("-np", "--number_peaks", type=int, default=0)
     parser.add_argument("-t", "--trials", type=int, default=1000)
 
     args = parser.parse_args()
-    window_length = getattr(args, "window_length")
-    band_length = getattr(args, "band_length")
+    chunk_size = getattr(args, "chunk_size")
+    buffer_size = getattr(args, "buffer_size")
+    step = getattr(args, "step")
     key_length = getattr(args, "key_length")
     bias = getattr(args, "bias")
     eqd_delta = getattr(args, "eqd_delta")
@@ -46,16 +47,21 @@ if __name__ == "__main__":
     number_peaks = getattr(args, "number_peaks")
     trials = getattr(args, "trials")
 
-    sample_num = fastzip_calc_sample_num(key_length, window_length)
-    signal1 = golden_signal(sample_num, seed=0)
-    signal2 = golden_signal(sample_num, seed=0)
-    adv_signal = adversary_signal(sample_num, seed=12)
+    # sample_num = fastzip_calc_sample_num(key_length, chunk_size)
+    signal1 = golden_signal(buffer_size, seed=0)
+    signal2 = golden_signal(buffer_size, seed=0)
+    adv_signal = adversary_signal(buffer_size, seed=12)
+
+    # legit_signal_buffer1 = Signal_Buffer(signal1)
+    # legit_signal_buffer2 = Signal_Buffer(signal2)
+    # adv_signal_buffer = Signal_Buffer(adv_signal)
     signals = (signal1, signal2, adv_signal)
 
     def bit_gen_algo(signal):
         return fastzip_wrapper_function(
             signal,
-            key_length,
+            chunk_size,
+            step,
             power_threshold,
             snr_threshold,
             number_peaks,
