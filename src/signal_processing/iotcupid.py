@@ -184,6 +184,7 @@ class IoTCupidProcessing:
         best_cntr = None
         best_u = None
         best_fpc = None
+        best_score = None
         for m in np.linspace(m_start, m_end, m_searches):  # m values from 1.1 to 2.0
             cntr, u, u0, d, jm, p, fpc = fuzz.cluster.cmeans(
                 features,
@@ -194,10 +195,14 @@ class IoTCupidProcessing:
                 init=None,
                 seed=0,
             )
-            if best_fpc is None or best_fpc < fpc:
+            print(cntr)
+            quit()
+            score = IoTCupidProcessing.calculate_cluster_variance(features, cntr)
+            if best_score is None or score < best_score:
                 best_fpc = fpc
                 best_u = u
                 best_cntr = cntr
+                best_score = score
         return best_fpc, best_u, best_cntr
 
     def fuzzy_cmeans_w_elbow_method(
@@ -306,3 +311,13 @@ class IoTCupidProcessing:
                 key = bytes(key[:key_size])
                 fp.append(key)
         return fp
+    
+    def calculate_cluster_variance(features, cntr):
+        # Recalculate distances from each sample to each cluster center
+        print(features)
+        print(cntr)
+        distances = np.zeros(cntr.shape[0] * features.shape[0])  # Initialize distance array
+        for j in range(cntr.shape[0]):  # For each cluster
+            for i in range(features.shape[0]):  # For each feature set
+                distances[j*features.shape[0] + i] = np.abs(features[i] - cntr[j])
+        return np.var(distances)
