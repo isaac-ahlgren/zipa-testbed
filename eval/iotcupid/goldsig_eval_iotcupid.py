@@ -92,6 +92,7 @@ if __name__ == "__main__":
             key_size_in_bytes,
         )
         return bits
+
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials

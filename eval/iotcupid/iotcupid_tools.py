@@ -42,11 +42,15 @@ def gen_min_events(
         smoothed_data = IoTCupidProcessing.ewma(chunk, a)
 
         derivatives = IoTCupidProcessing.compute_derivative(smoothed_data, window_size)
-           
-        received_events = IoTCupidProcessing.detect_events(abs(derivatives), bottom_th, top_th, agg_th)
-        
+
+        received_events = IoTCupidProcessing.detect_events(
+            abs(derivatives), bottom_th, top_th, agg_th
+        )
+
         if len(received_events) != 0:
-            received_event_signals = IoTCupidProcessing.get_event_signals(received_events, smoothed_data)
+            received_event_signals = IoTCupidProcessing.get_event_signals(
+                received_events, smoothed_data
+            )
 
             for i in range(len(received_events)):
                 received_events[i] = (
@@ -61,7 +65,9 @@ def gen_min_events(
                 and received_events[0][0] - events[-1][1] <= agg_th
             ):
                 events[-1] = (events[-1][0], received_events[0][1])
-                event_signals[-1] = np.append(event_signals[-1][1], recieved_event_signals)
+                event_signals[-1] = np.append(
+                    event_signals[-1][1], received_event_signals
+                )
 
                 events.extend(received_events[1:])
                 event_signals.extend(received_event_signals[1:])
@@ -87,12 +93,14 @@ def generate_bits(
 ):
     event_features = IoTCupidProcessing.get_event_features(event_signals, feature_dim)
 
-    cntr, u, optimal_clusters, fpcs  = IoTCupidProcessing.fuzzy_cmeans_w_elbow_method(
-            event_features.T, max_clusters, cluster_th, m_start, m_end, m_searches
-        )
+    cntr, u, optimal_clusters, fpcs = IoTCupidProcessing.fuzzy_cmeans_w_elbow_method(
+        event_features.T, max_clusters, cluster_th, m_start, m_end, m_searches
+    )
 
     grouped_events = IoTCupidProcessing.group_events(events, u)
 
-    inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(grouped_events, Fs, quantization_factor, key_size_in_bytes)
+    inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(
+        grouped_events, Fs, quantization_factor, key_size_in_bytes
+    )
 
     return inter_event_timings, grouped_events

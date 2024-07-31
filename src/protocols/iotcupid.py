@@ -1,8 +1,5 @@
 import multiprocessing as mp
-import os
-import math
-from datetime import datetime as dt
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List
 
 
 class IoTCupid_Protocol:
@@ -63,55 +60,7 @@ class IoTCupid_Protocol:
         pass
 
     def process_context(self) -> Any:
-        events = []
-        event_features = []
-        iteration = 0
-        while len(events) < self.min_events:
-            chunk = self.read_samples(self.chunk_size)
-
-            smoothed_data = IoTCupid_Protocol.ewma_filter(chunk, self.a)
-
-            derivatives = IoTCupid_Protocol.compute_derivative(smoothed_data, self.window_size)
-           
-            received_events = IoTCupid_Protocol.detect_events(derivatives, self.bottom_th, self.top_th, self.agg_th)
-     
-            event_features = IoTCupid_Protocol.get_event_features(recieved_events, signal_data, self.feature_dim)
-
-            # Reconciling lumping adjacent events across windows
-            if (
-                len(received_events) != 0
-                and len(events) != 0
-                and received_events[0][0] - events[-1][1] <= self.lump_th
-            ):
-                events[-1] = (events[-1][0], received_events[0][1])
-                length = events[-1][1] - events[-1][0] + 1
-                max_amp = np.max([event_features[-1][1], received_event_features[0][1]])
-                event_features[-1] = (length, max_amp)
-
-                events.extend(received_events[1:])
-                event_features.extend(received_event_features[1:])
-            else:
-                events.extend(received_events)
-                event_features.extend(received_event_features)
-            iteration += 1
-
-        # Extracted from read_samples function in protocol_interface
-        ProtocolInterface.reset_flag(self.queue_flag)
-        self.clear_queue()
-
-        fuzzy_cmeans_w_elbow_method(
-            event_features, self.max_clusters, self.cluster_th, self.m_start, self.m_end, self.m_searches
-        )
-
-        grouped_events = self.group_events(events, u)
-
-        inter_event_timings = self.calculate_inter_event_timings(grouped_events)
-
-        encoded_timings = self.encode_timings_to_bits(
-            inter_event_timings, quantization_factor
-        )
-
-        return encoded_timings
+        pass
 
     def parameters(self, is_host: bool) -> str:
         pass

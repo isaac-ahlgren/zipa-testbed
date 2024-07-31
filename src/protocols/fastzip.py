@@ -2,7 +2,7 @@ from math import ceil
 
 import numpy as np
 from scipy.ndimage import gaussian_filter
-from scipy.signal import savgol_filter, find_peaks
+from scipy.signal import find_peaks, savgol_filter
 
 from protocols.protocol_interface import ProtocolInterface
 
@@ -74,9 +74,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
     def get_peaks(sig, sample_rate):
         peak_height = np.mean(sorted(sig)[-9:]) * 0.2
-        peaks, _ = find_peaks(
-            sig, height=peak_height, distance=0.25 * sample_rate
-        )
+        peaks, _ = find_peaks(sig, height=peak_height, distance=0.25 * sample_rate)
         return len(peaks)
 
     def activity_filter(signal, power_thresh, snr_thresh, peak_thresh, sample_rate):
@@ -165,7 +163,7 @@ class FastZIP_Protocol(ProtocolInterface):
         activity = FastZIP_Protocol.activity_filter(
             chunk, power_thresh, snr_thresh, peak_thresh, sample_rate
         )
-        #activity = True
+        # activity = True
         print("Activity detected:", activity)
         if activity:
             print("Noise removal status: ", remove_noise)
