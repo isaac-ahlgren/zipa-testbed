@@ -7,7 +7,7 @@ sys.path.insert(
     1, os.getcwd() + "/../../src/"
 )  # Gives us path to Perceptio algorithm in /src
 
-from protocols.iotcupid import IoTCupid_Protocol  # noqa: E402
+from signal_processing.iotcupid import IoTCupidProcessing  # noqa: E402
 
 goldsig_rng = np.random.default_rng(0)
 
@@ -39,14 +39,14 @@ def gen_min_events(
     while len(events) < min_events:
         chunk = signal.read(chunk_size)
 
-        smoothed_data = IoTCupid_Protocol.ewma(chunk, a)
+        smoothed_data = IoTCupidProcessing.ewma(chunk, a)
 
-        derivatives = IoTCupid_Protocol.compute_derivative(smoothed_data, window_size)
+        derivatives = IoTCupidProcessing.compute_derivative(smoothed_data, window_size)
            
-        received_events = IoTCupid_Protocol.detect_events(abs(derivatives), bottom_th, top_th, agg_th)
+        received_events = IoTCupidProcessing.detect_events(abs(derivatives), bottom_th, top_th, agg_th)
         
         if len(received_events) != 0:
-            received_event_signals = IoTCupid_Protocol.get_event_signals(received_events, smoothed_data)
+            received_event_signals = IoTCupidProcessing.get_event_signals(received_events, smoothed_data)
 
             for i in range(len(received_events)):
                 received_events[i] = (
@@ -85,14 +85,14 @@ def generate_bits(
     Fs,
     key_size_in_bytes,
 ):
-    event_features = IoTCupid_Protocol.get_event_features(event_signals, feature_dim)
+    event_features = IoTCupidProcessing.get_event_features(event_signals, feature_dim)
 
-    cntr, u, optimal_clusters, fpcs  = IoTCupid_Protocol.fuzzy_cmeans_w_elbow_method(
+    cntr, u, optimal_clusters, fpcs  = IoTCupidProcessing.fuzzy_cmeans_w_elbow_method(
             event_features.T, max_clusters, cluster_th, m_start, m_end, m_searches
         )
 
-    grouped_events = IoTCupid_Protocol.group_events(events, u)
+    grouped_events = IoTCupidProcessing.group_events(events, u)
 
-    inter_event_timings = IoTCupid_Protocol.calculate_inter_event_timings(grouped_events, Fs, quantization_factor, key_size_in_bytes)
+    inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(grouped_events, Fs, quantization_factor, key_size_in_bytes)
 
     return inter_event_timings, grouped_events
