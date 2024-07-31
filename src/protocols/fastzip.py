@@ -53,7 +53,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
         return rn_data
 
-    def ewma_filter(data, alpha=0.15):
+    def ewma_filter(data, alpha):
         ewma_data = np.zeros(len(data))
         ewma_data[0] = data[0]
         for i in range(1, len(ewma_data)):
@@ -77,7 +77,9 @@ class FastZIP_Protocol(ProtocolInterface):
         peaks, _ = find_peaks(sig, height=peak_height, distance=0.25 * sample_rate)
         return len(peaks)
 
-    def activity_filter(signal, power_thresh, snr_thresh, peak_thresh, sample_rate):
+    def activity_filter(
+        signal, power_thresh, snr_thresh, peak_thresh, sample_rate, peak_status
+    ):
         # Ensure signal is a numpy array
         signal = np.copy(signal)
 
@@ -91,9 +93,10 @@ class FastZIP_Protocol(ProtocolInterface):
 
         # Find peaks
         # This is only for the accelerometer so it needs to be constricted as such
-        peaks = FastZIP_Protocol.get_peaks(signal, sample_rate)
-        print("Peak threshold: ", peak_thresh)
-        print("Peaks: ", peaks)
+        if peak_status:
+            peaks = FastZIP_Protocol.get_peaks(signal, sample_rate)
+            print("Peak threshold: ", peak_thresh)
+            print("Peaks: ", peaks)
 
         # Compute signal's SNR
         snr = FastZIP_Protocol.compute_snr(signal)
@@ -102,7 +105,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
         # Check against thresholds to determine if activity is present
         activity_detected = False
-        if power > power_thresh and snr > snr_thresh and peaks > peak_thresh:
+        if power > power_thresh and snr > snr_thresh and peaks >= peak_thresh:
             activity_detected = True
 
         return activity_detected
@@ -147,11 +150,13 @@ class FastZIP_Protocol(ProtocolInterface):
         bias,
         sample_rate,
         eqd_delta,
+        peak_status=False,
         ewma_filter=False,
         alpha=0.015,
         remove_noise=False,
         normalize=False,
     ):
+        print("alpha: ", alpha)
         chunk = np.copy(data)
         fp = None
 
@@ -161,7 +166,7 @@ class FastZIP_Protocol(ProtocolInterface):
             chunk = FastZIP_Protocol.normalize_signal(chunk)
 
         activity = FastZIP_Protocol.activity_filter(
-            chunk, power_thresh, snr_thresh, peak_thresh, sample_rate
+            chunk, power_thresh, snr_thresh, peak_thresh, sample_rate, peak_status
         )
         # activity = True
         print("Activity detected:", activity)
@@ -171,13 +176,13 @@ class FastZIP_Protocol(ProtocolInterface):
                 chunk = FastZIP_Protocol.remove_noise(chunk)
             print("Ewma filter status: ", ewma_filter)
             if ewma_filter:
-                chunk = FastZIP_Protocol.ewma_filter(abs(chunk), alpha=alpha)
+                chunk = FastZIP_Protocol.ewma_filter(abs(chunk), alpha)
 
             qs_thr = FastZIP_Protocol.compute_qs_thr(chunk, bias)
             print("qs threshold", qs_thr)
 
             pts = FastZIP_Protocol.generate_equidist_points(len(data), step, eqd_delta)
-            # print("Points: ", pts)
+            print("Points: ", pts)
 
             fp = ""
             for pt in pts:
@@ -198,6 +203,7 @@ class FastZIP_Protocol(ProtocolInterface):
         bias_list,
         sample_rate_list,
         eqd_delta_list,
+        peak_status_list=None,
         ewma_filter_list=None,
         alpha_list=None,
         remove_noise_list=None,
@@ -221,12 +227,19 @@ class FastZIP_Protocol(ProtocolInterface):
             sample_rate = sample_rate_list[i]
             eqd_delta = eqd_delta_list[i]
 
+            print("alpha_list: ", alpha_list)
+
+            if peak_status_list == None:
+                peak_status = False
+            else:
+                peak_status = peak_status_list[i]
+
             if ewma_filter_list == None:
                 ewma_filter = False
             else:
                 ewma_filter = ewma_filter_list[i]
 
-            if alpha_list == None:
+            if alpha_list is None or alpha_list[i] is None:
                 alpha = 0.015
             else:
                 alpha = alpha_list[i]
@@ -241,46 +254,24 @@ class FastZIP_Protocol(ProtocolInterface):
             else:
                 normalize = normalize_list[i]
 
-            # sliding window implemented, had to change slightly from implementation in seemoo labs fastzip
-            win_size = int(chunk_size / 4)
-            overlap_size = win_size / 2
-            step_size = win_size - overlap_size
-
-            # n_chunks = int(len(data) / (win_size * sample_rate)) - int((chunk_size - win_size) / win_size)
-            n_chunks = (
-                int((len(data) - chunk_size * sample_rate) / (step_size * sample_rate))
-                + 1
+            bits = FastZIP_Protocol.compute_fingerprint(
+                data,
+                step,
+                power_thresh,
+                snr_thresh,
+                peak_thresh,
+                bias,
+                sample_rate,
+                eqd_delta,
+                peak_status=peak_status,
+                ewma_filter=ewma_filter,
+                alpha=alpha,
+                remove_noise=remove_noise,
+                normalize=normalize,
             )
 
-            print("n_chunks: ", n_chunks)
-
-            for i in range(0, n_chunks):
-                start_index = i * int(step_size * sample_rate)
-                end_index = start_index + int(chunk_size * sample_rate)
-                if end_index > len(data):
-                    break  # Avoid going out of bounds
-                chunk = data[start_index:end_index]
-
-                # chunk = data[i * win_size * sample_rate:(i * win_size + chunk_size)]
-                # print("Chunk: ", chunk)
-
-                bits = FastZIP_Protocol.compute_fingerprint(
-                    chunk,
-                    step,
-                    power_thresh,
-                    snr_thresh,
-                    peak_thresh,
-                    bias,
-                    sample_rate,
-                    eqd_delta,
-                    ewma_filter=ewma_filter,
-                    alpha=alpha,
-                    remove_noise=remove_noise,
-                    normalize=normalize,
-                )
-
-                if bits != None:
-                    key += bits
+            if bits != None:
+                key += bits
         return bitstring_to_bytes(key)
 
 
