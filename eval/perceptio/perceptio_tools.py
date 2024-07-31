@@ -7,7 +7,7 @@ sys.path.insert(
     1, os.getcwd() + "/../../src/"
 )  # Gives us path to Perceptio algorithm in /src
 
-from protocols.perceptio import Perceptio_Protocol  # noqa: E402
+from signal_processing.perceptio import PerceptioProcessing  # noqa: E402
 
 goldsig_rng = np.random.default_rng(0)
 
@@ -24,8 +24,8 @@ def adversary_signal(sample_num):
 
 
 def get_events(arr, top_th, bottom_th, lump_th, a):
-    events = Perceptio_Protocol.get_events(arr, a, bottom_th, top_th, lump_th)
-    event_features = Perceptio_Protocol.get_event_features(events, arr)
+    events = PerceptioProcessing.get_events(arr, a, bottom_th, top_th, lump_th)
+    event_features = PerceptioProcessing.get_event_features(events, arr)
 
     return events, event_features
 
@@ -69,11 +69,11 @@ def generate_bits(
     Fs,
     key_size_in_bytes,
 ):
-    labels, k = Perceptio_Protocol.kmeans_w_elbow_method(
+    labels, k = PerceptioProcessing.kmeans_w_elbow_method(
         event_features, cluster_sizes_to_check, cluster_th
     )
 
-    grouped_events = Perceptio_Protocol.group_events(events, labels, k)
+    grouped_events = PerceptioProcessing.group_events(events, labels, k)
 
-    fps = Perceptio_Protocol.gen_fingerprints(grouped_events, k, key_size_in_bytes, Fs)
+    fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size_in_bytes, Fs)
     return fps, grouped_events

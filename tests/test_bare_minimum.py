@@ -7,9 +7,9 @@ sys.path.insert(1, os.getcwd() + "/src")
 def testing_schurmann_bit_generation_interface():
     import numpy as np
 
-    from signal_processing.shurmann import ShurmannProcessing
+    from signal_processing.shurmann import SchurmannProcessing
 
-    outcome = ShurmannProcessing.zero_out_antialias_sigs_algo(
+    outcome = SchurmannProcessing.zero_out_antialias_sigs_algo(
         np.sin(np.arange(50000)),
         18000,
         24000,

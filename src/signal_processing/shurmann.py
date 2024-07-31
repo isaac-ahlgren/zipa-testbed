@@ -4,7 +4,7 @@ import numpy as np
 from scipy.fft import rfft
 
 
-class ShurmannProcessing:
+class SchurmannProcessing:
     def sigs_algo(x1: List[float], window_len: int = 10000, bands: int = 1000) -> bytes:
         """
         Signal processing algorithm that computes a bit string based on the energy difference between bands of Fourier transforms.
