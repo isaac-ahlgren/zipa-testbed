@@ -241,6 +241,7 @@ class FastZIP_Protocol(ProtocolInterface):
             else:
                 normalize = normalize_list[i]
 
+            # sliding window implemented, had to change slightly from implementation in seemoo labs fastzip
             win_size = int(chunk_size / 4)
             overlap_size = win_size / 2
             step_size = win_size - overlap_size
