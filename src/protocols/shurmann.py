@@ -11,7 +11,7 @@ from networking.network import (
     socket,
 )
 from protocols.protocol_interface import ProtocolInterface
-from signal_processing.shurmann import ShurmannProcessing
+from signal_processing.shurmann import SchurmannProcessing
 
 
 class Shurmann_Siggs_Protocol(ProtocolInterface):
@@ -56,7 +56,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()
 
-        bits = ShurmannProcessing.zero_out_antialias_sigs_algo(
+        bits = SchurmannProcessing.zero_out_antialias_sigs_algo(
             signal,
             self.sensor.sensor.antialias_sample_rate,
             self.sensor.sensor.sample_rate,

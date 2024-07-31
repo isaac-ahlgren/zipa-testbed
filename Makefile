@@ -7,7 +7,7 @@ build-docs:
 
 create-dev:
 	rm -rf env
-	python3 -m venv env
+	python3.11 -m venv env
 	( \
 		. env/bin/activate; \
 		pip install -r requirements.txt; \
@@ -22,4 +22,4 @@ create-docs:
 	sphinx-apidoc src --output-dir src-docs --maxdepth 100 --separate
 
 test:
-	python3 -m pytest ./tests
+	python3.11 -m pytest ./tests
