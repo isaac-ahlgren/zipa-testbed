@@ -3,7 +3,10 @@ import os
 import sys
 
 import numpy as np
-from perceptio_tools import gen_min_events, generate_bits
+from iotcupid_tools import (
+    gen_min_events,
+    generate_bits,
+)
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
@@ -16,8 +19,8 @@ from evaluator import Evaluator  # noqa: E402
 if __name__ == "__main__":
     # Setting up command-line argument parsing
     parser = argparse.ArgumentParser()
-    parser.add_argument("-tt", "--top_threshold", type=float, default=6)
-    parser.add_argument("-bt", "--bottom_threshold", type=float, default=4)
+    parser.add_argument("-tt", "--top_threshold", type=float, default=0.07)
+    parser.add_argument("-bt", "--bottom_threshold", type=float, default=0.05)
     parser.add_argument("-lt", "--lump_threshold", type=int, default=4)
     parser.add_argument("-a", "--ewma_a", type=float, default=0.75)
     parser.add_argument("-cl", "--cluster_sizes_to_check", type=int, default=4)
@@ -25,6 +28,12 @@ if __name__ == "__main__":
     parser.add_argument("-fs", "--sampling_frequency", type=float, default=10000)
     parser.add_argument("-ch", "--chunk_size", type=int, default=10000)
     parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
+    parser.add_argument("-ws", "--window_size", type=int, default=10)
+    parser.add_argument("-fd", "--feature_dimensions", type=int, default=3)
+    parser.add_argument("-w", "--quantization_factor", type=float, default=1)
+    parser.add_argument("-mstart", "--mstart", type=float, default=1.1)
+    parser.add_argument("-msteps", "--msteps", type=int, default=10)
+    parser.add_argument("-mend", "--mend", type=float, default=2)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
     parser.add_argument("-snr", "--snr_level", type=float, default=20)
     parser.add_argument("-t", "--trials", type=int, default=100)
@@ -41,6 +50,12 @@ if __name__ == "__main__":
     Fs = getattr(args, "sampling_frequency")
     chunk_size = getattr(args, "chunk_size")
     buffer_size = getattr(args, "buffer_size")
+    window_size = getattr(args, "window_size")
+    feature_dimensions = getattr(args, "feature_dimensions")
+    w = getattr(args, "quantization_factor")
+    m_start = getattr(args, "mstart")
+    m_steps = getattr(args, "msteps")
+    m_end = getattr(args, "mend")
     key_size_in_bytes = getattr(args, "key_length") // 8
     target_snr = getattr(args, "snr_level")
     trials = getattr(args, "trials")
@@ -64,7 +79,7 @@ if __name__ == "__main__":
 
     # Defining the bit generation algorithm
     def bit_gen_algo(signal):
-        signal_events, signal_event_features = gen_min_events(
+        signal_events, signal_event_signals = gen_min_events(
             signal,
             chunk_size,
             min_events,
@@ -72,12 +87,18 @@ if __name__ == "__main__":
             bottom_th,
             lump_th,
             a,
+            window_size,
         )
         bits, grouped_events = generate_bits(
             signal_events,
-            signal_event_features,
+            signal_event_signals,
             cluster_sizes_to_check,
             cluster_th,
+            m_start,
+            m_end,
+            m_steps,
+            w,
+            feature_dimensions,
             Fs,
             key_size_in_bytes,
         )
@@ -95,3 +116,4 @@ if __name__ == "__main__":
     # Printing the average bit error rates
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
+
