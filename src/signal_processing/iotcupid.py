@@ -25,27 +25,8 @@ class IoTCupidProcessing:
         agg_th: int,
         m_start: float,
         m_end: float,
-        m_searchers: int
+        m_searches: int
     ):
-        """
-        Main function of the IoTCupid Protocol, integrating several preprocessing and analysis steps
-        to generate encoded timings from raw sensor data.
-
-        :param raw: DataFrame containing raw sensor data.
-        :param pre_events: Pre-processed events data.
-        :param key_size: The desired size of the cryptographic key.
-        :param Fs: Sampling frequency of the data.
-        :param a: Alpha value for EWMA filtering.
-        :param cluster_sizes_to_check: Maximum number of clusters to consider.
-        :param feature_dim: Number of dimensions for PCA feature reduction.
-        :param quantization_factor: Factor for quantizing the inter-event timings.
-        :param cluster_th: Threshold to determine the elbow in clustering.
-        :param window_size: Size of the window for computing derivatives.
-        :param bottom_th: Lower threshold for event detection.
-        :param top_th: Upper threshold for event detection.
-        :param agg_th: Threshold for aggregating detected events.
-        :return: Tuple containing encoded timings and grouped events.
-        """
         smoothed_data = IoTCupidProcessing.ewma(signal, a)
 
         derivatives = IoTCupidProcessing.compute_derivative(smoothed_data, window_size)
@@ -53,23 +34,23 @@ class IoTCupidProcessing:
         received_events = IoTCupidProcessing.detect_events(abs(derivatives), bottom_th, top_th, agg_th)
 
         received_event_signals = IoTCupidProcessing.get_event_signals(received_events, smoothed_data)
-        if len(events) < 2:
+        if len(received_events) < 2:
             # Needs two events in order to calculate interevent timings
             if self.verbose:
                 print("Error: Less than two events detected")
             return ([], events)
 
-        event_features = IoTCupidProcessing.get_event_features(event_signals, feature_dim)
+        event_features = IoTCupidProcessing.get_event_features(received_event_signals, feature_dim)
 
         cntr, u, optimal_clusters, fpcs  = IoTCupidProcessing.fuzzy_cmeans_w_elbow_method(
             event_features.T, cluster_sizes_to_check, cluster_th, m_start, m_end, m_searches
         )
 
-        grouped_events = IoTCupidProcessing.group_events(events, u)
+        grouped_events = IoTCupidProcessing.group_events(received_events, u)
 
-        inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(grouped_events, Fs, quantization_factor, key_size_in_bytes)
+        inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(grouped_events, Fs, quantization_factor, key_size)
 
-        return encoded_timings, grouped_events
+        return inter_event_timings, grouped_events
 
     def ewma(signal: np.ndarray, a: float) -> np.ndarray:
         """
