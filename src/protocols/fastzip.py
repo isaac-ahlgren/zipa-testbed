@@ -195,7 +195,6 @@ class FastZIP_Protocol(ProtocolInterface):
 
     def fastzip_algo(
         sensor_data_list,
-        chunk_size_list,
         step_list,
         power_thresh_list,
         snr_thresh_list,
@@ -218,7 +217,6 @@ class FastZIP_Protocol(ProtocolInterface):
 
         for i in range(len(sensor_data_list)):
             data = sensor_data_list[i]
-            chunk_size = chunk_size_list[i]
             step = step_list[i]
             power_thresh = power_thresh_list[i]
             snr_thresh = snr_thresh_list[i]
@@ -226,8 +224,6 @@ class FastZIP_Protocol(ProtocolInterface):
             bias = bias_list[i]
             sample_rate = sample_rate_list[i]
             eqd_delta = eqd_delta_list[i]
-
-            print("alpha_list: ", alpha_list)
 
             if peak_status_list == None:
                 peak_status = False

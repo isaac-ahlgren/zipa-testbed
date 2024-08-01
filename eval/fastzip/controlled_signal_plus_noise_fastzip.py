@@ -27,7 +27,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-ws", "--window_size", type=int, default=200)
     parser.add_argument("-os", "--overlap_size", type=int, default=100)
-    parser.add_argument("-cs", "--chunk_size", type=int, default=5)
     parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
     parser.add_argument("-s", "--step", type=int, default=5)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
@@ -47,7 +46,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     window_size = getattr(args, "window_size")
     overlap_size = getattr(args, "overlap_size")
-    chunk_size = getattr(args, "chunk_size")
     buffer_size = getattr(args, "buffer_size")
     step = getattr(args, "step")
     key_length = getattr(args, "key_length")
@@ -86,7 +84,6 @@ if __name__ == "__main__":
         for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
             bits = fastzip_wrapper_function(
                 chunk,
-                chunk_size,
                 step,
                 power_threshold,
                 snr_threshold,

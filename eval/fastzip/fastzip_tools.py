@@ -36,7 +36,6 @@ def manage_overlapping_chunks(signal_buffer, chunk_size, overlap_size):
 
 def fastzip_wrapper_function(
     sensor_arr,
-    chunk_size,
     bits,
     power_thr,
     snr_thr,
@@ -52,7 +51,6 @@ def fastzip_wrapper_function(
 ):
     return FastZIP_Protocol.fastzip_algo(
         [sensor_arr],
-        [chunk_size],
         [bits],
         [power_thr],
         [snr_thr],
