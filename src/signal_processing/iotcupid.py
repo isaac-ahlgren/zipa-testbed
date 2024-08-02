@@ -83,6 +83,14 @@ class IoTCupidProcessing:
             y[i] = a * signal[i] + (1 - a) * y[i - 1]
         return y
 
+    """
+    Comments potentially for the paper: This algorithm doesn't seem like it was designed for live testing in mind.
+    This function is a prime example of it. The idea of using a derivative in this algorithm is to try to detect event 
+    that happen graudally like the temperature changing in the room over half a second when you open up a door. However, in a live system,
+    you typically have to process only large chunks at a time. If a gradual event happens between windows, you can't do a sliding window
+    derivative between chunks without instense processing overhead (by way of slowly adding new data one at a time and recomputing the derivative each time
+    with is extremely computationally expensive for large buffers)
+    """
     def compute_derivative(signal, window_size: int) -> np.ndarray:
         """
         Computes the derivative of a signal based on a specified window size.

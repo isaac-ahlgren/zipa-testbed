@@ -2,6 +2,7 @@ import os
 import sys
 
 from sklearn.datasets import make_blobs
+import numpy as np
 
 sys.path.insert(1, os.getcwd() + "/src")
 
@@ -17,3 +18,13 @@ def test_iotcupid_cmeans_clustering():
     )
 
     assert c == 3  # nosec
+
+def test_iotcupid_derivative():
+    window_size = 10
+    signal = np.zeros(1000)
+    signal[::window_size] = 1
+
+    output = IoTCupidProcessing.compute_derivative(signal, window_size)
+
+    assert np.sum(output) == 0 # nosec
+    assert len(output) == 990 # nosec
