@@ -35,7 +35,7 @@ if __name__ == "__main__":
         "-ed", "--eqd_delta", type=int, default=1
     )  # default might avtually be 20
     parser.add_argument("-ps", "--peak_status", type=bool, default=None)
-    parser.add_argument("-ef", "--ewma_filter", type=bool, default=True)
+    parser.add_argument("-ef", "--ewma_filter", type=bool, default=None)
     parser.add_argument("-a", "--alpha", type=float, default=None)
     parser.add_argument("-rn", "--remove_noise", type=bool, default=None)
     parser.add_argument("-n", "--normalize", type=bool, default=True)
@@ -65,8 +65,8 @@ if __name__ == "__main__":
 
     trials = getattr(args, "trials")
 
-    legit_signal = load_csv_data("legit_bmp.csv")
-    adv_signal = load_csv_data("adv_bmp.csv")
+    legit_signal = load_csv_data("../../data/legit_bmp.csv")
+    adv_signal = load_csv_data("../../data/adv_bmp.csv")
 
     legit_signal_buffer1 = Signal_Buffer(
         legit_signal.copy(), noise=True, target_snr=target_snr
