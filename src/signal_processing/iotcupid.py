@@ -185,7 +185,7 @@ class IoTCupidProcessing:
         best_u = None
         best_fpc = None
         best_score = None
-        for m in np.linspace(m_start, m_end, m_searches):  # m values from 1.1 to 2.0
+        for m in np.linspace(m_start, m_end, m_searches):
             cntr, u, u0, d, jm, p, fpc = fuzz.cluster.cmeans(
                 features,
                 c=c,
@@ -195,15 +195,13 @@ class IoTCupidProcessing:
                 init=None,
                 seed=0,
             )
-            print(cntr)
-            quit()
             score = IoTCupidProcessing.calculate_cluster_variance(features, cntr)
             if best_score is None or score < best_score:
                 best_fpc = fpc
                 best_u = u
                 best_cntr = cntr
                 best_score = score
-        return best_fpc, best_u, best_cntr
+        return best_score, best_fpc, best_u, best_cntr
 
     def fuzzy_cmeans_w_elbow_method(
         features: np.ndarray,
@@ -223,32 +221,36 @@ class IoTCupidProcessing:
         :return: A tuple containing the cluster centers, the membership matrix, the optimal number of clusters, and the FPC for each number of clusters tested.
         """
         # Array to store the Fuzzy Partition Coefficient (FPC)
-        best_fpc, best_u, best_cntr = IoTCupidProcessing.grid_search_cmeans(
+        best_score, best_fpc, best_u, best_cntr = IoTCupidProcessing.grid_search_cmeans(
             features, 1, m_start, m_end, m_searches
         )
-        x1 = best_fpc
+        x1 = best_score
         rel_val = x1
         c = 1
-
+        
+        print(best_score)
+        prev_score = best_score
         prev_fpc = best_fpc
         prev_u = best_u
         prev_cntr = best_cntr
         for i in range(2, max_clusters + 1):
 
-            fpc, u, cntr = IoTCupidProcessing.grid_search_cmeans(
+            score, fpc, u, cntr = IoTCupidProcessing.grid_search_cmeans(
                 features, i, m_start, m_end, m_searches
             )
-            x2 = fpc
+            x2 = score
+
+            print(score)
 
             perc = (x1 - x2) / rel_val
             x1 = x2
-
             # Break if reached elbow
             if perc <= cluster_th or i == max_clusters:
                 c = i - 1
                 best_fpc = prev_fpc
                 best_u = prev_u
                 best_cntr = prev_cntr
+                best_score = prev_score
                 break
 
             if i == max_clusters:
@@ -256,12 +258,15 @@ class IoTCupidProcessing:
                 best_fpc = fpc
                 best_u = u
                 best_cntr = cntr
+                best_score = score
 
             prev_fpc = fpc
             prev_u = u
             prev_cntr = cntr
+            prev_score = score
+        print()
 
-        return best_cntr, best_u, c, best_fpc
+        return best_cntr, best_u, c, best_score
 
     def group_events(
         events: List[Tuple[int, int]], u: np.ndarray
@@ -314,10 +319,10 @@ class IoTCupidProcessing:
     
     def calculate_cluster_variance(features, cntr):
         # Recalculate distances from each sample to each cluster center
-        print(features)
-        print(cntr)
         distances = np.zeros(cntr.shape[0] * features.shape[0])  # Initialize distance array
         for j in range(cntr.shape[0]):  # For each cluster
             for i in range(features.shape[0]):  # For each feature set
-                distances[j*features.shape[0] + i] = np.abs(features[i] - cntr[j])
-        return np.var(distances)
+                distances[j*features.shape[0] + i] = np.linalg.norm(features[:,i] - cntr[j])**2
+        return np.mean(distances)
+
+    
