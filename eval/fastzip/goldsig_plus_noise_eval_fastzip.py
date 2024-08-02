@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument("-ws", "--window_size", type=int, default=200)
     parser.add_argument("-os", "--overlap_size", type=int, default=100)
     parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
-    parser.add_argument("-s", "--step", type=int, default=5)
+    parser.add_argument("-nb", "--n_bits", type=int, default=12)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
     parser.add_argument("-b", "--bias", type=int, default=0)
     parser.add_argument("-ed", "--eqd_delta", type=int, default=1)
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     window_size = getattr(args, "window_size")
     overlap_size = getattr(args, "overlap_size")
     buffer_size = getattr(args, "buffer_size")
-    step = getattr(args, "step")
+    n_bits = getattr(args, "n_bits")
     key_length = getattr(args, "key_length")
     bias = getattr(args, "bias")
     eqd_delta = getattr(args, "eqd_delta")
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
             bits = fastzip_wrapper_function(
                 chunk,
-                step,
+                n_bits,
                 power_threshold,
                 snr_threshold,
                 number_peaks,

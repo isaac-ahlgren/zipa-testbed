@@ -78,7 +78,7 @@ class FastZIP_Protocol(ProtocolInterface):
         return len(peaks)
 
     def activity_filter(
-        signal, power_thresh, snr_thresh, peak_thresh, sample_rate, peak_status
+        signal, power_thresh, snr_thresh, peak_thresh, sample_rate, peak_status, alpha
     ):
         # Ensure signal is a numpy array
         signal = np.copy(signal)
@@ -94,6 +94,7 @@ class FastZIP_Protocol(ProtocolInterface):
         # Find peaks
         # This is only for the accelerometer so it needs to be constricted as such
         if peak_status:
+            signal = FastZIP_Protocol.ewma_filter(abs(signal), alpha)
             peaks = FastZIP_Protocol.get_peaks(signal, sample_rate)
             print("Peak threshold: ", peak_thresh)
             print("Peaks: ", peaks)
@@ -134,7 +135,7 @@ class FastZIP_Protocol(ProtocolInterface):
                 np.arange(
                     0 + eqd_delta * i,
                     chunk_len + eqd_delta * i,
-                    ceil(chunk_len / step),
+                    step,
                 )
                 % chunk_len
             )
@@ -143,7 +144,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
     def compute_fingerprint(
         data,
-        step,
+        n_bits,
         power_thresh,
         snr_thresh,
         peak_thresh,
@@ -166,7 +167,13 @@ class FastZIP_Protocol(ProtocolInterface):
             chunk = FastZIP_Protocol.normalize_signal(chunk)
 
         activity = FastZIP_Protocol.activity_filter(
-            chunk, power_thresh, snr_thresh, peak_thresh, sample_rate, peak_status
+            chunk,
+            power_thresh,
+            snr_thresh,
+            peak_thresh,
+            sample_rate,
+            peak_status,
+            alpha,
         )
         # activity = True
         print("Activity detected:", activity)
@@ -181,7 +188,9 @@ class FastZIP_Protocol(ProtocolInterface):
             qs_thr = FastZIP_Protocol.compute_qs_thr(chunk, bias)
             print("qs threshold", qs_thr)
 
-            pts = FastZIP_Protocol.generate_equidist_points(len(data), step, eqd_delta)
+            pts = FastZIP_Protocol.generate_equidist_points(
+                len(data), ceil(len(chunk) / n_bits), eqd_delta
+            )
             print("Points: ", pts)
 
             fp = ""
@@ -195,7 +204,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
     def fastzip_algo(
         sensor_data_list,
-        step_list,
+        n_bits_list,
         power_thresh_list,
         snr_thresh_list,
         peak_thresh_list,
@@ -217,7 +226,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
         for i in range(len(sensor_data_list)):
             data = sensor_data_list[i]
-            step = step_list[i]
+            n_bits = n_bits_list[i]
             power_thresh = power_thresh_list[i]
             snr_thresh = snr_thresh_list[i]
             peak_thresh = peak_thresh_list[i]
@@ -252,7 +261,7 @@ class FastZIP_Protocol(ProtocolInterface):
 
             bits = FastZIP_Protocol.compute_fingerprint(
                 data,
-                step,
+                n_bits,
                 power_thresh,
                 snr_thresh,
                 peak_thresh,
