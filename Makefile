@@ -22,4 +22,4 @@ create-docs:
 	sphinx-apidoc src --output-dir src-docs --maxdepth 100 --separate
 
 test:
-	python3.11 -m pytest ./tests
+	python3 -m pytest ./tests
