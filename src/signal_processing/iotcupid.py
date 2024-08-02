@@ -26,6 +26,7 @@ class IoTCupidProcessing:
         m_start: float,
         m_end: float,
         m_searches: int,
+        mem_thresh: int,
     ):
         smoothed_data = IoTCupidProcessing.ewma(signal, a)
 
@@ -55,10 +56,11 @@ class IoTCupidProcessing:
                 m_start,
                 m_end,
                 m_searches,
+                mem_thresh
             )
         )
 
-        grouped_events = IoTCupidProcessing.group_events(received_events, u)
+        grouped_events = IoTCupidProcessing.group_events(received_events, u, mem_thresh)
 
         inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(
             grouped_events, Fs, quantization_factor, key_size
@@ -180,7 +182,7 @@ class IoTCupidProcessing:
 
         return reduced_dim
 
-    def grid_search_cmeans(features, c, m_start, m_end, m_searches):
+    def grid_search_cmeans(features, c, m_start, m_end, m_searches, mem_thresh):
         best_cntr = None
         best_u = None
         best_fpc = None
@@ -191,11 +193,11 @@ class IoTCupidProcessing:
                 c=c,
                 m=m,
                 error=0.005,
-                maxiter=100,
+                maxiter=1000,
                 init=None,
                 seed=0,
             )
-            score = IoTCupidProcessing.calculate_cluster_variance(features, cntr)
+            score = IoTCupidProcessing.calculate_cluster_variance(features, cntr, u, mem_thresh)
             if best_score is None or score < best_score:
                 best_fpc = fpc
                 best_u = u
@@ -203,6 +205,27 @@ class IoTCupidProcessing:
                 best_score = score
         return best_score, best_fpc, best_u, best_cntr
 
+
+    """
+    There is a couple of issues when using this method that are inherent to elbow method and
+    the paper's chosen application of this method. These are just some thoughts to keep in mind for the paper.
+    
+    First, the elbow method is fairly unreliable:
+    "If one plots the percentage of variance explained by the clusters against the number of clusters, 
+    the first clusters will add much information (explain a lot of variance), but at some point the marginal gain will drop, giving an angle in the graph. 
+    The number of clusters is chosen at this point, hence the "elbow criterion".  In most datasets, this "elbow" is ambiguous, making this method subjective and unreliable. 
+    Because the scale of the axes is arbitrary, the concept of an angle is not well-defined, and even on uniform random data,
+    the curve produces an "elbow", making the method rather unreliable." <-- explanation from wikipedia
+
+    Secondly, because we are using the elbow method, I have found no way to make it so it can detect only a single event using synthetic data. 
+    This is because it is because the elbow method that I have implemented (there is no actual elbow method algorithm) depends on the relative efficency of
+    the sequential scores to figure out whether an "elbow" is happening. However, even if there is one cluster, the jump from the using cluster size of 1 to
+    2 always makes the score go down significantly making it never pick cluster size 1.
+
+    Thirdly, for both IoTCupid and Perceptio, there references to the elbow method do not come with an algorithm. Particularly, IoTCupid's reference does not
+    even contain a mention of the phrase "elbow method" even in the K-means section. 
+
+    """
     def fuzzy_cmeans_w_elbow_method(
         features: np.ndarray,
         max_clusters: int,
@@ -210,6 +233,7 @@ class IoTCupidProcessing:
         m_start: float,
         m_end: float,
         m_searches: int,
+        mem_thresh: int,
     ) -> Tuple[np.ndarray, np.ndarray, int, List[float]]:
         """
         Performs fuzzy C-means clustering with an elbow method to determine the optimal number of clusters.
@@ -222,13 +246,12 @@ class IoTCupidProcessing:
         """
         # Array to store the Fuzzy Partition Coefficient (FPC)
         best_score, best_fpc, best_u, best_cntr = IoTCupidProcessing.grid_search_cmeans(
-            features, 1, m_start, m_end, m_searches
+            features, 1, m_start, m_end, m_searches, mem_thresh
         )
         x1 = best_score
         rel_val = x1
         c = 1
         
-        print(best_score)
         prev_score = best_score
         prev_fpc = best_fpc
         prev_u = best_u
@@ -236,12 +259,9 @@ class IoTCupidProcessing:
         for i in range(2, max_clusters + 1):
 
             score, fpc, u, cntr = IoTCupidProcessing.grid_search_cmeans(
-                features, i, m_start, m_end, m_searches
+                features, i, m_start, m_end, m_searches, mem_thresh
             )
             x2 = score
-
-            print(score)
-
             perc = (x1 - x2) / rel_val
             x1 = x2
             # Break if reached elbow
@@ -264,12 +284,11 @@ class IoTCupidProcessing:
             prev_u = u
             prev_cntr = cntr
             prev_score = score
-        print()
 
         return best_cntr, best_u, c, best_score
 
     def group_events(
-        events: List[Tuple[int, int]], u: np.ndarray
+        events: List[Tuple[int, int]], u: np.ndarray, mem_thresh
     ) -> List[List[Tuple[int, int]]]:
         """
         Groups detected events based on their highest membership values from fuzzy clustering.
@@ -278,12 +297,24 @@ class IoTCupidProcessing:
         :param u: The membership matrix from the fuzzy C-means clustering.
         :return: A list of event groups, each containing events that are grouped together based on clustering.
         """
-        # Group events based on maximum membership value
-        labels = np.argmax(u, axis=0)
+        labels = IoTCupidProcessing.defuzz(u, mem_thresh)
         event_groups = [[] for _ in range(u.shape[0])]
-        for label, event in zip(labels, events):
-            event_groups[label].append(event)
+        for label_list, event in zip(labels, events):
+            for label in label_list:
+                event_groups[label].append(event)
         return event_groups
+    
+    def defuzz(u, mem_thresh):
+        labels = []
+
+        for i in range(len(u[0])):
+            event_labels = []
+            for j in range(len(u[:,i])):
+                score = u[j,i]
+                if score > mem_thresh:
+                    event_labels.append(j)
+            labels.append(event_labels)
+        return labels
 
     def calculate_inter_event_timings(
         grouped_events: List[List[Tuple[int, int]]], Fs, quantization_factor, key_size
@@ -317,12 +348,14 @@ class IoTCupidProcessing:
                 fp.append(key)
         return fp
     
-    def calculate_cluster_variance(features, cntr):
+    def calculate_cluster_variance(features, cntr, u, mem_thresh):
+        labels = IoTCupidProcessing.defuzz(u, mem_thresh)
         # Recalculate distances from each sample to each cluster center
-        distances = np.zeros(cntr.shape[0] * features.shape[0])  # Initialize distance array
-        for j in range(cntr.shape[0]):  # For each cluster
-            for i in range(features.shape[0]):  # For each feature set
-                distances[j*features.shape[0] + i] = np.linalg.norm(features[:,i] - cntr[j])**2
-        return np.mean(distances)
+        distortions = np.zeros(cntr.shape[0])
+        for i in range(features.shape[0]):
+            for j in range(cntr.shape[0]):
+                if j in labels[i] or len(labels[i]) == 0:
+                    distortions[j] += np.linalg.norm(features[:,i] - cntr[j])**2
+        return np.mean(distortions)
 
     
