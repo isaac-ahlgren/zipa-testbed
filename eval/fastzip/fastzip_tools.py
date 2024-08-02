@@ -6,7 +6,7 @@ import numpy as np
 sys.path.insert(
     1, os.getcwd() + "/../../src/"
 )  # Gives us path to Fastzip algorithm in /src
-from protocols.fastzip import FastZIP_Protocol  # noqa: E402
+from signal_processing.fastzip import FastZIPProcessing  # noqa: E402
 
 SAMPLING_RATE = 50
 
@@ -49,7 +49,7 @@ def fastzip_wrapper_function(
     remove_noise=None,
     normalize=None,
 ):
-    return FastZIP_Protocol.fastzip_algo(
+    return FastZIPProcessing.fastzip_algo(
         [sensor_arr],
         [bits],
         [power_thr],
