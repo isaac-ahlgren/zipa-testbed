@@ -26,7 +26,7 @@ class IoTCupidProcessing:
         m_start: float,
         m_end: float,
         m_searches: int,
-        mem_thresh: int,
+        mem_thresh: float,
     ):
         smoothed_data = IoTCupidProcessing.ewma(signal, a)
 
@@ -56,7 +56,7 @@ class IoTCupidProcessing:
                 m_start,
                 m_end,
                 m_searches,
-                mem_thresh
+                mem_thresh,
             )
         )
 
@@ -197,7 +197,9 @@ class IoTCupidProcessing:
                 init=None,
                 seed=0,
             )
-            score = IoTCupidProcessing.calculate_cluster_variance(features, cntr, u, mem_thresh)
+            score = IoTCupidProcessing.calculate_cluster_variance(
+                features, cntr, u, mem_thresh
+            )
             if best_score is None or score < best_score:
                 best_fpc = fpc
                 best_u = u
@@ -205,27 +207,30 @@ class IoTCupidProcessing:
                 best_score = score
         return best_score, best_fpc, best_u, best_cntr
 
-
     """
     There is a couple of issues when using this method that are inherent to elbow method and
     the paper's chosen application of this method. These are just some thoughts to keep in mind for the paper.
-    
+
     First, the elbow method is fairly unreliable:
-    "If one plots the percentage of variance explained by the clusters against the number of clusters, 
-    the first clusters will add much information (explain a lot of variance), but at some point the marginal gain will drop, giving an angle in the graph. 
-    The number of clusters is chosen at this point, hence the "elbow criterion".  In most datasets, this "elbow" is ambiguous, making this method subjective and unreliable. 
+    "If one plots the percentage of variance explained by the clusters against the number of clusters,
+    the first clusters will add much information (explain a lot of variance), but at some point the marginal gain will drop, giving an angle in the graph.
+    The number of clusters is chosen at this point, hence the "elbow criterion".  In most datasets, this "elbow" is ambiguous, making this method subjective and unreliable.
     Because the scale of the axes is arbitrary, the concept of an angle is not well-defined, and even on uniform random data,
     the curve produces an "elbow", making the method rather unreliable." <-- explanation from wikipedia
 
-    Secondly, because we are using the elbow method, I have found no way to make it so it can detect only a single event using synthetic data. 
+    Secondly, because we are using the elbow method, I have found no way to make it so it can detect only a single event using synthetic data.
     This is because it is because the elbow method that I have implemented (there is no actual elbow method algorithm) depends on the relative efficency of
     the sequential scores to figure out whether an "elbow" is happening. However, even if there is one cluster, the jump from the using cluster size of 1 to
     2 always makes the score go down significantly making it never pick cluster size 1.
 
     Thirdly, for both IoTCupid and Perceptio, there references to the elbow method do not come with an algorithm. Particularly, IoTCupid's reference does not
-    even contain a mention of the phrase "elbow method" even in the K-means section. 
+    even contain a mention of the phrase "elbow method" even in the K-means section (https://www.microsoft.com/en-us/research/uploads/prod/2006/01/Bishop-Pattern-Recognition-and-Machine-Learning-2006.pdf).
+
+    Fourthly, they do not explicitley state how they defuzz their fuzzy cmeans which is necessary to actual assign events into the groups. I
+    had to come up with a solution myself which includes a membership threshold argument.
 
     """
+
     def fuzzy_cmeans_w_elbow_method(
         features: np.ndarray,
         max_clusters: int,
@@ -251,7 +256,7 @@ class IoTCupidProcessing:
         x1 = best_score
         rel_val = x1
         c = 1
-        
+
         prev_score = best_score
         prev_fpc = best_fpc
         prev_u = best_u
@@ -303,14 +308,14 @@ class IoTCupidProcessing:
             for label in label_list:
                 event_groups[label].append(event)
         return event_groups
-    
+
     def defuzz(u, mem_thresh):
         labels = []
 
         for i in range(len(u[0])):
             event_labels = []
-            for j in range(len(u[:,i])):
-                score = u[j,i]
+            for j in range(len(u[:, i])):
+                score = u[j, i]
                 if score > mem_thresh:
                     event_labels.append(j)
             labels.append(event_labels)
@@ -347,7 +352,7 @@ class IoTCupidProcessing:
                 key = bytes(key[:key_size])
                 fp.append(key)
         return fp
-    
+
     def calculate_cluster_variance(features, cntr, u, mem_thresh):
         labels = IoTCupidProcessing.defuzz(u, mem_thresh)
         # Recalculate distances from each sample to each cluster center
@@ -355,7 +360,5 @@ class IoTCupidProcessing:
         for i in range(features.shape[0]):
             for j in range(cntr.shape[0]):
                 if j in labels[i] or len(labels[i]) == 0:
-                    distortions[j] += np.linalg.norm(features[:,i] - cntr[j])**2
+                    distortions[j] += np.linalg.norm(features[:, i] - cntr[j]) ** 2
         return np.mean(distortions)
-
-    
