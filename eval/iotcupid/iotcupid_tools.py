@@ -91,14 +91,15 @@ def generate_bits(
     feature_dim,
     Fs,
     key_size_in_bytes,
+    mem_th,
 ):
     event_features = IoTCupidProcessing.get_event_features(event_signals, feature_dim)
 
     cntr, u, optimal_clusters, fpcs = IoTCupidProcessing.fuzzy_cmeans_w_elbow_method(
-        event_features.T, max_clusters, cluster_th, m_start, m_end, m_searches
+        event_features.T, max_clusters, cluster_th, m_start, m_end, m_searches, mem_th
     )
 
-    grouped_events = IoTCupidProcessing.group_events(events, u)
+    grouped_events = IoTCupidProcessing.group_events(events, u, mem_th)
 
     inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(
         grouped_events, Fs, quantization_factor, key_size_in_bytes

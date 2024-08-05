@@ -37,6 +37,8 @@ if __name__ == "__main__":
         trials_default=100
     )
 
+    mem_th = 0.8
+
     # Generating the signals
     golden_signal = golden_signal(buffer_size)
     adv_signal = adversary_signal(buffer_size)
@@ -71,6 +73,7 @@ if __name__ == "__main__":
             feature_dimensions,
             Fs,
             key_size_in_bytes,
+            mem_th,
         )
         return bits
 
