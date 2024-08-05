@@ -64,6 +64,8 @@ class FastZIPProcessing:
             else:
                 normalize = normalize_list[i]
 
+            # print("Chunk: ", data)
+
             bits = FastZIPProcessing.compute_fingerprint(
                 data,
                 n_bits,
@@ -242,7 +244,7 @@ class FastZIPProcessing:
             pts = FastZIPProcessing.generate_equidist_points(
                 len(data), ceil(len(chunk) / n_bits), eqd_delta
             )
-            print("Points: ", pts)
+            # print("Points: ", pts)
 
             fp = ""
             for pt in pts:
