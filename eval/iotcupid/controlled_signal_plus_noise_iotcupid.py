@@ -6,6 +6,7 @@ import numpy as np
 from iotcupid_tools import (
     gen_min_events,
     generate_bits,
+    get_command_line_args
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
@@ -17,49 +18,30 @@ from eval_tools import (  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
-    # Setting up command-line argument parsing
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-tt", "--top_threshold", type=float, default=0.07)
-    parser.add_argument("-bt", "--bottom_threshold", type=float, default=0.05)
-    parser.add_argument("-lt", "--lump_threshold", type=int, default=4)
-    parser.add_argument("-a", "--ewma_a", type=float, default=0.75)
-    parser.add_argument("-cl", "--cluster_sizes_to_check", type=int, default=4)
-    parser.add_argument("-min", "--minimum_events", type=int, default=16)
-    parser.add_argument("-fs", "--sampling_frequency", type=float, default=10000)
-    parser.add_argument("-ch", "--chunk_size", type=int, default=10000)
-    parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
-    parser.add_argument("-ws", "--window_size", type=int, default=10)
-    parser.add_argument("-fd", "--feature_dimensions", type=int, default=3)
-    parser.add_argument("-w", "--quantization_factor", type=float, default=1)
-    parser.add_argument("-mstart", "--mstart", type=float, default=1.1)
-    parser.add_argument("-msteps", "--msteps", type=int, default=10)
-    parser.add_argument("-mend", "--mend", type=float, default=2)
-    parser.add_argument("-kl", "--key_length", type=int, default=128)
-    parser.add_argument("-snr", "--snr_level", type=float, default=20)
-    parser.add_argument("-t", "--trials", type=int, default=100)
+  
+    get_command_line_args(
+        top_threshold_default=0.07,
+        bottom_threshold_default=0.05,
+        lump_threshold_default=4,
+        ewma_a_default=0.75,
+        cluster_sizes_to_check_default=4,
+        minimum_events_default=16,
+        sampling_frequency_default=10000,
+        chunk_size_default=10000,
+        buffer_size_default=50000,
+        window_size_default=10,
+        feature_dimensions_default=3,
+        quantization_factor_default=1,
+        mstart_default=1.1,
+        msteps_default=10,
+        mend_default=2,
+        key_length_default=128,
+        snr_level_default=1,
+        trials_default=100
+    )
+    if __name__ == "__main__":
 
-    # Parsing command-line arguments
-    args = parser.parse_args()
-    top_th = getattr(args, "top_threshold")
-    bottom_th = getattr(args, "bottom_threshold")
-    lump_th = getattr(args, "lump_threshold")
-    a = getattr(args, "ewma_a")
-    cluster_sizes_to_check = getattr(args, "cluster_sizes_to_check")
-    cluster_th = 0.1  # Set a fixed cluster threshold
-    min_events = getattr(args, "minimum_events")
-    Fs = getattr(args, "sampling_frequency")
-    chunk_size = getattr(args, "chunk_size")
-    buffer_size = getattr(args, "buffer_size")
-    window_size = getattr(args, "window_size")
-    feature_dimensions = getattr(args, "feature_dimensions")
-    w = getattr(args, "quantization_factor")
-    m_start = getattr(args, "mstart")
-    m_steps = getattr(args, "msteps")
-    m_end = getattr(args, "mend")
-    key_size_in_bytes = getattr(args, "key_length") // 8
-    target_snr = getattr(args, "snr_level")
-    trials = getattr(args, "trials")
-
+        args = get_command_line_args()
     # Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
     adv_signal, sr = load_controlled_signal(

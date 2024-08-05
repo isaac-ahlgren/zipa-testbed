@@ -1,4 +1,5 @@
 import os
+import argparse
 import sys
 
 import numpy as np
@@ -104,3 +105,67 @@ def generate_bits(
     )
 
     return inter_event_timings, grouped_events
+
+def get_command_line_args(
+    top_threshold_default,
+    bottom_threshold_default,
+    lump_threshold_default,
+    ewma_a_default,
+    cluster_sizes_to_check_default,
+    minimum_events_default,
+    sampling_frequency_default,
+    chunk_size_default,
+    buffer_size_default,
+    window_size_default,
+    feature_dimensions_default,
+    quantization_factor_default,
+    mstart_default,
+    msteps_default,
+    mend_default,
+    key_length_default,
+    snr_level_default,
+    trials_default
+):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-tt", "--top_threshold", type=float, default=top_threshold_default)
+    parser.add_argument("-bt", "--bottom_threshold", type=float, default=bottom_threshold_default)
+    parser.add_argument("-lt", "--lump_threshold", type=int, default=lump_threshold_default)
+    parser.add_argument("-a", "--ewma_a", type=float, default=ewma_a_default)
+    parser.add_argument("-cl", "--cluster_sizes_to_check", type=int, default=cluster_sizes_to_check_default)
+    parser.add_argument("-min", "--minimum_events", type=int, default=minimum_events_default)
+    parser.add_argument("-fs", "--sampling_frequency", type=float, default=sampling_frequency_default)
+    parser.add_argument("-ch", "--chunk_size", type=int, default=chunk_size_default)
+    parser.add_argument("-bs", "--buffer_size", type=int, default=buffer_size_default)
+    parser.add_argument("-ws", "--window_size", type=int, default=window_size_default)
+    parser.add_argument("-fd", "--feature_dimensions", type=int, default=feature_dimensions_default)
+    parser.add_argument("-w", "--quantization_factor", type=float, default=quantization_factor_default)
+    parser.add_argument("-mstart", "--mstart", type=float, default=mstart_default)
+    parser.add_argument("-msteps", "--msteps", type=int, default=msteps_default)
+    parser.add_argument("-mend", "--mend", type=float, default=mend_default)
+    parser.add_argument("-kl", "--key_length", type=int, default=key_length_default)
+    parser.add_argument("-snr", "--snr_level", type=float, default=snr_level_default)
+    parser.add_argument("-t", "--trials", type=int, default=trials_default)
+
+    # Parsing command-line arguments
+    args = parser.parse_args()
+    top_th = getattr(args, "top_threshold")
+    bottom_th = getattr(args, "bottom_threshold")
+    lump_th = getattr(args, "lump_threshold")
+    a = getattr(args, "ewma_a")
+    cluster_sizes_to_check = getattr(args, "cluster_sizes_to_check")
+    cluster_th = 0.1  # Set a fixed cluster threshold
+    min_events = getattr(args, "minimum_events")
+    Fs = getattr(args, "sampling_frequency")
+    chunk_size = getattr(args, "chunk_size")
+    buffer_size = getattr(args, "buffer_size")
+    window_size = getattr(args, "window_size")
+    feature_dimensions = getattr(args, "feature_dimensions")
+    w = getattr(args, "quantization_factor")
+    m_start = getattr(args, "mstart")
+    m_steps = getattr(args, "msteps")
+    m_end = getattr(args, "mend")
+    key_size_in_bytes = getattr(args, "key_length") // 8
+    target_snr = getattr(args, "snr_level")
+    trials = getattr(args, "trials")
+
+    return top_th, bottom_th, lump_th, a, cluster_sizes_to_check, cluster_th, min_events, Fs, chunk_size, buffer_size, window_size, feature_dimensions, w, m_start, m_steps, m_end, key_size_in_bytes, target_snr, trials

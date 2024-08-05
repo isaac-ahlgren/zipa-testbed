@@ -1,5 +1,6 @@
 import os
 import sys
+import argparse
 
 import numpy as np
 
@@ -77,3 +78,57 @@ def generate_bits(
 
     fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size_in_bytes, Fs)
     return fps, grouped_events
+
+
+
+def get_command_line_args(
+    top_threshold_default=6,
+    bottom_threshold_default=4,
+    lump_threshold_default=4,
+    ewma_a_default=0.75,
+    cluster_sizes_to_check_default=4,
+    minimum_events_default=16,
+    sampling_frequency_default=10000,
+    chunk_size_default=10000,
+    buffer_size_default=50000,
+    key_length_default=128,
+    snr_level_default=20,
+    trials_default=100
+):
+    parser = argparse.ArgumentParser()
+
+    # Add arguments without descriptions
+    parser.add_argument("-tt", "--top_threshold", type=float, default=top_threshold_default)
+    parser.add_argument("-bt", "--bottom_threshold", type=float, default=bottom_threshold_default)
+    parser.add_argument("-lt", "--lump_threshold", type=int, default=lump_threshold_default)
+    parser.add_argument("-a", "--ewma_a", type=float, default=ewma_a_default)
+    parser.add_argument("-cl", "--cluster_sizes_to_check", type=int, default=cluster_sizes_to_check_default)
+    parser.add_argument("-min", "--minimum_events", type=int, default=minimum_events_default)
+    parser.add_argument("-fs", "--sampling_frequency", type=float, default=sampling_frequency_default)
+    parser.add_argument("-ch", "--chunk_size", type=int, default=chunk_size_default)
+    parser.add_argument("-bs", "--buffer_size", type=int, default=buffer_size_default)
+    parser.add_argument("-kl", "--key_length", type=int, default=key_length_default)
+    parser.add_argument("-snr", "--snr_level", type=float, default=snr_level_default)
+    parser.add_argument("-t", "--trials", type=int, default=trials_default)
+
+    # Parsing command-line arguments
+    args = parser.parse_args()
+
+    # Extracting arguments
+    top_th = getattr(args, "top_threshold")
+    bottom_th = getattr(args, "bottom_threshold")
+    lump_th = getattr(args, "lump_threshold")
+    a = getattr(args, "ewma_a")
+    cluster_sizes_to_check = getattr(args, "cluster_sizes_to_check")
+    cluster_th = 0.1  # Set a fixed cluster threshold
+    min_events = getattr(args, "minimum_events")
+    Fs = getattr(args, "sampling_frequency")
+    chunk_size = getattr(args, "chunk_size")
+    buffer_size = getattr(args, "buffer_size")
+    key_size_in_bytes = getattr(args, "key_length") // 8
+    target_snr = getattr(args, "snr_level")
+    trials = getattr(args, "trials")
+
+    return (top_th, bottom_th, lump_th, a, cluster_sizes_to_check, cluster_th,
+            min_events, Fs, chunk_size, buffer_size, key_size_in_bytes, target_snr, trials)
+
