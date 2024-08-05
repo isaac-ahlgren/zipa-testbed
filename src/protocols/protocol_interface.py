@@ -128,6 +128,9 @@ class ProtocolInterface:
         shared_list.shm.unlink()
 
     def get_context(self) -> Any:
+        """
+        Manages the shared list usage for retrieving context data.
+        """
         results = None
         # Keep track if shared list is being used
 
@@ -186,9 +189,18 @@ class ProtocolInterface:
         raise NotImplementedError
 
     def process_context(self) -> Any:
+        """
+        Processes the collected data. Must be implemented by subclasses.
+        """
         raise NotImplementedError
 
-    def read_samples(self, sample_num) -> Any:
+    def read_samples(self, sample_num: int) -> np.ndarray:
+        """
+        Reads specified number of samples from the queue.
+
+        :param sample_num: The number of samples to read.
+        :return: An array of the collected samples.
+        """
         # Assuming only one process is handling this.
         samples_read = 0
         output = np.array([])

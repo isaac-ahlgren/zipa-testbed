@@ -8,14 +8,14 @@ sys.path.insert(
     1, os.getcwd() + "/../../src/"
 )  # Gives us path to Schurmann and Siggs algorithm in /src
 
-from protocols.shurmann import Shurmann_Siggs_Protocol  # noqa: E402
+from signal_processing.shurmann import SchurmannProcessing  # noqa: E402
 
 MICROPHONE_SAMPLING_RATE = 48000
 ANTIALIASING_FILTER = 18000
 
 
 def schurmann_wrapper_func(arr, window_length, band_len, sampling_freq, antialias_freq):
-    return Shurmann_Siggs_Protocol.zero_out_antialias_sigs_algo(
+    return SchurmannProcessing.zero_out_antialias_sigs_algo(
         arr, antialias_freq, sampling_freq, window_len=window_length, bands=band_len
     )
 

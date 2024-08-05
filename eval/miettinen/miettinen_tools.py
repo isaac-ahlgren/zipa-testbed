@@ -8,13 +8,13 @@ sys.path.insert(
     1, os.getcwd() + "/../../src/"
 )  # Gives us path to Miettinen algorithm in /src
 
-from protocols.miettinen import Miettinen_Protocol  # noqa: E402
+from signal_processing.miettinen import MiettinenProcessing  # noqa: E402
 
 MICROPHONE_SAMPLING_RATE = 48000
 
 
 def miettinen_wrapper_func(arr, f, w, rel_thresh, abs_thresh):
-    return Miettinen_Protocol.miettinen_algo(arr, f, w, rel_thresh, abs_thresh)
+    return MiettinenProcessing.miettinen_algo(arr, f, w, rel_thresh, abs_thresh)
 
 
 def golden_signal(sample_num, fs):
