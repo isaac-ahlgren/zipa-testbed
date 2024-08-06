@@ -135,9 +135,9 @@ class IoTCupidProcessing:
             ):
                 found_event = False
                 found_event = None
-                events.append((beg_event_num, i - 1))
+                events.append((beg_event_num, i))
         if found_event:
-            events.append((beg_event_num, i))
+            events.append((beg_event_num, len(derivatives)))
 
         i = 0
         while i < len(events) - 1:
@@ -155,14 +155,7 @@ class IoTCupidProcessing:
         events: List[Tuple[int, int]],
         sensor_data: np.ndarray,
     ) -> np.ndarray:
-        """
-        Extracts features from event data using TSFresh for dimensionality reduction with PCA.
 
-        :param events: List of event indices.
-        :param sensor_data: Data from which to extract features.
-        :param feature_dim: Dimension of the feature space after PCA.
-        :return: Array of reduced dimensionality features.
-        """
         event_signals = []
         for i, (start, end) in enumerate(events):
             event_signals.append(sensor_data[start:end])
@@ -320,7 +313,6 @@ class IoTCupidProcessing:
 
     def defuzz(u, mem_thresh):
         labels = []
-
         for i in range(len(u[0])):
             event_labels = []
             for j in range(len(u[:, i])):
@@ -333,12 +325,6 @@ class IoTCupidProcessing:
     def calculate_inter_event_timings(
         grouped_events: List[List[Tuple[int, int]]], Fs, quantization_factor, key_size
     ):
-        """
-        Calculates the timings between consecutive events within each group.
-
-        :param grouped_events: The grouped events as determined by the clustering.
-        :return: A dictionary with cluster IDs as keys and arrays of inter-event timings as values.
-        """
         from datetime import timedelta
 
         fp = []
