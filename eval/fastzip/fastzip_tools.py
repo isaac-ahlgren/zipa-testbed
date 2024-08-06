@@ -11,6 +11,7 @@ from signal_processing.fastzip import FastZIPProcessing  # noqa: E402
 SAMPLING_RATE = 50
 
 
+# This is working how I want it to
 def manage_overlapping_chunks(signal_buffer, chunk_size, overlap_size):
     previous_chunk = np.array([])
 

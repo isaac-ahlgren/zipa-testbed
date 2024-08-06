@@ -241,16 +241,17 @@ class FastZIPProcessing:
             print("qs threshold", qs_thr)
 
             pts = FastZIPProcessing.generate_equidist_points(
-                len(data), ceil(len(chunk) / n_bits), eqd_delta
+                len(chunk), ceil(len(chunk) / n_bits), eqd_delta
             )
             # print("Points: ", pts)
 
             fp = ""
             for pt in pts:
-                if all(data[pt] > qs_thr):
-                    fp += "1"
-                else:
-                    fp += "0"
+                for index in pt:
+                    if chunk[index] > qs_thr:
+                        fp += "1"
+                    else:
+                        fp += "0"
 
         return fp
 

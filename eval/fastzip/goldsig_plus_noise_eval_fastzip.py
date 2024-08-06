@@ -17,20 +17,20 @@ from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-ws", "--window_size", type=int, default=200)
-    parser.add_argument("-os", "--overlap_size", type=int, default=100)
-    parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
+    parser.add_argument("-ws", "--window_size", type=int, default=1000)
+    parser.add_argument("-os", "--overlap_size", type=int, default=200)
+    parser.add_argument("-bs", "--buffer_size", type=int, default=50000)  # Leave as
     parser.add_argument("-nb", "--n_bits", type=int, default=12)
-    parser.add_argument("-kl", "--key_length", type=int, default=128)
+    parser.add_argument("-kl", "--key_length", type=int, default=128)  # Leave as
     parser.add_argument("-b", "--bias", type=int, default=0)
     parser.add_argument("-ed", "--eqd_delta", type=int, default=1)
     parser.add_argument("-ef", "--ewma_filter", type=bool, default=None)
     parser.add_argument("-ps", "--peak_status", type=bool, default=None)
     parser.add_argument("-a", "--alpha", type=float, default=None)
     parser.add_argument("-rn", "--remove_noise", type=bool, default=None)
-    parser.add_argument("-n", "--normalize", type=bool, default=None)
+    parser.add_argument("-n", "--normalize", type=bool, default=True)
     parser.add_argument("-pt", "--power_threshold", type=int, default=-12)
-    parser.add_argument("-st", "--snr_threshold", type=int, default=1.2)
+    parser.add_argument("-st", "--snr_threshold", type=int, default=1.6)
     parser.add_argument("-np", "--number_peaks", type=int, default=0)
     parser.add_argument("-snr", "--snr_level", type=int, default=20)
     parser.add_argument("-t", "--trials", type=int, default=1000)
