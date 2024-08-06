@@ -3,18 +3,15 @@ import os
 import sys
 
 import numpy as np
-from fastzip_tools import (
-    SAMPLING_RATE,
-    fastzip_wrapper_function,
-    manage_overlapping_chunks,
-)
+from fastzip_tools import fastzip_wrapper_function, manage_overlapping_chunks
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import Signal_Buffer, cmp_bits  # noqa: E402
+from eval_tools import (  # noqa: E402
+    Signal_Buffer,
+    cmp_bits,
+    load_controlled_signal,
+)
 from evaluator import Evaluator  # noqa: E402
-
-# rewrite to work with fastzip
-# Might need to add the range threshold for the bar, and eliminate the number of peaks
 
 
 def load_csv_data(filepath):
@@ -25,24 +22,26 @@ def load_csv_data(filepath):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-ws", "--window_size", type=int, default=200)
-    parser.add_argument("-os", "--overlap_size", type=int, default=100)
+    parser.add_argument("-ws", "--window_size", type=int, default=16537)
+    parser.add_argument("-os", "--overlap_size", type=int, default=500)
     parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
-    parser.add_argument("-nb", "--n_bits", type=int, default=12)
+    parser.add_argument("-nb", "--n_bits", type=int, default=18)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
     parser.add_argument("-b", "--bias", type=int, default=0)
     parser.add_argument(
         "-ed", "--eqd_delta", type=int, default=1
     )  # default might avtually be 20
-    parser.add_argument("-ps", "--peak_status", type=bool, default=None)
-    parser.add_argument("-ef", "--ewma_filter", type=bool, default=None)
+    parser.add_argument("-ps", "--peak_status", type=bool, default=True)
+    parser.add_argument("-ef", "--ewma_filter", type=bool, default=True)
     parser.add_argument("-a", "--alpha", type=float, default=None)
-    parser.add_argument("-rn", "--remove_noise", type=bool, default=None)
+    parser.add_argument("-rn", "--remove_noise", type=bool, default=True)
     parser.add_argument("-n", "--normalize", type=bool, default=True)
-    parser.add_argument("-pt", "--power_threshold", type=int, default=-12)  # -12
-    parser.add_argument("-st", "--snr_threshold", type=int, default=1.2)
-    parser.add_argument("-np", "--number_peaks", type=int, default=0)  # 0
-    parser.add_argument("-snr", "--snr_level", type=int, default=20)
+    parser.add_argument("-pt", "--power_threshold", type=int, default=70)  # -12
+    parser.add_argument("-st", "--snr_threshold", type=int, default=3)
+    parser.add_argument("-np", "--number_peaks", type=int, default=2)  # 0
+    parser.add_argument(
+        "-snr", "--snr_level", type=int, default=20
+    )  # This is for the buffer - the test wav files
     parser.add_argument("-t", "--trials", type=int, default=1000)
 
     args = parser.parse_args()
@@ -65,8 +64,13 @@ if __name__ == "__main__":
 
     trials = getattr(args, "trials")
 
-    legit_signal = load_csv_data("../../data/legit_bmp.csv")
-    adv_signal = load_csv_data("../../data/adv_bmp.csv")
+    # legit_signal = load_csv_data("../../data/legit_bmp.csv")
+    # adv_signal = load_csv_data("../../data/adv_bmp.csv")
+
+    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
+    )
 
     legit_signal_buffer1 = Signal_Buffer(
         legit_signal.copy(), noise=True, target_snr=target_snr
@@ -81,6 +85,8 @@ if __name__ == "__main__":
 
     # sample_num = fastzip_calc_sample_num(key_length, window_length)
 
+    # print("sr: ", sr)
+
     def bit_gen_algo(signal):
         accumulated_bits = b""
         for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
@@ -91,7 +97,7 @@ if __name__ == "__main__":
                 snr_threshold,
                 number_peaks,
                 bias,
-                SAMPLING_RATE,
+                sr,
                 eqd_delta,
                 peak_status,
                 ewma_filter,

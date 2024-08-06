@@ -210,11 +210,11 @@ class FastZIPProcessing:
         remove_noise=False,
         normalize=False,
     ):
-        print("alpha: ", alpha)
+        # print("alpha: ", alpha)
         chunk = np.copy(data)
         fp = None
 
-        print("Normalize status: ", normalize)
+        # print("Normalize status: ", normalize)
 
         if normalize:
             chunk = FastZIPProcessing.normalize_signal(chunk)
@@ -228,13 +228,12 @@ class FastZIPProcessing:
             peak_status,
             alpha,
         )
-        # activity = True
         print("Activity detected:", activity)
         if activity:
-            print("Noise removal status: ", remove_noise)
+            # print("Noise removal status: ", remove_noise)
             if remove_noise:
                 chunk = FastZIPProcessing.remove_noise(chunk)
-            print("Ewma filter status: ", ewma_filter)
+            # print("Ewma filter status: ", ewma_filter)
             if ewma_filter:
                 chunk = FastZIPProcessing.ewma_filter(abs(chunk), alpha)
 
