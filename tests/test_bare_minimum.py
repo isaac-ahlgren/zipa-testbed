@@ -55,7 +55,7 @@ def testing_iotcupid_bit_generation_interface():
     signal = rng.integers(0, 10, size=100000)
 
     fps, events = IoTCupidProcessing.iotcupid(
-        signal, 128, 10000, 0.75, 4, 3, 1, 0.1, 10, 0.05, 0.07, 4, 1.1, 2, 10
+        signal, 128, 10000, 0.75, 4, 3, 1, 0.1, 10, 0.05, 0.07, 4, 1.1, 2, 10, 0.8
     )
 
     assert type(fps) is list  # nosec

@@ -3,10 +3,7 @@ import os
 import sys
 
 import numpy as np
-from iotcupid_tools import (
-    gen_min_events,
-    generate_bits,
-)
+from iotcupid_tools import gen_min_events, generate_bits
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
@@ -60,6 +57,8 @@ if __name__ == "__main__":
     target_snr = getattr(args, "snr_level")
     trials = getattr(args, "trials")
 
+    mem_th = 0.8
+
     # Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
     adv_signal, sr = load_controlled_signal(
@@ -101,6 +100,7 @@ if __name__ == "__main__":
             feature_dimensions,
             Fs,
             key_size_in_bytes,
+            mem_th,
         )
         return bits
 
@@ -116,4 +116,3 @@ if __name__ == "__main__":
     # Printing the average bit error rates
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
     print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
-
