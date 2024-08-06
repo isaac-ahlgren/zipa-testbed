@@ -47,58 +47,65 @@ def test_detect_events():
     assert events[2][0] == 77 and events[2][1] == 78  # nosec
     assert events[3][0] == 97 and events[3][1] == 100  # nosec
 
+
 def test_get_event_signals():
-    signal = [4,4,4,4,2,2,2,2,3,3,4,4,5]
+    signal = [4, 4, 4, 4, 2, 2, 2, 2, 3, 3, 4, 4, 5]
     events = IoTCupidProcessing.detect_events(signal, 4, 5, 1)
 
     event_signals = IoTCupidProcessing.get_event_signals(events, signal)
-    
-    assert len(event_signals) == 2 # nosec
-    assert set(event_signals[0]) == set([4,4,4,4]) # nosec
-    assert set(event_signals[1]) == set([4,4,5]) # nosec
+
+    assert len(event_signals) == 2  # nosec
+    assert set(event_signals[0]) == set([4, 4, 4, 4])  # nosec
+    assert set(event_signals[1]) == set([4, 4, 5])  # nosec
+
 
 def test_group_events():
-    signal = [4,4,4,4,2,2,2,4,4,2,2,3,3,4,4,5]
+    signal = [4, 4, 4, 4, 2, 2, 2, 4, 4, 2, 2, 3, 3, 4, 4, 5]
     events = IoTCupidProcessing.detect_events(signal, 4, 5, 1)
 
-    u = np.zeros((4,3))
-    u[0,0] = 0.6
-    u[0,1] = 0.6
-    u[0,2] = 0
+    u = np.zeros((4, 3))
+    u[0, 0] = 0.6
+    u[0, 1] = 0.6
+    u[0, 2] = 0
 
-    u[1,0] = 0
-    u[1,1] = 1
-    u[1,2] = 0.8
+    u[1, 0] = 0
+    u[1, 1] = 1
+    u[1, 2] = 0.8
 
-    u[2,0] = 0.6
-    u[2,1] = 1
-    u[2,2] = 0.8
+    u[2, 0] = 0.6
+    u[2, 1] = 1
+    u[2, 2] = 0.8
 
-    u[3,0] = 0
-    u[3,1] = 0
-    u[3,2] = 0
+    u[3, 0] = 0
+    u[3, 1] = 0
+    u[3, 2] = 0
 
     grouped_events = IoTCupidProcessing.group_events(events, u, 0.5)
 
-    assert len(grouped_events[3]) == 0 # nosec
-    assert set(grouped_events[0]) == set([(0,4), (7,9)]) # nosec
-    assert set(grouped_events[1]) == set([(7,9), (13,16)]) # nosec
-    assert set(grouped_events[2]) == set([(0,4), (7,9), (13,16)]) # nosec
+    assert len(grouped_events[3]) == 0  # nosec
+    assert set(grouped_events[0]) == set([(0, 4), (7, 9)])  # nosec
+    assert set(grouped_events[1]) == set([(7, 9), (13, 16)])  # nosec
+    assert set(grouped_events[2]) == set([(0, 4), (7, 9), (13, 16)])  # nosec
+
 
 def test_calculate_inter_event_timings():
-    grouped_events = [[(1,4), (500,1000), (1300,1500), (1800, 2100)], [(5,7), (9,16), (25,27)], [(19,21)]]
+    grouped_events = [
+        [(1, 4), (500, 1000), (1300, 1500), (1800, 2100)],
+        [(5, 7), (9, 16), (25, 27)],
+        [(19, 21)],
+    ]
     fps = IoTCupidProcessing.calculate_inter_event_timings(grouped_events, 1, 1, 8)
 
     IN_MICROSECONDS = 1000000
 
-    assert_key1 = bytearray()  
-    assert_key1 += (499*IN_MICROSECONDS).to_bytes(4, "big")
-    assert_key1 += (800*IN_MICROSECONDS).to_bytes(4, "big")
+    assert_key1 = bytearray()
+    assert_key1 += (499 * IN_MICROSECONDS).to_bytes(4, "big")
+    assert_key1 += (800 * IN_MICROSECONDS).to_bytes(4, "big")
 
     assert_key2 = bytearray()
-    assert_key2 += (4*IN_MICROSECONDS).to_bytes(4, "big") 
-    assert_key2 += (16*IN_MICROSECONDS).to_bytes(4, "big")
+    assert_key2 += (4 * IN_MICROSECONDS).to_bytes(4, "big")
+    assert_key2 += (16 * IN_MICROSECONDS).to_bytes(4, "big")
 
-    assert len(fps) == 2 # nosec
-    assert set(fps[0]) == set(assert_key1) # nosec
-    assert set(fps[1]) == set(assert_key2) # nosec
+    assert len(fps) == 2  # nosec
+    assert set(fps[0]) == set(assert_key1)  # nosec
+    assert set(fps[1]) == set(assert_key2)  # nosec
