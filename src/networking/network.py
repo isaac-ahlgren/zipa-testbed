@@ -13,6 +13,7 @@ NONC = "nonce   "
 PRAM = "preamble"
 SUCC = "success "
 FAIL = "failed  "
+FPFM = "fpakmsg1"
 
 
 def send_status(connection: socket.socket, status: bool) -> None:
@@ -258,3 +259,38 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
                 break
 
     return nonce
+
+def send_fpake_first_msg(connection, msg):
+    length_payload = (len(msg[0])).to_bytes(4, byteorder="big") + (len(msg[1])).to_bytes(4, byteorder="big") + (len(msg[2])).to_bytes(4, byteorder="big")
+    payload = length_payload + msg[0] + msg[1] + msg[2]
+    length = len(payload)
+    outgoing = FPFM.encode() + length.to_bytes(4, byteorder="big") + payload
+    connection.send(outgoing)
+
+def fpake_first_msg_standby(connection: socket.socket, msg, timeout: int) -> bool:
+    msg = None
+    reference = time.time()
+    timestamp = reference
+
+    # While process hasn't timed out
+    while (timestamp - reference) < timeout:
+        timestamp = time.time()
+        message = connection.recv(12)
+
+        if message is None:
+            continue
+        elif message[:8] == FPFM.encode():
+            msg_size = int.from_bytes(message[8:12], "big")
+            payload = connection.recv(msg_size)
+
+            payload1_length = int.from_bytes(payload[:4], "big")
+            payload2_length = int.from_bytes(payload[4:8], "big")
+            payload3_length = int.from_bytes(payload[8:12], "big")
+
+            payload1 = payload[12:12+payload1_length]
+            payload2 = payload[12+payload1_length:12+payload1_length+payload2_length]
+            payload3 = payload[12+payload1_length+payload2_length:12+payload1_length+payload2_length+payload3_length]
+
+            msg = (payload1, payload2, payload2) 
+
+    return msg
