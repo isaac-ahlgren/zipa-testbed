@@ -13,35 +13,24 @@ from eval_tools import (  # noqa: E402
 )
 from evaluator import Evaluator  # noqa: E402
 
-
-def load_csv_data(filepath):
-    # Load only the third column (index 2) from the CSV
-    data = np.loadtxt(filepath, delimiter=",", usecols=[2])
-    return data
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-ws", "--window_size", type=int, default=16537)
-    parser.add_argument("-os", "--overlap_size", type=int, default=500)
+    parser.add_argument("-ws", "--window_size", type=int, default=200)
+    parser.add_argument("-os", "--overlap_size", type=int, default=100)
     parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
     parser.add_argument("-nb", "--n_bits", type=int, default=18)
     parser.add_argument("-kl", "--key_length", type=int, default=128)
     parser.add_argument("-b", "--bias", type=int, default=0)
-    parser.add_argument(
-        "-ed", "--eqd_delta", type=int, default=1
-    )  # default might avtually be 20
-    parser.add_argument("-ps", "--peak_status", type=bool, default=True)
-    parser.add_argument("-ef", "--ewma_filter", type=bool, default=True)
+    parser.add_argument("-ed", "--eqd_delta", type=int, default=1)
+    parser.add_argument("-ps", "--peak_status", type=bool, default=None)
+    parser.add_argument("-ef", "--ewma_filter", type=bool, default=None)
     parser.add_argument("-a", "--alpha", type=float, default=None)
-    parser.add_argument("-rn", "--remove_noise", type=bool, default=True)
+    parser.add_argument("-rn", "--remove_noise", type=bool, default=None)
     parser.add_argument("-n", "--normalize", type=bool, default=True)
-    parser.add_argument("-pt", "--power_threshold", type=int, default=70)  # -12
-    parser.add_argument("-st", "--snr_threshold", type=int, default=3)
-    parser.add_argument("-np", "--number_peaks", type=int, default=2)  # 0
-    parser.add_argument(
-        "-snr", "--snr_level", type=int, default=20
-    )  # This is for the buffer - the test wav files
+    parser.add_argument("-pt", "--power_threshold", type=int, default=70)
+    parser.add_argument("-st", "--snr_threshold", type=int, default=1.2)
+    parser.add_argument("-np", "--number_peaks", type=int, default=0)
+    parser.add_argument("-snr", "--snr_level", type=int, default=20)
     parser.add_argument("-t", "--trials", type=int, default=1000)
 
     args = parser.parse_args()
@@ -64,9 +53,6 @@ if __name__ == "__main__":
 
     trials = getattr(args, "trials")
 
-    # legit_signal = load_csv_data("../../data/legit_bmp.csv")
-    # adv_signal = load_csv_data("../../data/adv_bmp.csv")
-
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
     adv_signal, sr = load_controlled_signal(
         "../../data/adversary_controlled_signal.wav"
@@ -80,12 +66,7 @@ if __name__ == "__main__":
     )
     adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
 
-    # Grouping the signal buffers into a tuple
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
-
-    # sample_num = fastzip_calc_sample_num(key_length, window_length)
-
-    # print("sr: ", sr)
 
     def bit_gen_algo(signal):
         accumulated_bits = b""
@@ -108,7 +89,6 @@ if __name__ == "__main__":
 
             if bits:
                 accumulated_bits += bits
-                print("accumulated_bits: ", accumulated_bits)
                 if len(accumulated_bits) >= key_length:
                     break
         if len(accumulated_bits) > key_length:
@@ -116,9 +96,8 @@ if __name__ == "__main__":
         return accumulated_bits
 
     evaluator = Evaluator(bit_gen_algo)
-    # Evaluating the signals with the specified number of trials
     evaluator.evaluate(signals, trials)
-    # Comparing the bit errors for legitimate and adversary signals
+
     legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
 
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")

@@ -19,9 +19,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-ws", "--window_size", type=int, default=1000)
     parser.add_argument("-os", "--overlap_size", type=int, default=200)
-    parser.add_argument("-bs", "--buffer_size", type=int, default=50000)  # Leave as
+    parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
     parser.add_argument("-nb", "--n_bits", type=int, default=12)
-    parser.add_argument("-kl", "--key_length", type=int, default=128)  # Leave as
+    parser.add_argument("-kl", "--key_length", type=int, default=128)
     parser.add_argument("-b", "--bias", type=int, default=0)
     parser.add_argument("-ed", "--eqd_delta", type=int, default=1)
     parser.add_argument("-ef", "--ewma_filter", type=bool, default=None)
@@ -54,9 +54,9 @@ if __name__ == "__main__":
     target_snr = getattr(args, "snr_level")
     trials = getattr(args, "trials")
 
-    signal1 = golden_signal(buffer_size, seed=0)
-    signal2 = golden_signal(buffer_size, seed=0)
-    adv_signal = adversary_signal(buffer_size, seed=12)
+    signal1 = golden_signal(buffer_size)
+    signal2 = golden_signal(buffer_size)
+    adv_signal = adversary_signal(buffer_size)
     legit_signal_buffer1 = Signal_Buffer(signal1, noise=True, target_snr=target_snr)
     legit_signal_buffer2 = Signal_Buffer(signal2, noise=True, target_snr=target_snr)
     adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
@@ -83,18 +83,15 @@ if __name__ == "__main__":
 
             if bits:
                 accumulated_bits += bits
-                print("accumulated_bits: ", accumulated_bits)
                 if len(accumulated_bits) >= key_length:
                     break
         if len(accumulated_bits) > key_length:
             return accumulated_bits[:key_length]
         return accumulated_bits
 
-    # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
-    # Evaluating the signals with the specified number of trials
     evaluator.evaluate(signals, trials)
-    # Comparing the bit errors for legitimate and adversary signals
+
     legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
 
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")

@@ -39,12 +39,12 @@ class FastZIPProcessing:
             sample_rate = sample_rate_list[i]
             eqd_delta = eqd_delta_list[i]
 
-            if peak_status_list == None:
+            if peak_status_list is None:
                 peak_status = False
             else:
                 peak_status = peak_status_list[i]
 
-            if ewma_filter_list == None:
+            if ewma_filter_list is None:
                 ewma_filter = False
             else:
                 ewma_filter = ewma_filter_list[i]
@@ -54,17 +54,15 @@ class FastZIPProcessing:
             else:
                 alpha = alpha_list[i]
 
-            if remove_noise_list == None:
+            if remove_noise_list is None:
                 remove_noise = False
             else:
                 remove_noise = remove_noise_list[i]
 
-            if normalize_list == None:
+            if normalize_list is None:
                 normalize = False
             else:
                 normalize = normalize_list[i]
-
-            # print("Chunk: ", data)
 
             bits = FastZIPProcessing.compute_fingerprint(
                 data,
@@ -82,20 +80,17 @@ class FastZIPProcessing:
                 normalize=normalize,
             )
 
-            if bits != None:
+            if bits is not None:
                 key += bits
         return bitstring_to_bytes(key)
 
     def normalize_signal(sig):
-        # Check if sig is non-zero
         if len(sig) == 0:
             print("normalize_signal: signal must have non-zero length!")
             return
 
-        # Noramlized signal to be returned
         norm_sig = np.copy(sig)
 
-        # Subtract mean from sig
         norm_sig = norm_sig - np.mean(norm_sig)
 
         return norm_sig
@@ -133,31 +128,18 @@ class FastZIPProcessing:
     def activity_filter(
         signal, power_thresh, snr_thresh, peak_thresh, sample_rate, peak_status, alpha
     ):
-        # Ensure signal is a numpy array
         signal = np.copy(signal)
 
-        # Initialize metrics
         power, snr, peaks = 0, 0, 0
 
-        # Compute signal power (similar for all sensor types
         power = FastZIPProcessing.compute_sig_power(signal)
-        print("Power threshold: ", power_thresh)
-        print("Signal Power: ", power)
 
-        # Find peaks
-        # This is only for the accelerometer so it needs to be constricted as such
         if peak_status:
             signal = FastZIPProcessing.ewma_filter(abs(signal), alpha)
             peaks = FastZIPProcessing.get_peaks(signal, sample_rate)
-            print("Peak threshold: ", peak_thresh)
-            print("Peaks: ", peaks)
 
-        # Compute signal's SNR
         snr = FastZIPProcessing.compute_snr(signal)
-        print("SNR Threshold: ", snr_thresh)
-        print("Signal SNR: ", snr)
 
-        # Check against thresholds to determine if activity is present
         activity_detected = False
         if power > power_thresh and snr > snr_thresh and peaks >= peak_thresh:
             activity_detected = True
@@ -165,24 +147,19 @@ class FastZIPProcessing:
         return activity_detected
 
     def compute_qs_thr(chunk, bias):
-        # Make a copy of chunk
         chunk_cpy = np.copy(chunk)
 
-        # Sort the chunk
         chunk_cpy.sort()
 
         return np.median(chunk_cpy) + bias
 
     def generate_equidist_points(chunk_len, step, eqd_delta):
-        # Equidistant delta cannot be bigger than the step
         if eqd_delta > step:
             print('generate_equidist_points: "eqd_delta" must be smaller than "step"')
             return -1, 0
 
-        # Store equidistant points
         eqd_rand_points = []
 
-        # Generate equdistant points
         for i in range(0, ceil(chunk_len / eqd_delta)):
             eqd_rand_points.append(
                 np.arange(
@@ -210,11 +187,8 @@ class FastZIPProcessing:
         remove_noise=False,
         normalize=False,
     ):
-        # print("alpha: ", alpha)
         chunk = np.copy(data)
         fp = None
-
-        # print("Normalize status: ", normalize)
 
         if normalize:
             chunk = FastZIPProcessing.normalize_signal(chunk)
@@ -228,22 +202,17 @@ class FastZIPProcessing:
             peak_status,
             alpha,
         )
-        print("Activity detected:", activity)
         if activity:
-            # print("Noise removal status: ", remove_noise)
             if remove_noise:
                 chunk = FastZIPProcessing.remove_noise(chunk)
-            # print("Ewma filter status: ", ewma_filter)
             if ewma_filter:
                 chunk = FastZIPProcessing.ewma_filter(abs(chunk), alpha)
 
             qs_thr = FastZIPProcessing.compute_qs_thr(chunk, bias)
-            print("qs threshold", qs_thr)
 
             pts = FastZIPProcessing.generate_equidist_points(
                 len(chunk), ceil(len(chunk) / n_bits), eqd_delta
             )
-            # print("Points: ", pts)
 
             fp = ""
             for pt in pts:

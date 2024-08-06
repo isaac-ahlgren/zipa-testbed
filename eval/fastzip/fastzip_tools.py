@@ -11,7 +11,6 @@ from signal_processing.fastzip import FastZIPProcessing  # noqa: E402
 SAMPLING_RATE = 50
 
 
-# This is working how I want it to
 def manage_overlapping_chunks(signal_buffer, chunk_size, overlap_size):
     previous_chunk = np.array([])
 
@@ -67,14 +66,13 @@ def fastzip_wrapper_function(
     )
 
 
-def golden_signal(sample_num, seed):
-    np.random.seed(seed)
+def golden_signal(sample_num):
+    np.random.seed(0)
     output = np.random.rand(sample_num)
     return output
 
 
-# This is redundant, might as well eliminate
-def adversary_signal(sample_num, seed):
-    np.random.seed(seed)
+def adversary_signal(sample_num):
+    np.random.seed(12)
     output = np.random.rand(sample_num)
     return output
