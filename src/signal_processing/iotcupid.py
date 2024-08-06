@@ -83,6 +83,15 @@ class IoTCupidProcessing:
             y[i] = a * signal[i] + (1 - a) * y[i - 1]
         return y
 
+    """
+    Comments potentially for the paper: This algorithm doesn't seem like it was designed for live testing in mind.
+    This function is a prime example of it. The idea of using a derivative in this algorithm is to try to detect event
+    that happen graudally like the temperature changing in the room over half a second when you open up a door. However, in a live system,
+    you typically have to process only large chunks at a time. If a gradual event happens between windows, you can't do a sliding window
+    derivative between chunks without instense processing overhead (by way of slowly adding new data one at a time and recomputing the derivative each time
+    with is extremely computationally expensive for large buffers)
+    """
+
     def compute_derivative(signal, window_size: int) -> np.ndarray:
         """
         Computes the derivative of a signal based on a specified window size.
@@ -128,7 +137,7 @@ class IoTCupidProcessing:
                 found_event = None
                 events.append((beg_event_num, i))
         if found_event:
-            events.append((beg_event_num, i))
+            events.append((beg_event_num, len(derivatives)))
 
         i = 0
         while i < len(events) - 1:
@@ -146,14 +155,7 @@ class IoTCupidProcessing:
         events: List[Tuple[int, int]],
         sensor_data: np.ndarray,
     ) -> np.ndarray:
-        """
-        Extracts features from event data using TSFresh for dimensionality reduction with PCA.
 
-        :param events: List of event indices.
-        :param sensor_data: Data from which to extract features.
-        :param feature_dim: Dimension of the feature space after PCA.
-        :return: Array of reduced dimensionality features.
-        """
         event_signals = []
         for i, (start, end) in enumerate(events):
             event_signals.append(sensor_data[start:end])
@@ -311,7 +313,6 @@ class IoTCupidProcessing:
 
     def defuzz(u, mem_thresh):
         labels = []
-
         for i in range(len(u[0])):
             event_labels = []
             for j in range(len(u[:, i])):
@@ -324,12 +325,6 @@ class IoTCupidProcessing:
     def calculate_inter_event_timings(
         grouped_events: List[List[Tuple[int, int]]], Fs, quantization_factor, key_size
     ):
-        """
-        Calculates the timings between consecutive events within each group.
-
-        :param grouped_events: The grouped events as determined by the clustering.
-        :return: A dictionary with cluster IDs as keys and arrays of inter-event timings as values.
-        """
         from datetime import timedelta
 
         fp = []
