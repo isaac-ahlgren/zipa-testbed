@@ -16,7 +16,8 @@ from eval_tools import Signal_Buffer, events_cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
-    get_command_line_args(
+     (top_th, bottom_th, lump_th, a, cluster_sizes_to_check, cluster_th, min_events, Fs, chunk_size, buffer_size, 
+     window_size, feature_dimensions, w, m_start, m_steps, m_end, key_size_in_bytes, target_snr, trials)=get_command_line_args(
         top_threshold_default=0.07,
         bottom_threshold_default=0.05,
         lump_threshold_default=4,
@@ -37,24 +38,24 @@ if __name__ == "__main__":
         trials_default=100
     )
 
-    mem_th = 0.8
+mem_th = 0.8
 
     # Generating the signals
-    golden_signal = golden_signal(buffer_size)
-    adv_signal = adversary_signal(buffer_size)
-    legit_signal_buffer1 = Signal_Buffer(
+golden_signal = golden_signal(buffer_size)
+adv_signal = adversary_signal(buffer_size)
+legit_signal_buffer1 = Signal_Buffer(
         golden_signal.copy(), noise=True, target_snr=target_snr
     )
-    legit_signal_buffer2 = Signal_Buffer(
+legit_signal_buffer2 = Signal_Buffer(
         golden_signal.copy(), noise=True, target_snr=target_snr
     )
-    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
+adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
 
     # Grouping the signal buffers into a tuple
-    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
     # Defining the bit generation algorithm
-    def bit_gen_algo(signal):
+def bit_gen_algo(signal):
         signal_events, signal_event_signals = gen_min_events(
             signal,
             chunk_size,
@@ -82,14 +83,14 @@ if __name__ == "__main__":
         return bits
 
     # Creating an evaluator object with the bit generation algorithm
-    evaluator = Evaluator(bit_gen_algo)
+evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials)
+evaluator.evaluate(signals, trials)
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(
+legit_bit_errs, adv_bit_errs = evaluator.cmp_func(
         events_cmp_bits, key_size_in_bytes
     )
 
     # Printing the average bit error rates
-    print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
-    print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
+print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
+print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
