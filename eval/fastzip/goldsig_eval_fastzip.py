@@ -30,7 +30,7 @@ if __name__ == "__main__":
     parser.add_argument("-rn", "--remove_noise", type=bool, default=None)
     parser.add_argument("-n", "--normalize", type=bool, default=True)
     parser.add_argument("-pt", "--power_threshold", type=int, default=-12)
-    parser.add_argument("-st", "--snr_threshold", type=int, default=1.2)
+    parser.add_argument("-st", "--snr_threshold", type=int, default=1.6)
     parser.add_argument("-np", "--number_peaks", type=int, default=0)
     parser.add_argument("-t", "--trials", type=int, default=1000)
 
@@ -52,10 +52,9 @@ if __name__ == "__main__":
     number_peaks = getattr(args, "number_peaks")
     trials = getattr(args, "trials")
 
-    # sample_num = fastzip_calc_sample_num(key_length, chunk_size)
-    signal1 = golden_signal(buffer_size, seed=0)
-    signal2 = golden_signal(buffer_size, seed=0)
-    adv_signal = adversary_signal(buffer_size, seed=12)
+    signal1 = golden_signal(buffer_size)
+    signal2 = golden_signal(buffer_size)
+    adv_signal = adversary_signal(buffer_size)
 
     legit_signal_buffer1 = Signal_Buffer(signal1)
     legit_signal_buffer2 = Signal_Buffer(signal2)
@@ -83,18 +82,15 @@ if __name__ == "__main__":
 
             if bits:
                 accumulated_bits += bits
-                print("accumulated_bits: ", accumulated_bits)
                 if len(accumulated_bits) >= key_length:
                     break
         if len(accumulated_bits) > key_length:
             return accumulated_bits[:key_length]
         return accumulated_bits
 
-    # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
-    # Evaluating the signals with the specified number of trials
     evaluator.evaluate(signals, trials)
-    # Comparing the bit errors for legitimate and adversary signals
+
     legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
 
     print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
