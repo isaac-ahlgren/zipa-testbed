@@ -1,11 +1,7 @@
-import os
-import sys
 from multiprocessing.shared_memory import ShareableList
 from multiprocessing import Queue
 from typing import List
 
-sys.path.insert(1, "/src")
-sys.path.insert(1, os.getcwd() + "/src/sensors")
 
 from src.protocols.protocol_interface import (  # noqa: E402
     COMPLETE,
@@ -15,7 +11,6 @@ from src.protocols.protocol_interface import (  # noqa: E402
 )
 from src.sensors.sensor_reader import SensorReader  # noqa: E402
 from src.sensors.test_sensor import TestSensor  # noqa: E402
-from src.protocols.shurmann import Shurmann_Siggs_Protocol
 
 DUMMY_PARAMETERS = {
     "verbose": "True",
