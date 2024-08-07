@@ -32,7 +32,7 @@ if __name__ == "__main__":
         trials_default=100
     )
 
-    # Loading the controlled signals
+    #  Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
     adv_signal, sr = load_controlled_signal(
         "../../data/adversary_controlled_signal.wav"
