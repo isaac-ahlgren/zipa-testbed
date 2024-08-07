@@ -92,7 +92,8 @@ def testing_basic_iotcupid_eval_run():
         ["python3", "controlled_signal_plus_noise_iotcupid.py", "-t", "1"]
     )  # nosec
     output.check_returncode()
-  
+
+
 def testing_basic_fastzip_eval_run():
     os.chdir(original_dir)
     os.chdir("./eval/fastzip")

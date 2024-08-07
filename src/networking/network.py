@@ -13,7 +13,7 @@ NONC = "nonce   "
 PRAM = "preamble"
 SUCC = "success "
 FAIL = "failed  "
-FPFM = "fpakmsg1"
+FPFM = "fpake   "
 
 
 def send_status(connection: socket.socket, status: bool) -> None:
@@ -260,14 +260,21 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
 
     return nonce
 
-def send_fpake_first_msg(connection, msg):
-    length_payload = (len(msg[0])).to_bytes(4, byteorder="big") + (len(msg[1])).to_bytes(4, byteorder="big") + (len(msg[2])).to_bytes(4, byteorder="big")
-    payload = length_payload + msg[0] + msg[1] + msg[2]
-    length = len(payload)
-    outgoing = FPFM.encode() + length.to_bytes(4, byteorder="big") + payload
+
+def send_fpake_msg(connection, msg):
+    length_payload = 0
+    for m in msg:
+        length_payload += len(m) + 4
+
+    payload = length_payload.to_bytes(4, byteorder="big")
+    for m in msg:
+        payload += len(m).to_bytes(4, byteorder="big")
+    
+    outgoing = FPFM.encode() + payload
     connection.send(outgoing)
 
-def fpake_first_msg_standby(connection: socket.socket, msg, timeout: int) -> bool:
+
+def fpake_msg_standby(connection: socket.socket, timeout: int) -> bool:
     msg = None
     reference = time.time()
     timestamp = reference
@@ -275,22 +282,22 @@ def fpake_first_msg_standby(connection: socket.socket, msg, timeout: int) -> boo
     # While process hasn't timed out
     while (timestamp - reference) < timeout:
         timestamp = time.time()
-        message = connection.recv(12)
+        message = connection.recv(8)
 
         if message is None:
             continue
         elif message[:8] == FPFM.encode():
-            msg_size = int.from_bytes(message[8:12], "big")
+            msg_size = int.from_bytes(message[:4], "big")
+
             payload = connection.recv(msg_size)
 
-            payload1_length = int.from_bytes(payload[:4], "big")
-            payload2_length = int.from_bytes(payload[4:8], "big")
-            payload3_length = int.from_bytes(payload[8:12], "big")
-
-            payload1 = payload[12:12+payload1_length]
-            payload2 = payload[12+payload1_length:12+payload1_length+payload2_length]
-            payload3 = payload[12+payload1_length+payload2_length:12+payload1_length+payload2_length+payload3_length]
-
-            msg = (payload1, payload2, payload2) 
+            msg = []
+            index = 0
+            while index < msg_size:
+                item_length = int.from_bytes(payload[index:index+4], "big")
+                item = payload[index+4:index+4+item_length]
+                index += 4 + item_length
+                msg.append(item)
+            break
 
     return msg
