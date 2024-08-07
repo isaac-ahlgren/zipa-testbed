@@ -7,6 +7,7 @@ from schurmann_tools import (
     ANTIALIASING_FILTER,
     MICROPHONE_SAMPLING_RATE,
     adversary_signal,
+    get_command_line_args,
     golden_signal,
     schurmann_calc_sample_num,
     schurmann_wrapper_func,
@@ -17,22 +18,18 @@ from eval_tools import cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
-    # Setting up command-line argument parsing
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-wl", "--window_length", type=int, default=16537)
-    parser.add_argument("-bl", "--band_length", type=int, default=500)
-    parser.add_argument("-kl", "--key_length", type=int, default=128)
-    parser.add_argument("-t", "--trials", type=int, default=1000)
-
-    # Parsing command-line arguments
-    args = parser.parse_args()
-    window_length = getattr(args, "window_length")
-    band_length = getattr(args, "band_length")
-    key_length = getattr(args, "key_length")
-    trials = getattr(args, "trials")
+   (window_length, band_length, key_length, target_snr, trials
+    ) = get_command_line_args (
+       window_length_default=16537,
+    band_length_default=500,
+    key_length_default=128,
+    snr_level_default=20,
+    trials_default=1000
+    )
+    
 
     # Calculating the number of samples needed
-    sample_num = schurmann_calc_sample_num(
+sample_num = schurmann_calc_sample_num(
         key_length,
         window_length,
         band_length,
@@ -41,13 +38,13 @@ if __name__ == "__main__":
     )
 
     # Generating the signals
-    signal1 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
-    signal2 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
-    adv_signal = adversary_signal(sample_num, MICROPHONE_SAMPLING_RATE)
-    signals = (signal1, signal2, adv_signal)
+signal1 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
+signal2 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
+adv_signal = adversary_signal(sample_num, MICROPHONE_SAMPLING_RATE)
+signals = (signal1, signal2, adv_signal)
 
     # Defining the bit generation algorithm
-    def bit_gen_algo(signal):
+def bit_gen_algo(signal):
         return schurmann_wrapper_func(
             signal,
             window_length,
@@ -57,12 +54,12 @@ if __name__ == "__main__":
         )
 
     # Creating an evaluator object with the bit generation algorithm
-    evaluator = Evaluator(bit_gen_algo)
+evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials)
+evaluator.evaluate(signals, trials)
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
 
     # Printing the average bit error rates
-    print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
-    print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
+print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
+print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
