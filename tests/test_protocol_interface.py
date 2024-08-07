@@ -1,6 +1,7 @@
 import os
 import sys
 from multiprocessing.shared_memory import ShareableList
+from multiprocessing import Queue
 from typing import List
 
 sys.path.insert(1, "/src")
@@ -89,17 +90,43 @@ def test_get_context() -> None:
     pi.process_context = process_context
     bits = pi.get_context()
 
-    # print(f'process_context: {pi.process_context()}')
-    # print(f'get_context: {bits}')
-
     assert bits == pi.process_context()
 
 # TODO: check to see if the array is not empty
 # check to see if the array size is the same size as the chunk
 # check to see if chunk data is the same as the output data
 def test_read_samples() -> None:
-    pass
+    test_sensor = TestSensor(SEN_TEST, signal_type="sine")
+    test_sensor_reader = SensorReader(test_sensor)
+    pi = ProtocolInterface(DUMMY_PARAMETERS, test_sensor_reader, None)
+    
+    sample_num = 100
+
+    output = pi.read_samples(sample_num)
+    # print(output)
+
+    assert output is not None
+
+    assert output.shape[0] == sample_num
+
+    # assert queue == output
 
 # TODO: check to see if the queue is empty
 def test_clear_queue() -> None:
-    pass
+    test_sensor = TestSensor(SEN_TEST, signal_type="sine")
+    test_sensor_reader = SensorReader(test_sensor)
+    pi = ProtocolInterface(DUMMY_PARAMETERS, test_sensor_reader, None)
+    
+    print(f'queue before empty: {pi.queue}')
+    assert pi.queue.empty()
+
+    # add something to the queue 
+    pi.queue.put(1)
+    print(f'queue after adding: {pi.queue}')
+    assert pi.queue.qsize() > 0
+
+    # run remove queue
+    pi.clear_queue()
+    print(f'queue after running clear: {pi.queue}')
+    # check that the queue is empty
+    assert pi.queue.empty()
