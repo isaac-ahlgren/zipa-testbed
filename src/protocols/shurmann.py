@@ -209,7 +209,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         self.count += 1
 
 
-"""###TESTING CODE###
+###TESTING CODE###
 import socket
 def device(prot):
     print("device")
@@ -245,4 +245,4 @@ if __name__ == "__main__":
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
-    d.start()"""
+    d.start()

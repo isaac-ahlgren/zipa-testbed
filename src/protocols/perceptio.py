@@ -64,6 +64,7 @@ class Perceptio_Protocol(ProtocolInterface):
         iteration = 0
         while len(events) < self.min_events:
             chunk = self.read_samples(self.chunk_size)
+            print(f"Length: {len(chunk)}.\n")
 
             received_events = PerceptioProcessing.get_events(
                 chunk, self.a, self.bottom_th, self.top_th, self.lump_th
@@ -94,11 +95,11 @@ class Perceptio_Protocol(ProtocolInterface):
         # Extracted from read_samples function in protocol_interface
         ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()
-
+        print(f"Found {str(len(event_features))} event features.\n")
         labels, k = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, self.cluster_sizes_to_check, self.cluster_th
         )
-
+        print(f"events up to this point: {len(events)} labels: {len(labels)}, k: {k}\n")
         grouped_events = PerceptioProcessing.group_events(events, labels, k)
 
         fps = PerceptioProcessing.gen_fingerprints(
@@ -147,7 +148,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 return
 
             if self.verbose:
-                print("Extracting context\n")
+                print("CLIENT Extracting context\n")
 
             # Extract bits from sensor
             # witnesses, signal, status = self.extract_context(host_socket)
@@ -295,7 +296,7 @@ class Perceptio_Protocol(ProtocolInterface):
             ack(device_socket)
 
             if self.verbose:
-                print("Extracting context\n")
+                print("HOST Extracting context\n")
             # Extract bits from sensor
             witnesses = self.get_context()
             signal = None
