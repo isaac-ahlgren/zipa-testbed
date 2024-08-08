@@ -44,6 +44,7 @@ class Perceptio_Protocol(ProtocolInterface):
         self.cluster_sizes_to_check = parameters["cluster_sizes_to_check"]
         self.cluster_th = parameters["cluster_th"]
         self.top_th = parameters["top_th"]
+        self.Fs = parameters["frequency"]
         self.bottom_th = parameters["bottom_th"]
         self.lump_th = parameters["lump_th"]
         self.conf_threshold = parameters["conf_thresh"]
@@ -71,9 +72,12 @@ class Perceptio_Protocol(ProtocolInterface):
             )
 
             received_event_features = PerceptioProcessing.get_event_features(
-                events, chunk
+                received_events, chunk
             )
 
+            print(
+                f"Recieved events: {len(received_events)}\nRecieved event features: {len(received_event_features)}\n"
+            )
             # Reconciling lumping adjacent events across windows
             if (
                 len(received_events) != 0
@@ -103,7 +107,7 @@ class Perceptio_Protocol(ProtocolInterface):
         grouped_events = PerceptioProcessing.group_events(events, labels, k)
 
         fps = PerceptioProcessing.gen_fingerprints(
-            grouped_events, k, self.key_size, self.Fs
+            grouped_events, k, self.key_length, self.Fs
         )  # I know the variables are wrong, could someone fix them for me? -Isaac
 
         return fps
@@ -123,7 +127,7 @@ class Perceptio_Protocol(ProtocolInterface):
         engagement including the number of successful key exchanges.
         """
         host_socket.setblocking(1)
-
+        # self.name = "DEVICE"
         if self.verbose:
             print("Iteration " + str(self.count))
 
@@ -171,7 +175,7 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("Waiting for commitment from host\n")
             commitments, hs = commit_standby(host_socket, self.timeout)
-
+            print(f"Client recieved commitments: {commitments} and hashes {hs}")
             # Early exist if no commitment recieved in time
             if not commitments:
                 if self.verbose:
@@ -182,6 +186,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("Commitments recieved\n")
                 print("Uncommiting with witnesses\n")
             key = self.find_commitment(commitments, hs, witnesses)
+            print(f"Client derived key: {key}")
 
             success = key is not None
             send_status(host_socket, success)
@@ -193,7 +198,7 @@ class Perceptio_Protocol(ProtocolInterface):
                     print(
                         "Witnesses failed to uncommit any commitment - alerting other device for a retry\n"
                     )
-                self.checkpoint_log(witnesses, commitments, success, signal, iterations)
+                # self.checkpoint_log(witnesses, commitments, success, signal, iterations)
                 iterations += 1
                 continue
 
@@ -274,7 +279,7 @@ class Perceptio_Protocol(ProtocolInterface):
         including sending and receiving acknowledgments, extracting context, committing witnesses,
         and verifying keys until the desired success threshold is reached or the maximum iterations are exhausted.
         """
-
+        # self.name="HOST"
         device_ip_addr, device_port = device_socket.getpeername()
 
         # Exit early if no devices to pair with
@@ -301,7 +306,7 @@ class Perceptio_Protocol(ProtocolInterface):
             witnesses = self.get_context()
             signal = None
             status = True
-
+            print("Host extracted context")
             if status is None:
                 if self.verbose:
                     print(
@@ -323,7 +328,7 @@ class Perceptio_Protocol(ProtocolInterface):
             # Send all commitments
 
             print(witnesses)
-
+            print(f"Host: {commitments}")
             send_commit(commitments, hs, device_socket)
 
             # Check up on other devices status
@@ -338,14 +343,14 @@ class Perceptio_Protocol(ProtocolInterface):
                         "Other device did not uncommit with witnesses - trying again\n"
                     )
                 success = False
-                self.checkpoint_log(
+                """self.checkpoint_log(
                     witnesses,
                     commitments,
                     success,
                     signal,
                     iterations,
                     ip_addr=device_ip_addr,
-                )
+                )"""
                 iterations += 1
                 continue
 
