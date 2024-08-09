@@ -148,7 +148,7 @@ class ProtocolInterface:
                     pass  # No shared memory instance to destroy
                 results = self.process_context()
                 self.write_shm(results)
-                ProtocolInterface.release_flag(self.processing_flag)
+                ProtocolInterface.reset_flag(self.processing_flag)
 
         # Other processes wait for first process to finish
         else:

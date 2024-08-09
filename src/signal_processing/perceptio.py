@@ -78,11 +78,18 @@ class PerceptioProcessing:
         events = []
         found_event = False
         beg_event_num = None
+        average = np.mean(signal)
         for i in range(len(signal)):
-            if not found_event and signal[i] >= bottom_th and signal[i] <= top_th:
+            if (
+                not found_event
+                and signal[i] >= (average * bottom_th)
+                and signal[i] <= (average * top_th)
+            ):
                 found_event = True
                 beg_event_num = i
-            elif found_event and (signal[i] < bottom_th or signal[i] > top_th):
+            elif found_event and (
+                signal[i] < (average * bottom_th) or signal[i] > (average * top_th)
+            ):
                 found_event = False
                 found_event = None
                 events.append((beg_event_num, i))

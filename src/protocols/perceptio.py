@@ -39,7 +39,7 @@ class Perceptio_Protocol(ProtocolInterface):
 
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "Perceptio_Protocol"
-        self.wip = True
+        self.wip = False
         self.a = parameters["a"]
         self.cluster_sizes_to_check = parameters["cluster_sizes_to_check"]
         self.cluster_th = parameters["cluster_th"]
@@ -65,7 +65,7 @@ class Perceptio_Protocol(ProtocolInterface):
         iteration = 0
         while len(events) < self.min_events:
             chunk = self.read_samples(self.chunk_size)
-            print(f"Chunk: {chunk[:10]}")
+            # Extracted from read_samples function in protocol_interface
 
             received_events = PerceptioProcessing.get_events(
                 chunk, self.a, self.bottom_th, self.top_th, self.lump_th
@@ -74,7 +74,9 @@ class Perceptio_Protocol(ProtocolInterface):
             received_event_features = PerceptioProcessing.get_event_features(
                 received_events, chunk
             )
-
+            print(
+                f"Found potentially {len(received_events)} events and {(len(received_event_features))} features."
+            )
             # Reconciling lumping adjacent events across windows
             if (
                 len(received_events) != 0
@@ -85,17 +87,22 @@ class Perceptio_Protocol(ProtocolInterface):
                 length = events[-1][1] - events[-1][0] + 1
                 max_amp = np.max([event_features[-1][1], received_event_features[0][1]])
                 event_features[-1] = (length, max_amp)
+                print(
+                    f"Adding {len(received_events)} events and {len(event_features)} features."
+                )
 
                 events.extend(received_events[1:])
                 event_features.extend(received_event_features[1:])
             else:
+                print(
+                    f"Adding {len(received_events)} events and {len(event_features)} features."
+                )
                 events.extend(received_events)
                 event_features.extend(received_event_features)
             iteration += 1
 
-            # Extracted from read_samples function in protocol_interface
-            ProtocolInterface.reset_flag(self.queue_flag)
-            self.clear_queue()
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
 
         labels, k = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, self.cluster_sizes_to_check, self.cluster_th
