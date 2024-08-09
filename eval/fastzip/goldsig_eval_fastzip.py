@@ -1,4 +1,4 @@
-import argparse
+import argparse  # noqa: F401
 import os
 import sys
 
@@ -18,9 +18,23 @@ from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
     (
-        window_size, overlap_size, buffer_size, n_bits, key_length, bias, eqd_delta,
-        peak_status, ewma_filter, alpha, remove_noise, normalize, power_threshold,
-        snr_threshold, number_peaks, snr_level, trials
+        window_size,
+        overlap_size,
+        buffer_size,
+        n_bits,
+        key_length,
+        bias,
+        eqd_delta,
+        peak_status,
+        ewma_filter,
+        alpha,
+        remove_noise,
+        normalize,
+        power_threshold,
+        snr_threshold,
+        number_peaks,
+        snr_level,
+        trials,
     ) = parse_command_line_args(
         window_size_default=200,
         overlap_size_default=100,
@@ -38,8 +52,7 @@ if __name__ == "__main__":
         snr_threshold_default=1.6,
         number_peaks_default=0,
         snr_level_default=20,
-        trials_default=1000
-
+        trials_default=1000,
     )
 
     signal1 = golden_signal(buffer_size)
