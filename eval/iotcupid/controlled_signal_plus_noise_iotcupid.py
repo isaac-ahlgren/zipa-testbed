@@ -18,7 +18,7 @@ from evaluator import Evaluator  # noqa: E402
 if __name__ == "__main__":
     (  top_th, bottom_th, lump_th, a, cluster_sizes_to_check, cluster_th, 
      min_events, Fs, chunk_size, buffer_size, window_size, feature_dimensions, w, m_start, m_steps, m_end, key_size_in_bytes, target_snr, trials
-) = get_command_line_args (
+    ) = get_command_line_args (
         top_threshold_default=0.07,
         bottom_threshold_default=0.05,
         lump_threshold_default=4,

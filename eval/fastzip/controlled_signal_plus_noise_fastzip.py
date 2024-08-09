@@ -3,7 +3,7 @@ import os
 import sys
 
 import numpy as np
-from fastzip_tools import fastzip_wrapper_function, manage_overlapping_chunks
+from fastzip_tools import fastzip_wrapper_function, manage_overlapping_chunks, parse_command_line_args
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
@@ -14,44 +14,30 @@ from eval_tools import (  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-ws", "--window_size", type=int, default=200)
-    parser.add_argument("-os", "--overlap_size", type=int, default=100)
-    parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
-    parser.add_argument("-nb", "--n_bits", type=int, default=18)
-    parser.add_argument("-kl", "--key_length", type=int, default=128)
-    parser.add_argument("-b", "--bias", type=int, default=0)
-    parser.add_argument("-ed", "--eqd_delta", type=int, default=1)
-    parser.add_argument("-ps", "--peak_status", type=bool, default=None)
-    parser.add_argument("-ef", "--ewma_filter", type=bool, default=None)
-    parser.add_argument("-a", "--alpha", type=float, default=None)
-    parser.add_argument("-rn", "--remove_noise", type=bool, default=None)
-    parser.add_argument("-n", "--normalize", type=bool, default=True)
-    parser.add_argument("-pt", "--power_threshold", type=int, default=70)
-    parser.add_argument("-st", "--snr_threshold", type=int, default=1.2)
-    parser.add_argument("-np", "--number_peaks", type=int, default=0)
-    parser.add_argument("-snr", "--snr_level", type=int, default=20)
-    parser.add_argument("-t", "--trials", type=int, default=1000)
+    (
+        window_size, overlap_size, buffer_size, n_bits, key_length, bias, eqd_delta,
+        peak_status, ewma_filter, alpha, remove_noise, normalize, power_threshold,
+        snr_threshold, number_peaks, snr_level, trials,target_snr
+    ) = parse_command_line_args(
+        window_size_default=200,
+        overlap_size_default=100,
+        buffer_size_default=50000,
+        n_bits_default=18,
+        key_length_default=128,
+        bias_default=0,
+        eqd_delta_default=1,
+        peak_status_default=None,
+        ewma_filter_default=None,
+        alpha_default=None,
+        remove_noise_default=None,
+        normalize_default=True,
+        power_threshold_default=70,
+        snr_threshold_default=1.2,
+        number_peaks_default=0,
+        snr_level_default=20,
+        trials_default=1000
 
-    args = parser.parse_args()
-    window_size = getattr(args, "window_size")
-    overlap_size = getattr(args, "overlap_size")
-    buffer_size = getattr(args, "buffer_size")
-    n_bits = getattr(args, "n_bits")
-    key_length = getattr(args, "key_length")
-    bias = getattr(args, "bias")
-    eqd_delta = getattr(args, "eqd_delta")
-    peak_status = getattr(args, "peak_status")
-    ewma_filter = getattr(args, "ewma_filter")
-    alpha = getattr(args, "alpha")
-    remove_noise = getattr(args, "remove_noise")
-    normalize = getattr(args, "normalize")
-    power_threshold = getattr(args, "power_threshold")
-    snr_threshold = getattr(args, "snr_threshold")
-    target_snr = getattr(args, "snr_level")
-    number_peaks = getattr(args, "number_peaks")
-
-    trials = getattr(args, "trials")
+    )
 
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
     adv_signal, sr = load_controlled_signal(
