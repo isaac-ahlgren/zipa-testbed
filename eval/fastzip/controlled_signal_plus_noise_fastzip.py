@@ -14,7 +14,7 @@ from eval_tools import (  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
-      (
+    (
         window_size, overlap_size, buffer_size, n_bits, key_length, bias, eqd_delta,
         peak_status, ewma_filter, alpha, remove_noise, normalize, power_threshold,
         snr_threshold, number_peaks, snr_level, trials,target_snr
@@ -39,22 +39,22 @@ if __name__ == "__main__":
 
     )
 
-legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-adv_signal, sr = load_controlled_signal(
+    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal(
         "../../data/adversary_controlled_signal.wav"
     )
 
-legit_signal_buffer1 = Signal_Buffer(
+    legit_signal_buffer1 = Signal_Buffer(
         legit_signal.copy(), noise=True, target_snr=target_snr
     )
-legit_signal_buffer2 = Signal_Buffer(
+    legit_signal_buffer2 = Signal_Buffer(
         legit_signal.copy(), noise=True, target_snr=target_snr
     )
-adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
+    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
 
-signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
-def bit_gen_algo(signal):
+    def bit_gen_algo(signal):
         accumulated_bits = b""
         for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
             bits = fastzip_wrapper_function(
@@ -81,10 +81,10 @@ def bit_gen_algo(signal):
             return accumulated_bits[:key_length]
         return accumulated_bits
 
-evaluator = Evaluator(bit_gen_algo)
-evaluator.evaluate(signals, trials)
+    evaluator = Evaluator(bit_gen_algo)
+    evaluator.evaluate(signals, trials)
 
-legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
 
-print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
-print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
+    print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
+    print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
