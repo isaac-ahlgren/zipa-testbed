@@ -65,7 +65,7 @@ class Perceptio_Protocol(ProtocolInterface):
         iteration = 0
         while len(events) < self.min_events:
             chunk = self.read_samples(self.chunk_size)
-            print(f"Length: {len(chunk)}.\n")
+            print(f"Chunk: {chunk[:10]}")
 
             received_events = PerceptioProcessing.get_events(
                 chunk, self.a, self.bottom_th, self.top_th, self.lump_th
@@ -75,9 +75,6 @@ class Perceptio_Protocol(ProtocolInterface):
                 received_events, chunk
             )
 
-            print(
-                f"Recieved events: {len(received_events)}\nRecieved event features: {len(received_event_features)}\n"
-            )
             # Reconciling lumping adjacent events across windows
             if (
                 len(received_events) != 0
@@ -96,14 +93,14 @@ class Perceptio_Protocol(ProtocolInterface):
                 event_features.extend(received_event_features)
             iteration += 1
 
-        # Extracted from read_samples function in protocol_interface
-        ProtocolInterface.reset_flag(self.queue_flag)
-        self.clear_queue()
-        print(f"Found {str(len(event_features))} event features.\n")
+            # Extracted from read_samples function in protocol_interface
+            ProtocolInterface.reset_flag(self.queue_flag)
+            self.clear_queue()
+
         labels, k = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, self.cluster_sizes_to_check, self.cluster_th
         )
-        print(f"events up to this point: {len(events)} labels: {len(labels)}, k: {k}\n")
+
         grouped_events = PerceptioProcessing.group_events(events, labels, k)
 
         fps = PerceptioProcessing.gen_fingerprints(
@@ -157,6 +154,7 @@ class Perceptio_Protocol(ProtocolInterface):
             # Extract bits from sensor
             # witnesses, signal, status = self.extract_context(host_socket)
             witnesses = self.get_context()
+            print(f"[CLIENT] Witness: {witnesses}")
             # TODO: Must log signal somehow, and how does status play with new flow?
             signal = None
             status = True
@@ -175,7 +173,6 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("Waiting for commitment from host\n")
             commitments, hs = commit_standby(host_socket, self.timeout)
-            print(f"Client recieved commitments: {commitments} and hashes {hs}")
             # Early exist if no commitment recieved in time
             if not commitments:
                 if self.verbose:
@@ -304,9 +301,10 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("HOST Extracting context\n")
             # Extract bits from sensor
             witnesses = self.get_context()
+            print(f"[HOST] Witness: {witnesses}")
             signal = None
             status = True
-            print("Host extracted context")
+
             if status is None:
                 if self.verbose:
                     print(
@@ -327,8 +325,6 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("Sending commitments\n")
             # Send all commitments
 
-            print(witnesses)
-            print(f"Host: {commitments}")
             send_commit(commitments, hs, device_socket)
 
             # Check up on other devices status

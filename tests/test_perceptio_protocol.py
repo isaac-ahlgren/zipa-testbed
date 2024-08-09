@@ -87,7 +87,7 @@ def host(protocol):
     host_socket.listen()
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
-    protocol.host_protocol([connection])
+    protocol.host_protocol_single_threaded(connection)
 
 
 def device(protocol):
