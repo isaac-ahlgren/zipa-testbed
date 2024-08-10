@@ -49,10 +49,7 @@ class LiPake:
         encryptor = Cipher(
             self.symmAlgo(self.key), self.mode, default_backend()
         ).encryptor()
-        if self.parameter == x25519:
-            gx = self.secret.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
-        else:
-            gx = self.secret.public_key().public_bytes(
+        gx = self.secret.public_key().public_bytes(
                 Encoding.Raw, PublicFormat.Raw
             ) + os.urandom(
                 8

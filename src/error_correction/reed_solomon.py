@@ -3,13 +3,6 @@ import os
 
 import numpy as np
 
-# import random
-# from typing import List, Tuple
-
-
-# import random
-
-
 # Currently built to assume block size will be 8 bits
 class ReedSolomonObj:
     """
@@ -23,7 +16,7 @@ class ReedSolomonObj:
     :raises Exception: If `k` is greater than `n` or if `n` is greater than 255, due to limitations of the Galois Field size.
     """
 
-    def __init__(self, n: int, k: int) -> None:
+    def __init__(self, n: int, k: int, so_dir=os.getcwd()) -> None:
         """
         Initializes the Reed-Solomon encoder/decoder instance with specified parameters and loads the necessary functions from the external C library.
         """
@@ -36,7 +29,7 @@ class ReedSolomonObj:
         self.n = n
         self.k = k
         self.t = n - k
-        rscode = ctypes.cdll.LoadLibrary(os.getcwd() + "/lib/rscode-1.3/libecc.so")
+        rscode = ctypes.cdll.LoadLibrary(so_dir + "/lib/rscode-1.3/libecc.so")
 
         # Initialize library
         init = rscode.initialize_ecc
@@ -50,7 +43,7 @@ class ReedSolomonObj:
         initialize_rs_instance.argtypes = [ctypes.c_int]
         self.rs_instance = initialize_rs_instance(self.t)
 
-        # Initialize Instance freeing fucntion
+        # Initialize Instance freeing function
         self.free_rs_instance = rscode.free_rs_instance
         self.free_rs_instance.restype = None
         self.free_rs_instance.argtypes = [ctypes.c_voidp]

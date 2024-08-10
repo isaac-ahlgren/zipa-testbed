@@ -1,14 +1,18 @@
 import os
 
 import numpy as np
-import RSSCodes
 from cryptography import exceptions
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ed448, x448
-from cryptography.hazmat.primitives.ciphers import algorithms, modes
-from liPAKE import LiPake
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
+from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
+from error_correction.liPAKE import LiPake
 
 from networking.network import send_fpake_msg, fpake_msg_standby, send_status, status_standby, SUCC
+from error_correction.corrector import Fuzzy_Commitment
+from error_correction.reed_solomon import ReedSolomonObj
 
 
 class fPAKE:
@@ -16,74 +20,94 @@ class fPAKE:
     Fuzzy Password authenticated Key exchange Protocol
     """
 
-    def __init__(self, timeout):
+    def __init__(self, pw_length, key_length,  timeout, so_dir=os.getcwd()):
         self.VK = None
         self.hash = hashes.SHA256()
-        self.symmAlgo = algorithms.AES
-        self.mode = modes.CBC
         self.curve = x448
         self.ecpub = x448.X448PublicKey
         self.ed = ed448.Ed448PrivateKey
         self.edpub = ed448.Ed448PublicKey
         self.keySize = 32  # Keysize of the Curve448 public Key
         self.n = 32  # securityBits 256
+        self.pw_length = pw_length
+        self.key_length = key_length
+
+        self.algo = algorithms.AES
+        self.mode = modes.CBC
+        self.hkdf = HKDFExpand(hashes.SHA3_256(), 32, None, default_backend())
+        self.re = Fuzzy_Commitment(
+            ReedSolomonObj(self.pw_length, self.key_length, so_dir=os.getcwd()), self.key_length
+        )
         self.timeout = timeout
+
+    def generate_priv_key(self):
+        return self.ed.generate()
+
+    def generate_pub_key(self, priv_key):
+        pub_key = priv_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
+        pub_key_plus_padding = pub_key + os.urandom(8)
+        return pub_key_plus_padding
+    
+    def generate_symm_key(self, pw_i, vk):
+        key = self.hkdf.derive(pw_i + vk)
+        return key
+
+    def encode(self, symm_enc_key, pub_key, iv):
+        encryptor = Cipher(
+            self.algo(symm_enc_key), self.mode(iv), default_backend()
+        ).encryptor()
+
+        return encryptor.update(pub_key) + encryptor.finalize()
+
+    def decode(self, symm_dec_key, pub_key, iv):
+        decryptor = Cipher(self.algo(symm_dec_key), self.mode(iv), default_backend()).decryptor()
+
+        return decryptor.update(pub_key) + decryptor.finalize()
+
+    def exchange(self, priv_key, star1, star2, Z):
+        return priv_key
+        
 
     def host_protocol(self, pw, conn):
 
         # Generate signingKey and get Verification key bytes to send
         signingKey = self.ed.generate()
-        vk = signingKey.public_key()
-        vkBytes = vk.public_bytes(
+        vk = signingKey.public_key().public_bytes(
             encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
 
         # Prepare for @LiPake exchange
-        Ki = []
         key_array = bytearray()
         # Execute @LiPake over each bit of the password
-        for i in pw:
+        for pw_i in pw:
 
             iv = os.urandom(
                 16
             )  # We use fixed size of AES256 cause we can't get 128 Bit Keys with KDF
-            lp = LiPake(
-                pw=i,
-                label=vkBytes,
-                iv=iv,
-                Hash=self.hash,
-                mode=self.mode,
-                curve=self.curve,
-                symmAlgo=self.symmAlgo,
-                symmetricKeySize=self.keySize,
-                n=self.n,
-            )
-            Xs, l = lp.getX()
+            priv_x = self.generate_priv_key()
+            pub_x = self.generate_pub_key(priv_x)
+            symm_enc_key = self.generate_symm_key(pw_i, vk)
+            X_star = self.encode(symm_enc_key, pub_x, iv)
 
             # Send generated X receive Y
-            send_fpake_msg(conn, [Xs, l, iv])
+            send_fpake_msg(conn, [X_star, vk, iv])
             msg = fpake_msg_standby(conn, self.timeout)
-            Y = msg[0]
-            l = msg[1]
+            Y_star = msg[0]
+            eps = msg[1]
+
+            symm_dec_key = self.generate_symm_key(pw_i, eps)
+            Z
 
             k = lp.getKey(Y, l, self.ecpub, False)
-            Ki.append(k)
             key_array += k
 
-        # We use robust shamir secret sharing with reed solomon error correcting codes.
-        # each key from lipake is 32 bit and we have 32 keys -> 32 * 32 will be the size of C
-        secretkey = os.urandom(self.n)
-        rss = RSSCodes.robustShamir(len(pw), 1, size=self.n)
-        secretkey, C = rss.shamir_share(secretkey)
-        E = []
-        for i in range(len(pw)):
-            E.append(RSSCodes.XORBytes(C[i], Ki[i]))
+        secret_key, commitment = self.re.commit_witness(key_array)
             
         # Sign our E with the secret key
-        sig = signingKey.sign(RSSCodes.list_to_byte(E))
+        sig = signingKey.sign(commitment)
 
         # Send E + Signature + verification key + selected prime number to reconstruct
-        send_fpake_msg(conn, [E, sig, vkBytes, rss.get_primes()])
+        send_fpake_msg(conn, [commitment, sig, vkBytes])
 
         status = status_standby(conn, self.timeout)
 
@@ -93,15 +117,10 @@ class fPAKE:
         return secretkey
 
     def device_protocol(self, pw, conn):
-        """
-        Protocol the receiving end is running to exchange a symmetric key if the password of each party is similar
-        :return: the negotiated key if password was similar to a certain degree
-        """
         labelList = []
-        Ki = []
         key_array = bytearray()
         # LiPake iteration for each bit in password
-        for i in self.pw:
+        for i in pw:
             # get Init Vectors as well as labels and X_s for LiPake
             msg = fpake_msg_standby(conn, self.timeout)
             Xs = msg[0]
@@ -134,17 +153,12 @@ class fPAKE:
             send_fpake_msg(conn, [Ys, l2])
 
             k = lp.getKey(Xs, l1, self.ecpub, True)
-            Ki.append(k)
             key_array += k
 
         msg = fpake_msg_standby(conn, self.timeout)
-        E = msg[0]
+        commitment = msg[0]
         sig = msg[1]
         vk = msg[2]
-        prime = msg[3]
-
-        # Create RSS scheme with prime and password
-        rss = RSSCodes.robustShamir(len(pw), 1, size=self.n, PRIME=prime)
 
         # Reconstruct Verification key of bytes and verify the send E
         if vk != self.VK.public_bytes(
@@ -153,25 +167,16 @@ class fPAKE:
             raise exceptions.InvalidKey()
         
         try:
-            self.VK.verify(sig, RSSCodes.list_to_byte(E))
+            self.VK.verify(sig, commitment)
         except:  # Cancel if signature if wrong
             send_status(conn, False)
             return None
 
-        C = []
-        # Calculate C by trying to revers the XOR. If enough Kis are correct we can reconstruct the shared secret with RSS below
-        for i in range(self.pw.__len__()):
-            C.append(RSSCodes.XORBytes(E[i], Ki[i]))
-        try:
-            # use RSS to reconstruct secret key if enough Kis were correct
-            U = rss.shamir_robust_reconstruct(C)
-        except:
-            # If RSS was not successful the key is random
-            U = os.urandom(self.n)
+        secret_key = self.re.decommit_witness(key_array, commitment)
 
         send_status(conn, True)
 
-        return U
+        return secret_key
 
 
 class NotAVerificationKeyException(Exception):

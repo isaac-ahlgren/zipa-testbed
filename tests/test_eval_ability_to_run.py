@@ -23,6 +23,7 @@ def testing_basic_schurmann_eval_run():
         ["python3", "controlled_signal_plus_noise_schurmann.py", "-t", "1"]
     )  # nosec
     output.check_returncode()
+    os.chdir(original_dir)
 
 
 def testing_basic_miettinen_eval_run():
@@ -56,6 +57,7 @@ def testing_basic_miettinen_eval_run():
         ]  # nosec
     )
     output.check_returncode()
+    os.chdir(original_dir)
 
 
 def testing_basic_perceptio_eval_run():
@@ -75,6 +77,7 @@ def testing_basic_perceptio_eval_run():
         ["python3", "controlled_signal_plus_noise_perceptio.py", "-t", "1"]
     )  # nosec
     output.check_returncode()
+    os.chdir(original_dir)
 
 
 def testing_basic_iotcupid_eval_run():
@@ -92,6 +95,7 @@ def testing_basic_iotcupid_eval_run():
         ["python3", "controlled_signal_plus_noise_iotcupid.py", "-t", "1"]
     )  # nosec
     output.check_returncode()
+    os.chdir(original_dir)
 
 
 def testing_basic_fastzip_eval_run():
@@ -99,3 +103,4 @@ def testing_basic_fastzip_eval_run():
     os.chdir("./eval/fastzip")
     output = subprocess.run(["python3", "goldsig_eval_fastzip.py", "-t", "1"])  # nosec
     output.check_returncode()
+    os.chdir(original_dir)
