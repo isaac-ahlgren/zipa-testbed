@@ -1,6 +1,7 @@
 import argparse  # noqa: F401
 import os
 import sys
+from typing import ByteString
 
 import numpy as np
 from fastzip_tools import (
@@ -36,7 +37,7 @@ if __name__ == "__main__":
         snr_level,
         trials,
     ) = parse_command_line_args(
-        window_size_default=200,
+        window_size_default := 200,
         overlap_size_default=100,
         buffer_size_default=50000,
         n_bits_default=12,
@@ -62,7 +63,15 @@ if __name__ == "__main__":
     adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=snr_level)
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
-    def bit_gen_algo(signal):
+    def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
+        """
+        Generates bits based on the analysis of overlapping chunks from a signal.
+
+        :param signal: The signal buffer to process.
+        :type signal: Signal_Buffer
+        :return: A byte string of the generated bits up to the specified key length.
+        :rtype: ByteString
+        """
         accumulated_bits = b""
         for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
             bits = fastzip_wrapper_function(

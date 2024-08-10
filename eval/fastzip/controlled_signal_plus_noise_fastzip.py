@@ -1,6 +1,7 @@
 import argparse  # noqa: F401
 import os
 import sys
+from typing import ByteString
 
 import numpy as np
 from fastzip_tools import (
@@ -74,27 +75,14 @@ if __name__ == "__main__":
 
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
-    def bit_gen_algo(signal):
+    def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
         """
-        Generate a sequence of bits from a signal based on the defined parameters and conditions.
+        Generates bits based on the analysis of overlapping chunks from a signal.
 
-        :param signal: Numpy array of the signal data.
-        :param window_size: The size of each window to analyze within the signal.
-        :param overlap_size: The size of the overlap between consecutive windows.
-        :param n_bits: Number of bits to generate from each window.
-        :param power_threshold: Threshold for power detection.
-        :param snr_threshold: Threshold for signal-to-noise ratio.
-        :param number_peaks: Number of peaks to consider in the analysis.
-        :param bias: Bias value for peak detection.
-        :param sr: Sampling rate of the signal.
-        :param eqd_delta: Equalization delta.
-        :param peak_status: Status of peak detection, True if enabled.
-        :param ewma_filter: Status of EWMA filter, True if enabled.
-        :param alpha: Alpha value for EWMA calculation.
-        :param remove_noise: Whether to remove noise from the signal.
-        :param normalize: Whether to normalize the signal.
-
-        :return: A bytes object containing the generated bits.
+        :param signal: The signal buffer to process.
+        :type signal: Signal_Buffer
+        :return: A byte string of the generated bits up to the specified key length.
+        :rtype: ByteString
         """
         accumulated_bits = b""
         for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
