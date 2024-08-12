@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import ByteString
 
 import numpy as np
 from miettinen_tools import (
@@ -57,7 +58,7 @@ signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
 
 # Defining the bit generation algorithm
-def bit_gen_algo(signal: np.ndarray) -> np.ndarray:
+def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
     """
     Wrapper function to process an array using the Miettinen algorithm.
 

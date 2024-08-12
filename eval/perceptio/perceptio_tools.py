@@ -1,6 +1,7 @@
+import argparse
 import os
 import sys
-import argparse
+from typing import List, Tuple
 
 import numpy as np
 
@@ -13,18 +14,42 @@ from signal_processing.perceptio import PerceptioProcessing  # noqa: E402
 goldsig_rng = np.random.default_rng(0)
 
 
-def golden_signal(sample_num):
+def golden_signal(sample_num: int) -> np.ndarray:
+    """
+    Generate a golden signal with random integers between 0 and 10.
+
+    :param sample_num: Number of samples to generate.
+    :return: Array of random integers.
+    """
     return goldsig_rng.integers(0, 10, size=sample_num)
 
 
 adv_rng = np.random.default_rng(12345)
 
 
-def adversary_signal(sample_num):
+def adversary_signal(sample_num: int) -> np.ndarray:
+    """
+    Generate an adversary signal with random integers between 0 and 10.
+
+    :param sample_num: Number of samples to generate.
+    :return: Array of random integers.
+    """
     return adv_rng.integers(0, 10, size=sample_num)
 
 
-def get_events(arr, top_th, bottom_th, lump_th, a):
+def get_events(
+    arr: np.ndarray, top_th: float, bottom_th: float, lump_th: int, a: float
+) -> Tuple[List[Tuple[int, int]], List[np.ndarray]]:
+    """
+    Retrieve events and their features from a signal array based on the Perceptio algorithm.
+
+    :param arr: Input signal array.
+    :param top_th: Top threshold for event detection.
+    :param bottom_th: Bottom threshold for event detection.
+    :param lump_th: Lump threshold for grouping events.
+    :param a: Parameter for the EWMA calculation.
+    :return: A tuple of events and their corresponding features.
+    """
     events = PerceptioProcessing.get_events(arr, a, bottom_th, top_th, lump_th)
     event_features = PerceptioProcessing.get_event_features(events, arr)
 
@@ -32,14 +57,26 @@ def get_events(arr, top_th, bottom_th, lump_th, a):
 
 
 def gen_min_events(
-    signal,
-    chunk_size,
-    min_events,
-    top_th,
-    bottom_th,
-    lump_th,
-    a,
-):
+    signal: np.ndarray,
+    chunk_size: int,
+    min_events: int,
+    top_th: float,
+    bottom_th: float,
+    lump_th: int,
+    a: float,
+) -> Tuple[List[tuple], List[np.ndarray]]:
+    """
+    Generate a minimum number of events from a continuous signal by processing it in chunks.
+
+    :param signal: Signal data to process.
+    :param chunk_size: Size of each chunk to process.
+    :param min_events: Minimum number of events to detect.
+    :param top_th: Top threshold for event detection.
+    :param bottom_th: Bottom threshold for event detection.
+    :param lump_th: Lump threshold for grouping events.
+    :param a: Parameter for the EWMA calculation.
+    :return: A tuple containing lists of events and their features.
+    """
     events = []
     event_features = []
     iteration = 0
@@ -63,13 +100,24 @@ def gen_min_events(
 
 
 def generate_bits(
-    events,
-    event_features,
-    cluster_sizes_to_check,
-    cluster_th,
-    Fs,
-    key_size_in_bytes,
-):
+    events: List[tuple],
+    event_features: List[np.ndarray],
+    cluster_sizes_to_check: int,
+    cluster_th: float,
+    Fs: float,
+    key_size_in_bytes: int,
+) -> Tuple[List[np.ndarray], List[list]]:
+    """
+    Generate bits (fingerprints) from detected events using clustering.
+
+    :param events: Detected events.
+    :param event_features: Features of the detected events.
+    :param cluster_sizes_to_check: Number of cluster sizes to consider.
+    :param cluster_th: Threshold for the clustering algorithm.
+    :param Fs: Sampling frequency of the signal.
+    :param key_size_in_bytes: Size of the generated key in bytes.
+    :return: A tuple containing fingerprints and grouped events.
+    """
     labels, k = PerceptioProcessing.kmeans_w_elbow_method(
         event_features, cluster_sizes_to_check, cluster_th
     )
@@ -80,31 +128,50 @@ def generate_bits(
     return fps, grouped_events
 
 
-
 def get_command_line_args(
-    top_threshold_default=6,
-    bottom_threshold_default=4,
-    lump_threshold_default=4,
-    ewma_a_default=0.75,
-    cluster_sizes_to_check_default=4,
-    minimum_events_default=16,
-    sampling_frequency_default=10000,
-    chunk_size_default=10000,
-    buffer_size_default=50000,
-    key_length_default=128,
-    snr_level_default=20,
-    trials_default=100
-):
+    top_threshold_default: int = 6,
+    bottom_threshold_default: int = 4,
+    lump_threshold_default: int = 4,
+    ewma_a_default: float = 0.75,
+    cluster_sizes_to_check_default: int = 4,
+    minimum_events_default: int = 16,
+    sampling_frequency_default: int = 10000,
+    chunk_size_default: int = 10000,
+    buffer_size_default: int = 50000,
+    key_length_default: int = 128,
+    snr_level_default: int = 20,
+    trials_default: int = 100,
+) -> Tuple[int, int, int, float, int, int, int, int, int, int, int, int, int]:
+    """
+    Parse command line arguments for the script.
+
+    :return: Tuple of parsed values as specified in the script.
+    """
     parser = argparse.ArgumentParser()
 
     # Add arguments without descriptions
-    parser.add_argument("-tt", "--top_threshold", type=float, default=top_threshold_default)
-    parser.add_argument("-bt", "--bottom_threshold", type=float, default=bottom_threshold_default)
-    parser.add_argument("-lt", "--lump_threshold", type=int, default=lump_threshold_default)
+    parser.add_argument(
+        "-tt", "--top_threshold", type=float, default=top_threshold_default
+    )
+    parser.add_argument(
+        "-bt", "--bottom_threshold", type=float, default=bottom_threshold_default
+    )
+    parser.add_argument(
+        "-lt", "--lump_threshold", type=int, default=lump_threshold_default
+    )
     parser.add_argument("-a", "--ewma_a", type=float, default=ewma_a_default)
-    parser.add_argument("-cl", "--cluster_sizes_to_check", type=int, default=cluster_sizes_to_check_default)
-    parser.add_argument("-min", "--minimum_events", type=int, default=minimum_events_default)
-    parser.add_argument("-fs", "--sampling_frequency", type=float, default=sampling_frequency_default)
+    parser.add_argument(
+        "-cl",
+        "--cluster_sizes_to_check",
+        type=int,
+        default=cluster_sizes_to_check_default,
+    )
+    parser.add_argument(
+        "-min", "--minimum_events", type=int, default=minimum_events_default
+    )
+    parser.add_argument(
+        "-fs", "--sampling_frequency", type=float, default=sampling_frequency_default
+    )
     parser.add_argument("-ch", "--chunk_size", type=int, default=chunk_size_default)
     parser.add_argument("-bs", "--buffer_size", type=int, default=buffer_size_default)
     parser.add_argument("-kl", "--key_length", type=int, default=key_length_default)
@@ -129,6 +196,18 @@ def get_command_line_args(
     target_snr = getattr(args, "snr_level")
     trials = getattr(args, "trials")
 
-    return (top_th, bottom_th, lump_th, a, cluster_sizes_to_check, cluster_th,
-            min_events, Fs, chunk_size, buffer_size, key_size_in_bytes, target_snr, trials)
-
+    return (
+        top_th,
+        bottom_th,
+        lump_th,
+        a,
+        cluster_sizes_to_check,
+        cluster_th,
+        min_events,
+        Fs,
+        chunk_size,
+        buffer_size,
+        key_size_in_bytes,
+        target_snr,
+        trials,
+    )

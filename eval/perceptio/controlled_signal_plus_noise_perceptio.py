@@ -1,9 +1,13 @@
-import argparse
 import os
 import sys
+from typing import ByteString
 
 import numpy as np
-from perceptio_tools import gen_min_events, generate_bits, get_command_line_args
+from perceptio_tools import (
+    gen_min_events,
+    generate_bits,
+    get_command_line_args,
+)
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
@@ -15,8 +19,19 @@ from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
     (
-        top_th, bottom_th, lump_th, a, cluster_sizes_to_check, cluster_th,
-            min_events, Fs, chunk_size, buffer_size, key_size_in_bytes, target_snr, trials
+        top_th,
+        bottom_th,
+        lump_th,
+        a,
+        cluster_sizes_to_check,
+        cluster_th,
+        min_events,
+        Fs,
+        chunk_size,
+        buffer_size,
+        key_size_in_bytes,
+        target_snr,
+        trials,
     ) = get_command_line_args(
         top_threshold_default=6,
         bottom_threshold_default=4,
@@ -29,7 +44,7 @@ if __name__ == "__main__":
         buffer_size_default=50000,
         key_length_default=128,
         snr_level_default=20,
-        trials_default=100
+        trials_default=100,
     )
 
     #  Loading the controlled signals
@@ -50,7 +65,15 @@ if __name__ == "__main__":
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
     # Defining the bit generation algorithm
-    def bit_gen_algo(signal):
+    def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
+        """
+        Generates bits based on the analysis of overlapping chunks from a signal.
+
+        :param signal: The signal buffer to process.
+        :type signal: Signal_Buffer
+        :return: A byte string of the generated bits up to the specified key length.
+        :rtype: ByteString
+        """
         signal_events, signal_event_features = gen_min_events(
             signal,
             chunk_size,
