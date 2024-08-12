@@ -1,4 +1,3 @@
-import argparse  # noqa: F401
 import os
 import sys
 from typing import ByteString

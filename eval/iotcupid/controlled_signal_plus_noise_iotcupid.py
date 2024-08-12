@@ -1,6 +1,6 @@
-import argparse
 import os
 import sys
+from typing import List
 
 import numpy as np
 from iotcupid_tools import gen_min_events, generate_bits, get_command_line_args
@@ -10,15 +10,31 @@ from eval_tools import (  # noqa: E402
     Signal_Buffer,
     events_cmp_bits,
     load_controlled_signal,
-    
-
 )
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
-    (  top_th, bottom_th, lump_th, a, cluster_sizes_to_check, cluster_th, 
-     min_events, Fs, chunk_size, buffer_size, window_size, feature_dimensions, w, m_start, m_steps, m_end, key_size_in_bytes, target_snr, trials
-    ) = get_command_line_args (
+    (
+        top_th,
+        bottom_th,
+        lump_th,
+        a,
+        cluster_sizes_to_check,
+        cluster_th,
+        min_events,
+        Fs,
+        chunk_size,
+        buffer_size,
+        window_size,
+        feature_dimensions,
+        w,
+        m_start,
+        m_steps,
+        m_end,
+        key_size_in_bytes,
+        target_snr,
+        trials,
+    ) = get_command_line_args(
         top_threshold_default=0.07,
         bottom_threshold_default=0.05,
         lump_threshold_default=4,
@@ -36,9 +52,8 @@ if __name__ == "__main__":
         mend_default=2,
         key_length_default=128,
         snr_level_default=1,
-        trials_default=10
+        trials_default=10,
     )
-
 
     mem_th = 0.8
 
@@ -60,7 +75,7 @@ if __name__ == "__main__":
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
     # Defining the bit generation algorithm
-    def bit_gen_algo(signal):
+    def bit_gen_algo(signal: Signal_Buffer) -> List[int]:
         signal_events, signal_event_signals = gen_min_events(
             signal,
             chunk_size,
