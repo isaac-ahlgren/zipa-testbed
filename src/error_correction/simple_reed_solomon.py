@@ -25,57 +25,36 @@ def int_to_bytes(integer, n):
     return integer.to_bytes(n, "little")
 
 
-def XORBytes(b1, b2):
-    return int_to_bytes(bytes_to_int(b1) ^ bytes_to_int(b2), b1.__len__())
-
-
-class robustShamir:
+class SimpleReedSolomonObj:
     """
     Robust Shamir Secret Sharing implementation from https://mortendahl.github.io/2017/08/13/secret-sharing-part3/
+    Isaac: Also helpful - https://research.swtch.com/field
     """
 
-    def __init__(self, N, T, K=1, size=32, PRIME=None):
-        """
-        :param N: Number of shares to be created
-        :param T: privacy Threshold = Max number of shares that may be seen without learning anything about the secret
-        :param K: Number of secrets | This should be set to 1
-        :param size: Security size / key Size / Size for the Prime Number
-        :param PRIME: Takes the given prime to create the prime field. If prime = None pime is chosen by
-            Crypto.Util.number.getPrime((size*8), os.urandom)
-        """
-        self.size = size
-        if PRIME is None:  # If no prime is given we generate one with the given size
-            self.PRIME = nb.getPrime(
-                (size * 8), os.urandom
-            )  # prime Size is in bits so bytes*8
-        else:
-            self.PRIME = PRIME
-        self.K = K  # Number of secrets
-        self.N = N  # Number of shares
-        self.R = T + self.K  # Min number of shares required to reconstruct
-        self.T = T  # Threshold = the maximum number of shares that may be seen without learning nothing about the secret, also known as the privacy threshold
-        assert self.R <= self.N
-        self.MAX_MANIPULATED = int((self.N - self.R) / 2)
-        # print("correction capability: ", self.MAX_MANIPULATED)
+    def __init__(self, n, k, power_of_2, prime_poly):
+        if k > n:
+            raise Exception("k has to be this relation to n, k <= n")
+        if n > 255:
+            raise Exception(
+                "n has to be n <= 2^(power_of_2) to be valid"
+            )
+        self.field_size = 2**power_of_2
+        self.block_byte_size = self.field_size // 8
+        self.prime_poly = prime_poly
+        self.n = n
+        self.k = k
+        self.t = n - k
 
-        # assert(self.R + self.MAX_MISSING + 2*self.MAX_MANIPULATED <= self.N)
+        self.POINTS = [p for p in range(1, self.n + 1)]
 
-        self.POINTS = [p for p in range(1, self.N + 1)]
-
-    def get_prime(self):
-        return self.PRIME
-
-    def shamir_share(self, secret):
-        secret = bytes_to_int(secret)
-        if secret > self.PRIME:  # make sure secret is in group
-            secret = secret % self.PRIME
+    def encode(self, secret):
         polynomial = [secret] + [random.randrange(self.PRIME) for _ in range(self.T)]
         shares = [
             int_to_bytes(self.poly_eval(polynomial, p), self.size) for p in self.POINTS
         ]
         return int_to_bytes(secret, self.size), shares
 
-    def shamir_robust_reconstruct(self, shares):
+    def decode(self, shares):
         # filter missing shares // Not needed for our case since we have all keys but not all are correct
         points_values = [
             (p, bytes_to_int(v)) for p, v in zip(self.POINTS, shares) if v is not None
@@ -102,8 +81,6 @@ class robustShamir:
         """
         Gao's Reed Solomon
         """
-        # assert (len(values) == len(points))
-        # assert (len(points) >= 2 * max_error_count + max_degree)
 
         # interpolate faulty polynomial
         H = self.lagrange_interpolation(points, values)
@@ -222,17 +199,25 @@ class robustShamir:
         return result
 
     def base_add(self, a, b):
-        return (a + b) % self.PRIME
+        return a ^ b
 
     def base_sub(self, a, b):
-        return (a - b) % self.PRIME
+        return a ^ b
 
     def base_inverse(self, a):
-        _, b, _ = self.base_egcd(a, self.PRIME)
-        return b if b >= 0 else b + self.PRIME
+        _, b, _ = self.base_egcd(a, self.field_size)
+        return b if b >= 0 else b + self.field_size
 
     def base_mul(self, a, b):
-        return (a * b) % self.PRIME
+        output = 0
+        while a > 0:
+            if a & 1 != 0:
+                output ^= b
+            a = a >> 1
+            b = b << 1
+            if b & 0x100 != 0:
+                b ^= self.prime_poly
+        return output
 
     def base_div(self, a, b):
         return self.base_mul(a, self.base_inverse(b))

@@ -80,9 +80,7 @@ class fPAKE:
 
         send_fpake_msg(conn, [vk])
 
-        # Prepare for @LiPake exchange
         key_array = bytearray()
-        # Execute @LiPake over each bit of the password
         for pw_i in pw:
             pw_i = pw_i.to_bytes(1, "big")
 
@@ -161,7 +159,7 @@ class fPAKE:
             # Send Y_s with its label
             send_fpake_msg(conn, [Y_star, eps])
 
-            k = self.gen_key_part(Y_star, X_star, Z)
+            k = self.gen_key_part(X_star, Y_star, Z)
             key_array += k
 
         msg = fpake_msg_standby(conn, self.timeout)

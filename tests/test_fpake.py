@@ -72,11 +72,8 @@ def test_fpake():
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
     
-    sk2 = fpake.host_protocol(key, connection)
+    sk2 = fpake.host_protocol(other_key, connection)
     sk1 = sock2.recv_bytes()
-    print(f"sk2: {sk2}")
-    print()
-    print(sk1)
     device_process.join()
     assert sk1 == sk2
 
