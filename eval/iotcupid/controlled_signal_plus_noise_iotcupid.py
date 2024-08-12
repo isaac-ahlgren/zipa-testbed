@@ -76,6 +76,16 @@ if __name__ == "__main__":
 
     # Defining the bit generation algorithm
     def bit_gen_algo(signal: Signal_Buffer) -> List[int]:
+        """
+        Generate cryptographic bits from an input signal using the defined Perceptio processing algorithm.
+
+        This function orchestrates the generation of cryptographic bits by first detecting events within the signal and then processing these events to generate bits. The process involves event detection with specific thresholds and conditions, followed by a clustering process that organizes these events into meaningful groups from which cryptographic bits are derived.
+
+        :param signal: The signal data to be processed, encapsulated in a `Signal_Buffer` object which provides an interface for reading signal chunks.
+        :type signal: Signal_Buffer
+        :return: A list of integers representing the cryptographic bits generated from the signal.
+        :rtype: List[int]
+        """
         signal_events, signal_event_signals = gen_min_events(
             signal,
             chunk_size,
