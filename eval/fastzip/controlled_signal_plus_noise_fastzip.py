@@ -1,9 +1,16 @@
-import argparse
 import os
 import sys
+from typing import ByteString
 
 import numpy as np
-from fastzip_tools import fastzip_wrapper_function, manage_overlapping_chunks, parse_command_line_args
+from fastzip_tools import (
+    fastzip_wrapper_function,
+    manage_overlapping_chunks,
+    parse_command_line_args,
+)
+
+# from typing import List, Optional, Tuple
+
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
@@ -15,9 +22,23 @@ from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
     (
-        window_size, overlap_size, buffer_size, n_bits, key_length, bias, eqd_delta,
-        peak_status, ewma_filter, alpha, remove_noise, normalize, power_threshold,
-        snr_threshold, number_peaks, snr_level, trials,target_snr
+        window_size,
+        overlap_size,
+        buffer_size,
+        n_bits,
+        key_length,
+        bias,
+        eqd_delta,
+        peak_status,
+        ewma_filter,
+        alpha,
+        remove_noise,
+        normalize,
+        power_threshold,
+        snr_threshold,
+        number_peaks,
+        snr_level,
+        trials,
     ) = parse_command_line_args(
         window_size_default=200,
         overlap_size_default=100,
@@ -35,8 +56,7 @@ if __name__ == "__main__":
         snr_threshold_default=1.2,
         number_peaks_default=0,
         snr_level_default=20,
-        trials_default=1000
-
+        trials_default=1000,
     )
 
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
@@ -45,16 +65,24 @@ if __name__ == "__main__":
     )
 
     legit_signal_buffer1 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
+        legit_signal.copy(), noise=True, target_snr=snr_level
     )
     legit_signal_buffer2 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
+        legit_signal.copy(), noise=True, target_snr=snr_level
     )
-    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
+    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=snr_level)
 
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
-    def bit_gen_algo(signal):
+    def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
+        """
+        Generates bits based on the analysis of overlapping chunks from a signal.
+
+        :param signal: The signal buffer to process.
+        :type signal: Signal_Buffer
+        :return: A byte string of the generated bits up to the specified key length.
+        :rtype: ByteString
+        """
         accumulated_bits = b""
         for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
             bits = fastzip_wrapper_function(
