@@ -6,13 +6,46 @@ from multiprocessing import Process, Pipe
 sys.path.insert(1, os.getcwd() + "/src")
 
 from error_correction.fPAKE import fPAKE
+from networking.network import send_fpake_msg, fpake_msg_standby
 
+def test_network_communication():
+    d1 = os.urandom(7)
+    d2 = os.urandom(3)
+    d3 = os.urandom(4)
+
+    def device():
+        device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        device_socket.connect(("127.0.0.1", 2000))
+        send_fpake_msg(device_socket, [d1, d2, d3])
+
+    device_process = Process(target=device, name="[CLIENT]")
+    device_process.start()
+
+    host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    host_socket.bind(("127.0.0.1", 2000))
+    host_socket.listen()
+    connection, _ = host_socket.accept()
+    host_socket.setblocking(0)
+    
+    msg = fpake_msg_standby(connection, 10)
+
+    recv_d1 = msg[0]
+    recv_d2 = msg[1]
+    recv_d3 = msg[2]
+    
+    host_socket.close()
+    device_process.join()
+    assert d1 == recv_d1
+    assert d2 == recv_d2
+    assert d3 == recv_d3
 
 def test_fpake():
-    key = b'\x01' + os.urandom(7)
-    print("here")
-    fpake = fPAKE(8, 6, 10, "..")
-    print("exit")
+    key = b'\x01' + os.urandom(3)
+    fpake = fPAKE(4, 2, 10, "..")
 
     sock1, sock2 = Pipe()
 
@@ -21,9 +54,7 @@ def test_fpake():
         device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         device_socket.connect(("127.0.0.1", 2000))
-        print("dev 1: here")
         sk1 = fpake.device_protocol(key, device_socket)
-        print("dev 1: exit")
         sock1.send_bytes(sk1)
 
     key_ba = bytearray(key)
@@ -33,7 +64,6 @@ def test_fpake():
     device_process = Process(target=device, name="[CLIENT]")
     device_process.start()
 
-    print("1")
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -41,13 +71,12 @@ def test_fpake():
     host_socket.listen()
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
-    print("2")
     
-    print("dev 2: here")
     sk2 = fpake.host_protocol(key, connection)
-    print("dev 2: here")
     sk1 = sock2.recv_bytes()
-    
+    print(f"sk2: {sk2}")
+    print()
+    print(sk1)
     device_process.join()
     assert sk1 == sk2
 

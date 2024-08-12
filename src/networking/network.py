@@ -268,7 +268,7 @@ def send_fpake_msg(connection, msg):
 
     payload = length_payload.to_bytes(4, byteorder="big")
     for m in msg:
-        payload += len(m).to_bytes(4, byteorder="big")
+        payload += len(m).to_bytes(4, byteorder="big") + m
     
     outgoing = FPFM.encode() + payload
     connection.send(outgoing)
@@ -282,12 +282,12 @@ def fpake_msg_standby(connection: socket.socket, timeout: int) -> bool:
     # While process hasn't timed out
     while (timestamp - reference) < timeout:
         timestamp = time.time()
-        message = connection.recv(8)
+        message = connection.recv(12)
 
         if message is None:
             continue
         elif message[:8] == FPFM.encode():
-            msg_size = int.from_bytes(message[:4], "big")
+            msg_size = int.from_bytes(message[8:], "big")
 
             payload = connection.recv(msg_size)
 
