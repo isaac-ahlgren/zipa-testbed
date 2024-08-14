@@ -6,6 +6,7 @@ from multiprocessing import Process, Pipe
 sys.path.insert(1, os.getcwd() + "/src")
 
 from error_correction.fPAKE import fPAKE
+from error_correction.simple_reed_solomon import SimpleReedSolomonObj
 from networking.network import send_fpake_msg, fpake_msg_standby
 
 def test_network_communication():
@@ -43,6 +44,47 @@ def test_network_communication():
     assert d2 == recv_d2
     assert d3 == recv_d3
 
+def test_simple_reed_solomon_gf_2_8():
+    rs = SimpleReedSolomonObj(8, 6, power_of_2=8, generator=2, prime_poly=0x11D)
+    key = b'\x01' +  b'\x01' + os.urandom(4)
+
+    C = rs.encode(key)
+
+    C[0] = 0
+
+    decoded_key = rs.decode(C)
+
+    assert decoded_key == key
+
+    C[1] = 0
+
+    decoded_key = rs.decode(C)
+
+    assert decoded_key != key
+
+def test_simple_reed_solomon_gf_2_256():
+    prime_poly = 0x10002000000000000000400000000000002000000000000000000000000000001
+    generator = 2
+    rs = SimpleReedSolomonObj(8, 6, power_of_2=256, generator=generator, prime_poly=prime_poly)
+    key = os.urandom(6*32)
+
+    C = rs.encode(key)
+
+    C[0] = 0
+
+    decoded_key = rs.decode(C)
+
+    print(key)
+    print(decoded_key)
+
+    assert decoded_key == key
+
+    C[33] = 0
+
+    decoded_key = rs.decode(C)
+
+    assert decoded_key != key
+
 def test_fpake():
     key = b'\x01' + os.urandom(3)
     fpake = fPAKE(4, 2, 10, "..")
@@ -78,4 +120,4 @@ def test_fpake():
     assert sk1 == sk2
 
 if __name__ == "__main__":
-    test_fpake()
+    test_simple_reed_solomon_gf_2_256()
