@@ -4,37 +4,35 @@ import numpy as np
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
-from networking.network import (
-    ack,
-    ack_standby,
-    send_status,
-    socket,
-)
-
-from signal_processing.fastzip import FastZIPProcessing
 from error_correction.fPAKE import fPAKE
-
+from networking.network import ack, ack_standby, send_status, socket
 from protocols.protocol_interface import ProtocolInterface
+from signal_processing.fastzip import FastZIPProcessing
+
 
 class FastZIPProtocol(ProtocolInterface):
-    def __init__(self, parameters: dict, sensor: Any, logger: Any, network: Any) -> None:
+    def __init__(
+        self, parameters: dict, sensor: Any, logger: Any, network: Any
+    ) -> None:
         super().__init__(parameters, sensor, logger)
-        self.fPAKE = fPAKE(pw_length=18, key_length=16, timeout=30)  # Example parameters
+        self.fPAKE = fPAKE(
+            pw_length=18, key_length=16, timeout=30
+        )  # Example parameters
         self.network = network
-        
-        self.n_bits = parameters['n_bits']
-        self.power_thresh = parameters['power_thresh']
-        self.snr_thresh = parameters['snr_thresh']
-        self.peak_thresh = parameters['peak_thresh']
-        self.bias = parameters['bias']
-        self.sample_rate = parameters['sample_rate']
-        self.eqd_delta = parameters['eqd_delta']
-        self.peak_status = parameters.get('peak_status', False)
-        self.ewma_filter = parameters.get('ewma_filter', False)
-        self.alpha = parameters.get('alpha', 0.015)
-        self.remove_noise = parameters.get('remove_noise', False)
-        self.normalize = parameters.get('normalize', False)
-    
+
+        self.n_bits = parameters["n_bits"]
+        self.power_thresh = parameters["power_thresh"]
+        self.snr_thresh = parameters["snr_thresh"]
+        self.peak_thresh = parameters["peak_thresh"]
+        self.bias = parameters["bias"]
+        self.sample_rate = parameters["sample_rate"]
+        self.eqd_delta = parameters["eqd_delta"]
+        self.peak_status = parameters.get("peak_status", False)
+        self.ewma_filter = parameters.get("ewma_filter", False)
+        self.alpha = parameters.get("alpha", 0.015)
+        self.remove_noise = parameters.get("remove_noise", False)
+        self.normalize = parameters.get("normalize", False)
+
     def process_context(self) -> Any:
         """
         Processes sensor data to generate cryptographic keys or fingerprints using FastZIP's signal processing capabilities.
@@ -45,8 +43,8 @@ class FastZIPProtocol(ProtocolInterface):
         accumulated_bits = b""
 
         while len(accumulated_bits) < self.key_length:
-            chunk = self.read_samples(self.parameters['chunk_size'])
-        
+            chunk = self.read_samples(self.parameters["chunk_size"])
+
             if not chunk.size:
                 break
 
@@ -54,7 +52,7 @@ class FastZIPProtocol(ProtocolInterface):
             if processed_bits:
                 accumulated_bits += processed_bits
 
-        return accumulated_bits[:self.key_length]
+        return accumulated_bits[: self.key_length]
 
     def process_chunk(self, chunk: np.ndarray) -> bytes:
         """
@@ -69,25 +67,23 @@ class FastZIPProtocol(ProtocolInterface):
         # Implement the processing as per the FastZIP requirements
         bits = FastZIPProcessing.fastzip_algo(
             sensor_data_list=[chunk],
-            n_bits_list=[self.parameters['n_bits']],
-            power_thresh_list=[self.parameters['power_thresh']],
-            snr_thresh_list=[self.parameters['snr_thresh']],
-            peak_thresh_list=[self.parameters['peak_thresh']],
-            bias_list=[self.parameters['bias']],
-            sample_rate_list=[self.parameters['sample_rate']],
-            eqd_delta_list=[self.parameters['eqd_delta']],
-            peak_status_list=[self.parameters.get('peak_status', False)],
-            ewma_filter_list=[self.parameters.get('ewma_filter', False)],
-            alpha_list=[self.parameters.get('alpha', 0.015)],
-            remove_noise_list=[self.parameters.get('remove_noise', False)],
-            normalize_list=[self.parameters.get('normalize', False)],
+            n_bits_list=[self.parameters["n_bits"]],
+            power_thresh_list=[self.parameters["power_thresh"]],
+            snr_thresh_list=[self.parameters["snr_thresh"]],
+            peak_thresh_list=[self.parameters["peak_thresh"]],
+            bias_list=[self.parameters["bias"]],
+            sample_rate_list=[self.parameters["sample_rate"]],
+            eqd_delta_list=[self.parameters["eqd_delta"]],
+            peak_status_list=[self.parameters.get("peak_status", False)],
+            ewma_filter_list=[self.parameters.get("ewma_filter", False)],
+            alpha_list=[self.parameters.get("alpha", 0.015)],
+            remove_noise_list=[self.parameters.get("remove_noise", False)],
+            normalize_list=[self.parameters.get("normalize", False)],
         )
         return bits
-    
 
     def parameters(self, is_host: bool) -> str:
         pass
-
 
     def device_protocol(self, host_socket):
         """
@@ -110,7 +106,9 @@ class FastZIPProtocol(ProtocolInterface):
 
         if secret_key:
             print("Secret key derived successfully.")
-            hkdf = HKDF(algorithm=hashes.SHA256(), length=32, salt=None, info=b'fastzip-session')
+            hkdf = HKDF(
+                algorithm=hashes.SHA256(), length=32, salt=None, info=b"fastzip-session"
+            )
             session_key = hkdf.derive(secret_key)
             if self.confirm_key_exchange(host_socket, session_key):
                 print("Key exchange confirmed successfully.")
@@ -121,7 +119,6 @@ class FastZIPProtocol(ProtocolInterface):
         else:
             print("Failed to derive the secret key.")
             send_status(host_socket, False)
-
 
     def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         """
