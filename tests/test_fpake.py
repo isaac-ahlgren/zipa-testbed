@@ -62,11 +62,11 @@ def test_simple_reed_solomon_gf_2_8():
 
     assert decoded_key != key
 
-def test_simple_reed_solomon_gf_2_256():
-    prime_poly = 0x10002000000000000000400000000000002000000000000000000000000000001
+def test_simple_reed_solomon_gf_2_12():
+    prime_poly = 0x1053
     generator = 2
-    rs = SimpleReedSolomonObj(8, 6, power_of_2=256, generator=generator, prime_poly=prime_poly)
-    key = os.urandom(6*32)
+    rs = SimpleReedSolomonObj(10, 8, power_of_2=16, generator=generator, prime_poly=prime_poly)
+    key = os.urandom(12)
 
     C = rs.encode(key)
 
@@ -120,4 +120,4 @@ def test_fpake():
     assert sk1 == sk2
 
 if __name__ == "__main__":
-    test_simple_reed_solomon_gf_2_256()
+    test_simple_reed_solomon_gf_2_16()

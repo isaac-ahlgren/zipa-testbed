@@ -61,6 +61,42 @@ class SimpleReedSolomonObj:
             bs += int_to_bytes(ele, self.block_byte_size)
         return bs
 
+    def init_tables(prim=0x11d, generator=2, c_exp=8):
+        '''Precompute the logarithm and anti-log tables for faster computation later, using the provided primitive polynomial.
+        These tables are used for multiplication/division since addition/substraction are simple XOR operations inside GF of characteristic 2.
+        The basic idea is quite simple: since b**(log_b(x), log_b(y)) == x * y given any number b (the base or generator of the logarithm), then we can use any number b to precompute logarithm and anti-log (exponentiation) tables to use for multiplying two numbers x and y.
+        That's why when we use a different base/generator number, the log and anti-log tables are drastically different, but the resulting computations are the same given any such tables.
+        For more infos, see https://en.wikipedia.org/wiki/Finite_field_arithmetic#Implementation_tricks
+        '''
+        # generator is the generator number (the "increment" that will be used to walk through the field by multiplication, this must be a prime number). This is basically the base of the logarithm/anti-log tables. Also often noted "alpha" in academic books.
+        # prim is the primitive/prime (binary) polynomial and must be irreducible (ie, it can't represented as the product of two smaller polynomials). It's a polynomial in the binary sense: each bit is a coefficient, but in fact it's an integer between field_charac+1 and field_charac*2, and not a list of gf values. The prime polynomial will be used to reduce the overflows back into the range of the Galois Field without duplicating values (all values should be unique). See the function find_prime_polys() and: http://research.swtch.com/field and http://www.pclviewer.com/rs2/galois.html
+        # note that the choice of generator or prime polynomial doesn't matter very much: any two finite fields of size p^n have identical structure, even if they give the individual elements different names (ie, the coefficients of the codeword will be different, but the final result will be the same: you can always correct as many errors/erasures with any choice for those parameters). That's why it makes sense to refer to all the finite fields, and all decoders based on Reed-Solomon, of size p^n as one concept: GF(p^n). It can however impact sensibly the speed (because some parameters will generate sparser tables).
+        # c_exp is the exponent for the field's characteristic GF(2^c_exp)
+
+        global gf_exp, gf_log, field_charac
+        field_charac = int(2**c_exp - 1)
+        gf_exp = [0] * (field_charac * 2) # anti-log (exponential) table. The first two elements will always be [GF256int(1), generator]
+        gf_log = [0] * (field_charac+1) # log table, log[0] is impossible and thus unused
+
+        # For each possible value in the galois field 2^8, we will pre-compute the logarithm and anti-logarithm (exponential) of this value
+        # To do that, we generate the Galois Field F(2^p) by building a list starting with the element 0 followed by the (p-1) successive powers of the generator a : 1, a, a^1, a^2, ..., a^(p-1).
+        x = 1
+        for i in range(field_charac): # we could skip index 255 which is equal to index 0 because of modulo: g^255==g^0 but either way, this does not change the later outputs (ie, the ecc symbols will be the same either way)
+            gf_exp[i] = x # compute anti-log for this value and store it in a table
+            gf_log[x] = i # compute log at the same time
+            x = gf_mult_noLUT(x, generator, prim, field_charac+1)
+
+            # If you use only generator==2 or a power of 2, you can use the following which is faster than gf_mult_noLUT():
+            #x <<= 1 # multiply by 2 (change 1 by another number y to multiply by a power of 2^y)
+            #if x & 0x100: # similar to x >= 256, but a lot faster (because 0x100 == 256)
+                #x ^= prim # substract the primary polynomial to the current value (instead of 255, so that we get a unique set made of coprime numbers), this is the core of the tables generation
+
+        # Optimization: double the size of the anti-log table so that we don't need to mod 255 to stay inside the bounds (because we will mainly use this table for the multiplication of two GF numbers, no more).
+        for i in range(field_charac, field_charac * 2):
+            gf_exp[i] = gf_exp[i - field_charac]
+
+        return [gf_log, gf_exp]
+
     def rs_generator_poly(self, nsym, generator, fcr=0):
         '''Generate an irreducible generator polynomial (necessary to encode a message into Reed-Solomon)'''
         g = [1]
@@ -141,7 +177,7 @@ class SimpleReedSolomonObj:
             #err_eval = rs_find_error_evaluator(synd[::-1], err_loc[::-1], len(err_loc)-1)[::-1] # find error/errata evaluator polynomial (not really necessary since we already compute it at the same time as the error locator poly in BM)
 
         # locate the message errors
-        err_pos = self.rs_find_errors(err_loc, len(msg_out), generator) # find the roots of the errata locator polynomial (ie: the positions of the errors/errata)
+        err_pos = self.rs_find_errors(err_loc, self.field_size, generator) # find the roots of the errata locator polynomial (ie: the positions of the errors/errata)
         if err_pos is None:
             raise ReedSolomonError("Could not locate error")
 
@@ -336,13 +372,12 @@ class SimpleReedSolomonObj:
         return x
 
     def gf_inverse(self, x):
-        _, b, _ = self.base_egcd(x, self.field_size)
-        return b if b >= 0 else b + self.field_size
+        return gf_exp[field_charac - gf_log[x]]
 
     def gf_div(self, x, y):
         return self.gf_mul(x, self.gf_inverse(y))
 
-    def gf_mul(self, x, y, carryless=True):
+    def gf_mult_noLUT(self, x, y, carryless=True):
         '''Galois Field integer multiplication using Russian Peasant Multiplication algorithm (faster than the standard multiplication + modular reduction).
         If prim is 0 and carryless=False, then the function produces the result for a standard integers multiplication (no carry-less arithmetics nor modular reduction).'''
         r = 0
