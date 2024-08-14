@@ -111,7 +111,7 @@ class Perceptio_Protocol(ProtocolInterface):
         grouped_events = PerceptioProcessing.group_events(events, labels, k)
 
         fps = PerceptioProcessing.gen_fingerprints(
-            grouped_events, k, self.key_length, self.Fs
+            grouped_events, k, self.commitment_length, self.Fs
         )  # I know the variables are wrong, could someone fix them for me? -Isaac
 
         return fps
