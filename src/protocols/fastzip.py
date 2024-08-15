@@ -1,13 +1,11 @@
 from typing import Any
 
 import numpy as np
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
-from error_correction.fPAKE import fPAKE
 from networking.network import ack, ack_standby, send_status, socket
 from protocols.protocol_interface import ProtocolInterface
 from signal_processing.fastzip import FastZIPProcessing
+from error_correction.fPAKE import fPAKE
 
 
 class FastZIPProtocol(ProtocolInterface):
@@ -15,11 +13,12 @@ class FastZIPProtocol(ProtocolInterface):
         self, parameters: dict, sensor: Any, logger: Any, network: Any
     ) -> None:
         super().__init__(parameters, sensor, logger)
-        self.fPAKE = fPAKE(
-            pw_length=18, key_length=16, timeout=30
-        )  # Example parameters
+        
+        # Store configuration directly
         self.network = network
-
+        self.verbose = parameters.get('verbose', False)
+        self.timeout = parameters["timeout"]
+        self.chunk_size = parameters["chunk_size"]
         self.n_bits = parameters["n_bits"]
         self.power_thresh = parameters["power_thresh"]
         self.snr_thresh = parameters["snr_thresh"]
@@ -32,6 +31,17 @@ class FastZIPProtocol(ProtocolInterface):
         self.alpha = parameters.get("alpha", 0.015)
         self.remove_noise = parameters.get("remove_noise", False)
         self.normalize = parameters.get("normalize", False)
+        self.key_length = parameters['key_length']
+        self.parity_symbols = parameters["parity_symbols"]
+        self.key_length_bits = self.key_length * 8  # To calculate bits from bytes
+
+        # fPAKE related
+        self.commitment_length = self.key_length + self.parity_symbols
+        self.fPAKE = fPAKE(
+            pw_length=self.commitment_length, 
+            key_length=self.key_length, 
+            timeout=self.timeout
+        )
 
     def process_context(self) -> Any:
         """
@@ -42,8 +52,8 @@ class FastZIPProtocol(ProtocolInterface):
         """
         accumulated_bits = b""
 
-        while len(accumulated_bits) < self.key_length:
-            chunk = self.read_samples(self.parameters["chunk_size"])
+        while len(accumulated_bits) < self.key_length_bits:
+            chunk = self.read_samples(self.chunk_size)
 
             if not chunk.size:
                 break
@@ -52,7 +62,7 @@ class FastZIPProtocol(ProtocolInterface):
             if processed_bits:
                 accumulated_bits += processed_bits
 
-        return accumulated_bits[: self.key_length]
+        return accumulated_bits[: self.key_length_bits]
 
     def process_chunk(self, chunk: np.ndarray) -> bytes:
         """
@@ -67,18 +77,18 @@ class FastZIPProtocol(ProtocolInterface):
         # Implement the processing as per the FastZIP requirements
         bits = FastZIPProcessing.fastzip_algo(
             sensor_data_list=[chunk],
-            n_bits_list=[self.parameters["n_bits"]],
-            power_thresh_list=[self.parameters["power_thresh"]],
-            snr_thresh_list=[self.parameters["snr_thresh"]],
-            peak_thresh_list=[self.parameters["peak_thresh"]],
-            bias_list=[self.parameters["bias"]],
-            sample_rate_list=[self.parameters["sample_rate"]],
-            eqd_delta_list=[self.parameters["eqd_delta"]],
-            peak_status_list=[self.parameters.get("peak_status", False)],
-            ewma_filter_list=[self.parameters.get("ewma_filter", False)],
-            alpha_list=[self.parameters.get("alpha", 0.015)],
-            remove_noise_list=[self.parameters.get("remove_noise", False)],
-            normalize_list=[self.parameters.get("normalize", False)],
+            n_bits_list=[self.n_bits],
+            power_thresh_list=[self.power_thresh],
+            snr_thresh_list=[self.snr_thresh],
+            peak_thresh_list=[self.peak_thresh],
+            bias_list=[self.bias],
+            sample_rate_list=[self.sample_rate],
+            eqd_delta_list=[self.eqd_delta],
+            peak_status_list=[self.peak_status],
+            ewma_filter_list=[self.ewma_filter],
+            alpha_list=[self.alpha],
+            remove_noise_list=[self.remove_noise],
+            normalize_list=[self.normalize],
         )
         return bits
 
@@ -87,97 +97,61 @@ class FastZIPProtocol(ProtocolInterface):
 
     def device_protocol(self, host_socket):
         """
-        Conducts the device protocol over a given socket, handling the protocol's main loop including
-        sending ACKs, extracting context, receiving and processing commitments, and performing key confirmation.
+        Conducts the device protocol over a given socket.
         """
-        host_socket.setblocking(1)  # Ensure blocking mode for reliable communication
-
-        # Sending ACK to start the communication
-        print("Sending ACK to host...")
-        ack(host_socket)  # Use network script function to send ACK
+        host_socket.setblocking(1)
+        if self.verbose:
+            print("Sending ACK to host...")
+        ack(host_socket)
 
         if not ack_standby(host_socket, self.timeout):
-            print("ACK from host not received, exiting...")
-            return
-
-        print("ACK received. Running fPAKE protocol...")
-        context_data = self.get_context()  # Get context data from sensors
-        secret_key = self.fPAKE.device_protocol(context_data, host_socket)
-
-        if secret_key:
-            print("Secret key derived successfully.")
-            hkdf = HKDF(
-                algorithm=hashes.SHA256(), length=32, salt=None, info=b"fastzip-session"
-            )
-            session_key = hkdf.derive(secret_key)
-            if self.confirm_key_exchange(host_socket, session_key):
-                print("Key exchange confirmed successfully.")
-                send_status(host_socket, True)  # Communicate success
-            else:
-                print("Key exchange confirmation failed.")
-                send_status(host_socket, False)
-        else:
-            print("Failed to derive the secret key.")
-            send_status(host_socket, False)
-
-    def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
-        """
-        Manages the host-side fPAKE protocol for secure key exchange using a specific device socket.
-        This method handles the host-side logic for establishing a secure connection,
-        conducting the fPAKE entropy amplification, and confirming keys with a single client.
-
-        :param device_socket: Socket connected to the client device.
-        """
-        device_socket.setblocking(1)  # Ensure blocking mode for reliable communication
-
-        # Wait for initial ACK from device to confirm readiness
-        if not ack_standby(device_socket, self.timeout):
             if self.verbose:
-                print("No ACK received within time limit - early exit.\n")
+                print("ACK from host not received, exiting...")
             return
 
         if self.verbose:
-            print("ACK received from device. Proceeding with fPAKE protocol...\n")
+            print("ACK received. Running fPAKE protocol...")
+        context_data = self.get_context()
+        if isinstance(context_data, (bytes, bytearray)):
+            context_bytes = context_data
+        else:
+            context_bytes = bytes(context_data)
+        secret_key = self.fPAKE.device_protocol(context_bytes, host_socket)
 
-        # Retrieve context data which are fingerprints for the fPAKE protocol
-        fingerprints = self.get_context()
-
-        # Perform the fPAKE protocol using retrieved fingerprints
-        try:
-            secret_key = self.fPAKE.host_protocol(fingerprints, device_socket)
-
-            if secret_key:
-                # Confirm the secret key with the device
-                if self.confirm_key_exchange(device_socket, secret_key):
-                    if self.verbose:
-                        print("Key exchange confirmed successfully.")
-                else:
-                    if self.verbose:
-                        print("Key exchange confirmation failed.")
-            else:
-                if self.verbose:
-                    print("Failed to derive a secret key.")
-        except Exception as e:
+        if secret_key:
             if self.verbose:
-                print(f"Error during fPAKE protocol execution: {e}")
+                print("Secret key derived successfully.")
+            send_status(host_socket, True)
+        else:
+            if self.verbose:
+                print("Failed to derive the secret key.")
+            send_status(host_socket, False)
 
-    def confirm_key_exchange(self, conn, session_key):
+    def host_protocol_single_threaded(self, device_socket: socket.socket):
         """
-        Send and verify the hash of the session key to confirm.
-
-        :param conn: Connection socket.
-        :param session_key: The session key derived from the secret.
-        :return: True if the key is confirmed, False otherwise.
+        Manages the host-side fPAKE protocol.
         """
-        try:
-            # Send hash of the session key
-            key_hash = hashes.Hash(hashes.SHA256())
-            key_hash.update(session_key)
-            conn.sendall(key_hash.finalize())
+        device_socket.setblocking(1)
+        if not ack_standby(device_socket, self.timeout):
+            if self.verbose:
+                print("No ACK received within time limit - early exit.")
+            return
 
-            # Receive and verify the response
-            partner_hash = conn.recv(1024)
-            return partner_hash == key_hash.finalize()
-        except Exception as e:
-            print(f"Error during key confirmation: {e}")
-            return False
+        if self.verbose:
+            print("ACK received from device. Proceeding with fPAKE protocol...")
+
+        fingerprints = self.get_context()
+        if isinstance(fingerprints, (bytes, bytearray)):
+            fingerprints_bytes = fingerprints
+        else:
+            fingerprints_bytes = bytes(fingerprints)
+        secret_key = self.fPAKE.host_protocol(fingerprints_bytes, device_socket)
+
+        if secret_key:
+            if self.verbose:
+                print("Key exchange confirmed successfully.")
+            send_status(device_socket, True)
+        else:
+            if self.verbose:
+                print("Key exchange confirmation failed.")
+            send_status(device_socket, False)

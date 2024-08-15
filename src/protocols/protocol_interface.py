@@ -38,10 +38,6 @@ class ProtocolInterface:
         self.mutex = Lock()
         self.timeout = parameters["timeout"]
         self.hash_func = hashes.SHA256()
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
-        )
-        self.sensor.add_protocol_queue((self.queue_flag, self.queue))
 
     def hash_function(self, bytes_data: bytes) -> bytes:
         """
