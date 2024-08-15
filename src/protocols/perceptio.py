@@ -138,15 +138,15 @@ class Perceptio_Protocol(ProtocolInterface):
         # Log current paramters to the NFS server
         self.logger.log([("parameters", "txt", self.parameters(False))])
 
-        # Sending ack that they are ready to begin
-        if self.verbose:
-            print("\nSending ACK")
-        ack(host_socket)
-
         successes = 0
         iterations = 0
         while successes < self.conf_threshold and iterations < self.max_iterations:
             success = False
+
+            # Sending ack that they are ready to begin
+            if self.verbose:
+                print("\nSending ACK")
+            ack(host_socket)
 
             if self.verbose:
                 print("Waiting for ACK from host.\n")
@@ -235,13 +235,13 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("[CLIENT] Recieving nonce message from host.\n")
             # Recieve nonce message
-            recieved_nonce_msg = get_nonce_msg_standby(host_socket, self.timeout)
+            recieved_nonce_msg = get_nonce_msg_standby(host_socket, self.timeout) # TODO Hangs here
             print(f"[CLIENT] Recieved nonce: {recieved_nonce_msg}")
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
                 if self.verbose:
                     print("No nonce message recieved within time limit - early exit")
-                return
+                continue
 
             if self.verbose:
                 print("Comparing hashes.\n")
@@ -345,7 +345,7 @@ class Perceptio_Protocol(ProtocolInterface):
             send_commit(commitments, hs, device_socket)
 
             # Check up on other devices status
-            status = status_standby(device_socket, self.timeout)
+            status = status_standby(device_socket, self.timeout) # TODO Hangs here
             if status is None:
                 if self.verbose:
                     print("No status recieved within time limit - early exit.\n\n")

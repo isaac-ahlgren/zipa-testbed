@@ -17,7 +17,7 @@ PROTOCOL_DUMMY_PARAMETERS = {
     "top_th": 0.75,
     "bottom_th": 0.5,
     "lump_th": 5,
-    "conf_thresh": 5,
+    "conf_thresh": 3,
     "min_events": 15,
     "max_iterations": 20,
     "chunk_size": 44_100 * 5,
@@ -100,3 +100,4 @@ def device(protocol):
 
 if __name__ == "__main__":
     test_protocol_interaction()
+    exit()
