@@ -180,6 +180,7 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("Waiting for commitment from host\n")
             commitments, hs = commit_standby(host_socket, self.timeout)
+            print(f"Client has recieved\nCommitments: {commitments}\nHash: {hs}\n")
             # Early exist if no commitment recieved in time
             if not commitments:
                 if self.verbose:
@@ -209,7 +210,7 @@ class Perceptio_Protocol(ProtocolInterface):
             # Key Confirmation Phase
 
             if self.verbose:
-                print("Performing key confirmation\n")
+                print("[CLIENT] Performing key confirmation\n")
 
             # Derive key
             kdf = HKDF(
@@ -220,6 +221,8 @@ class Perceptio_Protocol(ProtocolInterface):
             # Hash prederived key
             pd_key_hash = self.hash_function(key)
 
+            if self.verbose:
+                print("[CLIENT] Sending nonce message to host.\n")
             # Send nonce message to host
             generated_nonce = send_nonce_msg_to_host(
                 host_socket,
@@ -229,15 +232,19 @@ class Perceptio_Protocol(ProtocolInterface):
                 self.hash_func,
             )
 
+            if self.verbose:
+                print("[CLIENT] Recieving nonce message from host.\n")
             # Recieve nonce message
             recieved_nonce_msg = get_nonce_msg_standby(host_socket, self.timeout)
-
+            print(f"[CLIENT] Recieved nonce: {recieved_nonce_msg}")
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
                 if self.verbose:
                     print("No nonce message recieved within time limit - early exit")
                 return
 
+            if self.verbose:
+                print("Comparing hashes.\n")
             # If hashes are equal, then it was successful
             if verify_mac_from_host(
                 recieved_nonce_msg,
@@ -255,7 +262,7 @@ class Perceptio_Protocol(ProtocolInterface):
                     f"success: {success}, Number of successes {successes}, Total number of iteration {iterations}\n"
                 )
 
-            self.checkpoint_log(witnesses, commitments, success, signal, iterations)
+            # self.checkpoint_log(witnesses, commitments, success, signal, iterations)
             iterations += 1
 
         if self.verbose:
@@ -327,6 +334,9 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("Commiting all the witnesses\n")
             # Create all commitments
             commitments, keys, hs = self.generate_commitments(witnesses)
+            print(
+                f"Host has generated\nCommitment: {commitments}\nKeys: {keys}\nHash: {hs}\n"
+            )
 
             if self.verbose:
                 print("Sending commitments\n")
@@ -385,14 +395,14 @@ class Perceptio_Protocol(ProtocolInterface):
                     self.hash_func,
                 )
 
-                self.checkpoint_log(
+                """self.checkpoint_log(
                     witnesses,
                     commitments,
                     success,
                     signal,
                     iterations,
                     ip_addr=device_ip_addr,
-                )
+                )"""
 
             if self.verbose:
                 print(
@@ -465,6 +475,8 @@ class Perceptio_Protocol(ProtocolInterface):
                     commitments[j], fingerprints[i]
                 )
                 potential_key_hash = self.hash_function(potential_key)
+                if key is None:
+                    key = potential_key
                 if constant_time.bytes_eq(potential_key_hash, hashes[j]):
                     key = potential_key
                     break

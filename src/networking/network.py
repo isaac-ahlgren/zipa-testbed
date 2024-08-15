@@ -161,13 +161,13 @@ def commit_standby(
 
             # Extract commitments and hashes, appending to their respective lists
             for i in range(number_of_commits):
-                hashes.append(
+                commitments.append(
                     commits[
                         i * (hash_length + com_length) : i * (hash_length + com_length)
                         + hash_length
                     ]
                 )
-                commitments.append(
+                hashes.append(
                     commits[
                         i * (hash_length + com_length)
                         + hash_length : (i + 1) * (hash_length + com_length)
