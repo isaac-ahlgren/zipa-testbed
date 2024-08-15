@@ -29,8 +29,9 @@ class SimpleReedSolomonObj:
         self.n = n
         self.k = k
         self.t = n - k
+        self.gf_log, self.gf_exp = self.init_tables()
         self.gen_poly = self.rs_generator_poly(self.t, generator)
-
+        print(self.gen_poly)
 
     def encode(self, key: bytearray) -> bytearray:
         key_array = self.bytes_to_array(key)
@@ -61,7 +62,7 @@ class SimpleReedSolomonObj:
             bs += int_to_bytes(ele, self.block_byte_size)
         return bs
 
-    def init_tables(prim=0x11d, generator=2, c_exp=8):
+    def init_tables(self):
         '''Precompute the logarithm and anti-log tables for faster computation later, using the provided primitive polynomial.
         These tables are used for multiplication/division since addition/substraction are simple XOR operations inside GF of characteristic 2.
         The basic idea is quite simple: since b**(log_b(x), log_b(y)) == x * y given any number b (the base or generator of the logarithm), then we can use any number b to precompute logarithm and anti-log (exponentiation) tables to use for multiplying two numbers x and y.
@@ -73,18 +74,16 @@ class SimpleReedSolomonObj:
         # note that the choice of generator or prime polynomial doesn't matter very much: any two finite fields of size p^n have identical structure, even if they give the individual elements different names (ie, the coefficients of the codeword will be different, but the final result will be the same: you can always correct as many errors/erasures with any choice for those parameters). That's why it makes sense to refer to all the finite fields, and all decoders based on Reed-Solomon, of size p^n as one concept: GF(p^n). It can however impact sensibly the speed (because some parameters will generate sparser tables).
         # c_exp is the exponent for the field's characteristic GF(2^c_exp)
 
-        global gf_exp, gf_log, field_charac
-        field_charac = int(2**c_exp - 1)
-        gf_exp = [0] * (field_charac * 2) # anti-log (exponential) table. The first two elements will always be [GF256int(1), generator]
-        gf_log = [0] * (field_charac+1) # log table, log[0] is impossible and thus unused
+        gf_exp = [0] * (self.field_charac * 2) # anti-log (exponential) table. The first two elements will always be [GF256int(1), generator]
+        gf_log = [0] * (self.field_charac+1) # log table, log[0] is impossible and thus unused
 
         # For each possible value in the galois field 2^8, we will pre-compute the logarithm and anti-logarithm (exponential) of this value
         # To do that, we generate the Galois Field F(2^p) by building a list starting with the element 0 followed by the (p-1) successive powers of the generator a : 1, a, a^1, a^2, ..., a^(p-1).
         x = 1
-        for i in range(field_charac): # we could skip index 255 which is equal to index 0 because of modulo: g^255==g^0 but either way, this does not change the later outputs (ie, the ecc symbols will be the same either way)
+        for i in range(self.field_charac): # we could skip index 255 which is equal to index 0 because of modulo: g^255==g^0 but either way, this does not change the later outputs (ie, the ecc symbols will be the same either way)
             gf_exp[i] = x # compute anti-log for this value and store it in a table
             gf_log[x] = i # compute log at the same time
-            x = gf_mult_noLUT(x, generator, prim, field_charac+1)
+            x = self.gf_mult_noLUT(x, self.generator)
 
             # If you use only generator==2 or a power of 2, you can use the following which is faster than gf_mult_noLUT():
             #x <<= 1 # multiply by 2 (change 1 by another number y to multiply by a power of 2^y)
@@ -92,10 +91,10 @@ class SimpleReedSolomonObj:
                 #x ^= prim # substract the primary polynomial to the current value (instead of 255, so that we get a unique set made of coprime numbers), this is the core of the tables generation
 
         # Optimization: double the size of the anti-log table so that we don't need to mod 255 to stay inside the bounds (because we will mainly use this table for the multiplication of two GF numbers, no more).
-        for i in range(field_charac, field_charac * 2):
-            gf_exp[i] = gf_exp[i - field_charac]
+        for i in range(self.field_charac, self.field_charac * 2):
+            gf_exp[i] = gf_exp[i - self.field_charac]
 
-        return [gf_log, gf_exp]
+        return gf_log, gf_exp
 
     def rs_generator_poly(self, nsym, generator, fcr=0):
         '''Generate an irreducible generator polynomial (necessary to encode a message into Reed-Solomon)'''
@@ -177,7 +176,8 @@ class SimpleReedSolomonObj:
             #err_eval = rs_find_error_evaluator(synd[::-1], err_loc[::-1], len(err_loc)-1)[::-1] # find error/errata evaluator polynomial (not really necessary since we already compute it at the same time as the error locator poly in BM)
 
         # locate the message errors
-        err_pos = self.rs_find_errors(err_loc, self.field_size, generator) # find the roots of the errata locator polynomial (ie: the positions of the errors/errata)
+        err_pos = self.rs_find_errors(err_loc, generator) # find the roots of the errata locator polynomial (ie: the positions of the errors/errata)
+        print(err_pos)
         if err_pos is None:
             raise ReedSolomonError("Could not locate error")
 
@@ -245,11 +245,12 @@ class SimpleReedSolomonObj:
             y = self.gf_mul(self.gf_pow(Xi, 1-fcr), y) # adjust to fcr parameter
             
             # Check: err_loc_prime (the divisor) should not be zero.
-            #if err_loc_prime == 0:
-            #    raise ReedSolomonError("Could not find error magnitude")    # Could not find error magnitude
+            if err_loc_prime == 0:
+                raise ReedSolomonError("Could not find error magnitude")    # Could not find error magnitude
 
             # Compute the magnitude
             magnitude = self.gf_div(y, err_loc_prime) # magnitude value of the error, calculated by the Forney algorithm (an equation in fact): dividing the errata evaluator with the errata locator derivative gives us the errata magnitude (ie, value to repair) the ith symbol
+            
             E[err_pos[i]] = magnitude # store the magnitude for this error into the magnitude polynomial
 
         # Apply the correction of values to get our message corrected! (note that the ecc bytes also gets corrected!)
@@ -295,7 +296,7 @@ class SimpleReedSolomonObj:
 
             # Shift polynomials to compute the next degree
             old_loc = old_loc + [0]
-
+        
             # Iteratively estimate the errata locator and evaluator polynomials
             if delta != 0: # Update only if there's a discrepancy
                 if len(old_loc) > len(err_loc): # Rule B (rule A is implicitly defined because rule A just says that we skip any modification for this iteration)
@@ -347,15 +348,15 @@ class SimpleReedSolomonObj:
 
         return remainder
 
-    def rs_find_errors(self, err_loc, nmess, generator=2): # nmess is len(msg_in)
+    def rs_find_errors(self, err_loc, generator=2): # nmess is len(msg_in)
         '''Find the roots (ie, where evaluation = zero) of error polynomial by brute-force trial, this is a sort of Chien's search
         (but less efficient, Chien's search is a way to evaluate the polynomial such that each evaluation only takes constant time).'''
         errs = len(err_loc) - 1
         err_pos = []
-        for i in range(nmess): # normally we should try all 2^8 possible values, but here we optimize to just check the interesting symbols
+        for i in range(self.field_size): # normally we should try all 2^8 possible values, but here we optimize to just check the interesting symbols
             if self.gf_poly_eval(err_loc, self.gf_pow(generator, i)) == 0: # It's a 0? Bingo, it's a root of the error locator polynomial,
                                                             # in other terms this is the location of an error
-                err_pos.append(nmess - 1 - i)
+                err_pos.append(self.field_size - 1 - i)
         # Sanity check: the number of errors/errata positions found should be exactly the same as the length of the errata locator polynomial
         if len(err_pos) != errs:
             # couldn't find error locations
@@ -371,12 +372,6 @@ class SimpleReedSolomonObj:
     def gf_neg(self, x):
         return x
 
-    def gf_inverse(self, x):
-        return gf_exp[field_charac - gf_log[x]]
-
-    def gf_div(self, x, y):
-        return self.gf_mul(x, self.gf_inverse(y))
-
     def gf_mult_noLUT(self, x, y, carryless=True):
         '''Galois Field integer multiplication using Russian Peasant Multiplication algorithm (faster than the standard multiplication + modular reduction).
         If prim is 0 and carryless=False, then the function produces the result for a standard integers multiplication (no carry-less arithmetics nor modular reduction).'''
@@ -388,27 +383,24 @@ class SimpleReedSolomonObj:
             if self.prime_poly > 0 and x & self.field_size: x = x ^ self.prime_poly # GF modulo: if x >= 256 then apply modular reduction using the primitive polynomial (we just substract, but since the primitive number can be above 256 then we directly XOR).
         return r
 
+    def gf_mul(self, x, y):
+        if x == 0 or y == 0:
+            return 0
+        return self.gf_exp[(self.gf_log[x] + self.gf_log[y]) % self.field_charac]
+
+    def gf_div(self, x, y):
+        if y == 0:
+            raise ZeroDivisionError()
+        if x == 0:
+            return 0
+        return self.gf_exp[(self.gf_log[x] + self.field_charac - self.gf_log[y]) % self.field_charac]
+
     def gf_pow(self, x, power):
-        output = 1
-        for i in range(power):
-            output = self.gf_mul(output, x)
-        return output
-
-    def base_egcd(self, a, b):
-        r0, r1 = a, b
-        s0, s1 = 1, 0
-        t0, t1 = 0, 1
-
-        while r1 != 0:
-            q, r2 = divmod(r0, r1)
-            r0, s0, t0, r1, s1, t1 = r1, s1, t1, r2, s0 - s1 * q, t0 - t1 * q
-
-        d = r0
-        s = s0
-        t = t0
-        return d, s, t
-
+        return self.gf_exp[(self.gf_log[x] * power) % self.field_charac]
     
+    def gf_inverse(self, x):
+        return self.gf_exp[self.field_charac - self.gf_log[x]] # gf_inverse(x) == gf_div(1, x)
+
     def gf_poly_scale(self, p, x):
         return [self.gf_mul(p[i], x) for i in range(len(p))]
 

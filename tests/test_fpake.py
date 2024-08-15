@@ -74,9 +74,6 @@ def test_simple_reed_solomon_gf_2_12():
 
     decoded_key = rs.decode(C)
 
-    print(key)
-    print(decoded_key)
-
     assert decoded_key == key
 
     C[33] = 0
@@ -120,4 +117,4 @@ def test_fpake():
     assert sk1 == sk2
 
 if __name__ == "__main__":
-    test_simple_reed_solomon_gf_2_16()
+    test_simple_reed_solomon_gf_2_8()
