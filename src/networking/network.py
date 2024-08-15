@@ -269,7 +269,7 @@ def send_fpake_msg(connection, msg):
     payload = length_payload.to_bytes(4, byteorder="big")
     for m in msg:
         payload += len(m).to_bytes(4, byteorder="big") + m
-    
+
     outgoing = FPFM.encode() + payload
     connection.send(outgoing)
 
@@ -294,8 +294,8 @@ def fpake_msg_standby(connection: socket.socket, timeout: int) -> bool:
             msg = []
             index = 0
             while index < msg_size:
-                item_length = int.from_bytes(payload[index:index+4], "big")
-                item = payload[index+4:index+4+item_length]
+                item_length = int.from_bytes(payload[index : index + 4], "big")
+                item = payload[index + 4 : index + 4 + item_length]
                 index += 4 + item_length
                 msg.append(item)
             break

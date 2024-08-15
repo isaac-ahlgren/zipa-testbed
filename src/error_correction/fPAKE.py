@@ -1,17 +1,21 @@
 import os
 
-import numpy as np
-from cryptography import exceptions
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives import constant_time, hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ed448, x448
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from cryptography.hazmat.primitives.kdf.hkdf import HKDFExpand
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 
-from networking.network import send_fpake_msg, fpake_msg_standby, send_status, status_standby
 from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
+from error_correction.simple_reed_solomon import SimpleReedSolomonObj
+from networking.network import (
+    fpake_msg_standby,
+    send_fpake_msg,
+    send_status,
+    status_standby,
+)
 
 
 class fPAKE:
@@ -19,7 +23,7 @@ class fPAKE:
     Fuzzy Password authenticated Key exchange Protocol
     """
 
-    def __init__(self, pw_length, key_length,  timeout, so_dir=os.getcwd()):
+    def __init__(self, pw_length, key_length, timeout):
         self.hash = hashes.SHA256()
         self.curve = x448
         self.ec = x448.X448PrivateKey
@@ -32,7 +36,13 @@ class fPAKE:
         self.algo = algorithms.AES
         self.mode = modes.CBC
         self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.pw_length*32, self.key_length*32, so_dir=os.getcwd()), self.key_length*32
+            SimpleReedSolomonObj(
+                self.pw_length * 16,
+                self.key_length * 16,
+                power_of_2=16,
+                prime_poly=0x11085,
+            ),
+            self.key_length * 32,
         )
         self.timeout = timeout
 
@@ -43,7 +53,7 @@ class fPAKE:
         pub_key = priv_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
         pub_key_plus_padding = pub_key + os.urandom(8)
         return pub_key_plus_padding
-    
+
     def generate_symm_key(self, pw_i, vk):
         hkdf = HKDFExpand(self.hash, 32, None, default_backend())
         key = hkdf.derive(pw_i + vk)
@@ -57,7 +67,9 @@ class fPAKE:
         return encryptor.update(pub_key) + encryptor.finalize()
 
     def decode(self, symm_dec_key, enc_pub_key, priv_key, iv):
-        decryptor = Cipher(self.algo(symm_dec_key), self.mode(iv), default_backend()).decryptor()
+        decryptor = Cipher(
+            self.algo(symm_dec_key), self.mode(iv), default_backend()
+        ).decryptor()
         dec_pub_key = decryptor.update(enc_pub_key) + decryptor.finalize()
         pub_key = self.ecpub.from_public_bytes(dec_pub_key[0:56])
         return priv_key.exchange(pub_key)
@@ -68,7 +80,27 @@ class fPAKE:
         hash_func.update(star2)
         hash_func.update(Z)
         return hash_func.finalize()
-        
+
+    def derive(self, secret_key):
+        kdf = PBKDF2HMAC(
+            algorithm=self.hash,
+            salt=b"",
+            length=self.key_length,
+            iterations=480000,
+        )
+        return kdf.derive(secret_key)
+
+    def hash_function(self, bytes_data):
+        hash_func = hashes.Hash(self.hash)
+        hash_func.update(bytes_data)
+
+        return hash_func.finalize()
+
+    def compare(self, bytes1, bytes2):
+        success = False
+        if constant_time.bytes_eq(bytes1, bytes2):
+            success = True
+        return success
 
     def host_protocol(self, pw, conn):
 
@@ -99,7 +131,7 @@ class fPAKE:
             eps = msg[1]
 
             symm_dec_key = self.generate_symm_key(pw_i, eps)
-            
+
             Z = self.decode(symm_dec_key, Y_star, priv_x, iv)
 
             k = self.gen_key_part(X_star, Y_star, Z)
@@ -107,15 +139,27 @@ class fPAKE:
 
         secret_key, commitment = self.re.commit_witness(key_array)
 
+        hash_val_0 = self.hash_function(secret_key + bytes(0))
+        hash_val_1 = self.hash_function(secret_key + bytes(1))
+
         # Sign our E with the secret key
         sig = signingKey.sign(commitment)
 
         # Send E + Signature + verification key + selected prime number to reconstruct
-        send_fpake_msg(conn, [commitment, sig, vk])
+        send_fpake_msg(conn, [commitment, sig, hash_val_1])
 
-        status = status_standby(conn, self.timeout)
+        msg = fpake_msg_standby(conn, self.timeout)
+        other_hash_val = msg[0]
 
-        if not status:
+        other_success = status_standby(conn, self.timeout)
+
+        success = self.compare(hash_val_0, other_hash_val) and other_success
+
+        send_status(conn, success)
+
+        if success:
+            secret_key = self.derive(secret_key)
+        else:
             secret_key = None
 
         return secret_key
@@ -131,11 +175,10 @@ class fPAKE:
 
         try:
             self.edpub.from_public_bytes(vk)
-        except:
+        except Exception:
             print("VK was not correct ! Abort the protocol")
             raise NotAVerificationKeyException
 
-        labelList = []
         key_array = bytearray()
         # LiPake iteration for each bit in password
         for pw_i in pw:
@@ -165,17 +208,34 @@ class fPAKE:
         msg = fpake_msg_standby(conn, self.timeout)
         commitment = msg[0]
         sig = msg[1]
-        
+        other_hash_val = msg[2]
+
+        success = None
         try:
-            vk_key =  self.edpub.from_public_bytes(vk)
+            vk_key = self.edpub.from_public_bytes(vk)
             vk_key.verify(sig, commitment)
-        except:  # Cancel if signature if wrong
-            send_status(conn, False)
-            return None
+            success = True
+        except Exception:  # Cancel if signature if wrong
+            success = False
 
         secret_key = self.re.decommit_witness(key_array, commitment)
 
-        send_status(conn, True)
+        hash_val_0 = self.hash_function(secret_key + bytes(0))
+        hash_val_1 = self.hash_function(secret_key + bytes(1))
+
+        success = success and self.compare(hash_val_1, other_hash_val)
+
+        send_fpake_msg(conn, [hash_val_0])
+        send_status(conn, success)
+
+        other_success = status_standby(conn, self.timeout)
+
+        success = success and other_success
+
+        if success:
+            secret_key = self.derive(secret_key)
+        else:
+            secret_key = None
 
         return secret_key
 

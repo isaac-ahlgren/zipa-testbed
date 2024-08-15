@@ -3,6 +3,7 @@ import os
 
 import numpy as np
 
+
 # Currently built to assume block size will be 8 bits
 class ReedSolomonObj:
     """
