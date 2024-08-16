@@ -130,7 +130,9 @@ class Perceptio_Protocol(ProtocolInterface):
         is reached or the maximum number of iterations is exhausted. Logs the result of the protocol
         engagement including the number of successful key exchanges.
         """
-        host_socket.setblocking(1)
+        host_socket.setblocking(False)
+        host_socket.settimeout(30)
+
         # self.name = "DEVICE"
         if self.verbose:
             print("Iteration " + str(self.count))
@@ -139,24 +141,24 @@ class Perceptio_Protocol(ProtocolInterface):
         self.logger.log([("parameters", "txt", self.parameters(False))])
 
         successes = 0
-        iterations = 0
-        while successes < self.conf_threshold and iterations < self.max_iterations:
+        iterations = 1
+        while successes < self.conf_threshold and iterations <= self.max_iterations:
             success = False
 
             # Sending ack that they are ready to begin
             if self.verbose:
-                print("\nSending ACK")
+                print("[CLIENT] Sending ACK\n")
             ack(host_socket)
 
             if self.verbose:
-                print("Waiting for ACK from host.\n")
+                print("[CLIENT] Waiting for ACK from host.\n")
             if not ack_standby(host_socket, self.timeout):
                 if self.verbose:
-                    print("No ACK recieved within time limit - early exit.\n\n")
+                    print("[CLIENT] No ACK recieved within time limit - early exit.\n")
                 return
 
             if self.verbose:
-                print("CLIENT Extracting context\n")
+                print("[CLIENT]  Extracting context\n")
 
             # Extract bits from sensor
             # witnesses, signal, status = self.extract_context(host_socket)
@@ -178,22 +180,22 @@ class Perceptio_Protocol(ProtocolInterface):
                 continue"""
 
             if self.verbose:
-                print("Waiting for commitment from host\n")
+                print("[CLIENT] Waiting for commitment from host\n")
             commitments, hs = commit_standby(host_socket, self.timeout)
 
             # Early exist if no commitment recieved in time
             if not commitments:
                 if self.verbose:
-                    print("No commitment recieved within time limit - early exit\n")
+                    print("[CLIENT] No commitment recieved within time limit - early exit\n")
                 return
 
             if self.verbose:
-                print("Commitments recieved\n")
-                print("Uncommiting with witnesses\n")
+                print("[CLIENT] Uncommiting with witnesses\n")
             key = self.find_commitment(commitments, hs, witnesses)
             print(f"[CLIENT] Initial key: {key}")
 
             success = key is not None
+            """
             send_status(host_socket, success)
 
             # TODO: Fails to uncommit only sometimes which is weird
@@ -206,6 +208,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 # self.checkpoint_log(witnesses, commitments, success, signal, iterations)
                 iterations += 1
                 continue
+            """
 
             # Key Confirmation Phase
 
@@ -242,11 +245,12 @@ class Perceptio_Protocol(ProtocolInterface):
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
                 if self.verbose:
-                    print("No nonce message recieved within time limit - early exit")
+                    print("[CLIENT] No nonce message recieved within time limit - early exit\n")
+                iterations += 1
                 continue
 
             if self.verbose:
-                print("Comparing hashes.\n")
+                print("[CLIENT] Comparing hashes.\n")
             # If hashes are equal, then it was successful
             if verify_mac_from_host(
                 recieved_nonce_msg,
@@ -260,7 +264,7 @@ class Perceptio_Protocol(ProtocolInterface):
 
             if self.verbose:
                 print(
-                    f"success: {success}, Number of successes {successes}, Total number of iteration {iterations}\n"
+                    f"[CLIENT] Success? {success}, Successes: {successes}, Iterations: {iterations}\n"
                 )
 
             # self.checkpoint_log(witnesses, commitments, success, signal, iterations)
@@ -268,7 +272,7 @@ class Perceptio_Protocol(ProtocolInterface):
 
         if self.verbose:
             print(
-                f"Total Key Pairing Result: success - {successes >= self.conf_threshold}\n"
+                f"[CLIENT] Total Key Pairing Result: success - {successes >= self.conf_threshold}\n"
             )
 
         self.logger.log(
@@ -292,28 +296,28 @@ class Perceptio_Protocol(ProtocolInterface):
         and verifying keys until the desired success threshold is reached or the maximum iterations are exhausted.
         """
         # self.name="HOST"
+        device_socket.setblocking(False)
+        device_socket.settimeout(30)
         device_ip_addr, device_port = device_socket.getpeername()
-
-        # Exit early if no devices to pair with
-        if not ack_standby(device_socket, self.timeout):
-            if self.verbose:
-                print("No ACK recieved within time limit - early exit.\n\n")
-            return
-        if self.verbose:
-            print("Successfully ACKed participating device")
-            print()
 
         successes = 0
         iterations = 0
         while successes < self.conf_threshold and iterations < self.max_iterations:
             success = False
+            # Exit early if no devices to pair with
+            if not ack_standby(device_socket, self.timeout):
+                if self.verbose:
+                    print("[HOST] No ACK recieved within time limit - early exit.\n")
+                return
+            if self.verbose:
+                print("[HOST] Successfully ACKed participating device\n")
 
             if self.verbose:
-                print("ACKing all participating devices")
+                print("[HOST] ACKing all participating devices")
             ack(device_socket)
 
             if self.verbose:
-                print("HOST Extracting context\n")
+                print("[HOST]  Extracting context\n")
             # Extract bits from sensor
             witnesses = self.get_context()
 
@@ -332,18 +336,18 @@ class Perceptio_Protocol(ProtocolInterface):
                 continue"""
 
             if self.verbose:
-                print("Commiting all the witnesses\n")
+                print("[HOST] Commiting all the witnesses\n")
             # Create all commitments
             commitments, keys, hs = self.generate_commitments(witnesses)
             print(f"[HOST] Initial keys: {keys}")
 
             if self.verbose:
-                print("Sending commitments\n")
+                print("[HOST] Sending commitments\n")
             # Send all commitments
 
             send_commit(commitments, hs, device_socket)
-
-            """# Check up on other devices status
+            """
+            # Check up on other devices status
             status = status_standby(device_socket, self.timeout) # TODO Hangs here
             if status is None:
                 if self.verbose:
@@ -364,8 +368,8 @@ class Perceptio_Protocol(ProtocolInterface):
                     ip_addr=device_ip_addr,
                 )
                 iterations += 1
-                continue"""
-
+                continue
+                """
             # Key Confirmation Phase
 
             # Recieve nonce message
@@ -374,9 +378,10 @@ class Perceptio_Protocol(ProtocolInterface):
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
                 if self.verbose:
-                    print("No nonce message recieved within time limit - early exit")
-                    print()
-                return
+                    print("[HOST] No nonce message recieved within time limit - early exit\n")
+
+                iterations += 1
+                continue
 
             derived_key = self.host_verify_mac(keys, recieved_nonce_msg)
             print(f"[HOST] Derived key: {derived_key}")
@@ -406,14 +411,14 @@ class Perceptio_Protocol(ProtocolInterface):
 
             if self.verbose:
                 print(
-                    f"success: {success}, Number of successes {successes}, Total number of iterations {iterations}\n"
+                    f"[HOST] Success? {success}, Successes: {successes}, Iterations: {iterations}\n"
                 )
 
             iterations += 1
 
         if self.verbose:
             print(
-                f"Total Key Pairing Result: success - {successes >= self.conf_threshold}\n"
+                f"[HOST] Total Key Pairing Result: success - {successes >= self.conf_threshold}\n"
             )
         self.logger.log(
             [
