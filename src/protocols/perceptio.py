@@ -190,7 +190,7 @@ class Perceptio_Protocol(ProtocolInterface):
             print(f"[CLIENT] Initial key: {key}")
 
             success = key is not None
-            """
+            
             send_status(host_socket, success)
 
             # TODO: Fails to uncommit only sometimes which is weird
@@ -203,7 +203,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 # self.checkpoint_log(witnesses, commitments, success, signal, iterations)
                 iterations += 1
                 continue
-            """
+            
 
             # Key Confirmation Phase
 
@@ -344,7 +344,7 @@ class Perceptio_Protocol(ProtocolInterface):
             # Send all commitments
 
             send_commit(commitments, hs, device_socket)
-            """
+            
             # Check up on other devices status
             status = status_standby(device_socket, self.timeout) # TODO Hangs here
             if status is None:
@@ -357,17 +357,17 @@ class Perceptio_Protocol(ProtocolInterface):
                         "Other device did not uncommit with witnesses - trying again\n"
                     )
                 success = False
-                self.checkpoint_log(
+                """self.checkpoint_log(
                     witnesses,
                     commitments,
                     success,
                     signal,
                     iterations,
                     ip_addr=device_ip_addr,
-                )
+                )"""
                 iterations += 1
                 continue
-                """
+                
             # Key Confirmation Phase
 
             # Recieve nonce message

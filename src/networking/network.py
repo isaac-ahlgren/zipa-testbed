@@ -68,7 +68,7 @@ def ack(connection: socket.socket) -> None:
     connection.send(ACKN.encode())
 
 
-def ack_standby(connection: socket.socket, timeout: int) -> bool:
+def ack_standby2(connection: socket.socket, timeout: int) -> bool:
     """
     Waits for an acknowledgement within a specified timeout period.
 
@@ -286,3 +286,23 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
             nonce = connection.recv(nonce_size)
 
     return nonce
+
+def ack_standby(connection: socket.socket, timeout: int) -> bool:
+    """
+    Waits for an acknowledgement within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for an acknowledgement.
+    :returns: True if acknowledged, False if timeout occurred.
+    """
+    acknowledged = False
+
+    try:
+        command = connection.recv(8)
+    except TimeoutError:
+        print("Ack not received.")
+
+    if command == ACKN.encode():
+        acknowledged = True
+    
+    return acknowledged
