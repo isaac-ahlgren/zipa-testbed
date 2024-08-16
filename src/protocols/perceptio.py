@@ -74,9 +74,7 @@ class Perceptio_Protocol(ProtocolInterface):
             received_event_features = PerceptioProcessing.get_event_features(
                 received_events, chunk
             )
-            print(
-                f"Found potentially {len(received_events)} events and {(len(received_event_features))} features."
-            )
+
             # Reconciling lumping adjacent events across windows
             if (
                 len(received_events) != 0
@@ -87,16 +85,10 @@ class Perceptio_Protocol(ProtocolInterface):
                 length = events[-1][1] - events[-1][0] + 1
                 max_amp = np.max([event_features[-1][1], received_event_features[0][1]])
                 event_features[-1] = (length, max_amp)
-                print(
-                    f"Adding {len(received_events)} events and {len(event_features)} features."
-                )
 
                 events.extend(received_events[1:])
                 event_features.extend(received_event_features[1:])
             else:
-                print(
-                    f"Adding {len(received_events)} events and {len(event_features)} features."
-                )
                 events.extend(received_events)
                 event_features.extend(received_event_features)
             iteration += 1
@@ -186,7 +178,9 @@ class Perceptio_Protocol(ProtocolInterface):
             # Early exist if no commitment recieved in time
             if not commitments:
                 if self.verbose:
-                    print("[CLIENT] No commitment recieved within time limit - early exit\n")
+                    print(
+                        "[CLIENT] No commitment recieved within time limit - early exit\n"
+                    )
                 return
 
             if self.verbose:
@@ -222,7 +216,6 @@ class Perceptio_Protocol(ProtocolInterface):
             derived_key = kdf.derive(key)
             print(f"[CLIENT] Derived key: {derived_key}\n")
 
-
             # Hash prederived key
             pd_key_hash = self.hash_function(key)
 
@@ -240,12 +233,16 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("[CLIENT] Recieving nonce message from host.\n")
             # Recieve nonce message
-            recieved_nonce_msg = get_nonce_msg_standby(host_socket, self.timeout) # TODO Hangs here
+            recieved_nonce_msg = get_nonce_msg_standby(
+                host_socket, self.timeout
+            )  # TODO Hangs here
             print(f"[CLIENT] Recieved nonce: {recieved_nonce_msg}")
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
                 if self.verbose:
-                    print("[CLIENT] No nonce message recieved within time limit - early exit\n")
+                    print(
+                        "[CLIENT] No nonce message recieved within time limit - early exit\n"
+                    )
                 iterations += 1
                 continue
 
@@ -301,8 +298,8 @@ class Perceptio_Protocol(ProtocolInterface):
         device_ip_addr, device_port = device_socket.getpeername()
 
         successes = 0
-        iterations = 0
-        while successes < self.conf_threshold and iterations < self.max_iterations:
+        iterations = 1
+        while successes < self.conf_threshold and iterations <= self.max_iterations:
             success = False
             # Exit early if no devices to pair with
             if not ack_standby(device_socket, self.timeout):
@@ -373,12 +370,16 @@ class Perceptio_Protocol(ProtocolInterface):
             # Key Confirmation Phase
 
             # Recieve nonce message
-            recieved_nonce_msg = get_nonce_msg_standby(device_socket, self.timeout) # TODO hangs here
+            recieved_nonce_msg = get_nonce_msg_standby(
+                device_socket, self.timeout
+            )  # TODO hangs here
 
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
                 if self.verbose:
-                    print("[HOST] No nonce message recieved within time limit - early exit\n")
+                    print(
+                        "[HOST] No nonce message recieved within time limit - early exit\n"
+                    )
 
                 iterations += 1
                 continue
