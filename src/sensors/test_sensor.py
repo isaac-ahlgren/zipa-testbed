@@ -2,7 +2,7 @@ import time
 from typing import Any
 
 import numpy as np
-from sensor_interface import SensorInterface
+from sensors.sensor_interface import SensorInterface
 
 
 class TestSensor(SensorInterface):

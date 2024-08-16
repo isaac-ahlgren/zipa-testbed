@@ -10,12 +10,11 @@ from error_correction.fPAKE import fPAKE
 
 class FastZIPProtocol(ProtocolInterface):
     def __init__(
-        self, parameters: dict, sensor: Any, logger: Any, network: Any
-    ) -> None:
+        self, parameters: dict, sensor: Any, logger: Any) -> None:
         super().__init__(parameters, sensor, logger)
+        self.name = "Fastzip_Protocol"
         
         # Store configuration directly
-        self.network = network
         self.verbose = parameters.get('verbose', False)
         self.timeout = parameters["timeout"]
         self.chunk_size = parameters["chunk_size"]
@@ -43,6 +42,29 @@ class FastZIPProtocol(ProtocolInterface):
             timeout=self.timeout
         )
 
+
+    def manage_overlapping_chunks(self, window_size, overlap_size):
+        previous_chunk = np.array([])
+        while True:
+            if len(previous_chunk) < overlap_size:
+                new_data = self.read_samples(window_size)
+                if new_data.size == 0:
+                    break
+            else:
+                new_data = self.read_samples(window_size - overlap_size)
+
+            if new_data.size == 0:
+                break
+
+            if len(previous_chunk) >= overlap_size:
+                current_chunk = np.concatenate((previous_chunk[-overlap_size:], new_data))
+            else:
+                current_chunk = new_data
+
+            yield current_chunk
+            previous_chunk = current_chunk
+
+
     def process_context(self) -> Any:
         """
         Processes sensor data to generate cryptographic keys or fingerprints using FastZIP's signal processing capabilities.
@@ -50,17 +72,24 @@ class FastZIPProtocol(ProtocolInterface):
         Returns:
             The cryptographic keys or fingerprints generated from the processed data.
         """
+        print("Processing context...")
         accumulated_bits = b""
+        window_size = self.chunk_size  # You can adjust this according to the actual needs
+        overlap_size = window_size // 2  # Example overlap of 50%
 
-        while len(accumulated_bits) < self.key_length_bits:
-            chunk = self.read_samples(self.chunk_size)
-
+        chunk_generator = self.manage_overlapping_chunks(window_size, overlap_size)
+        for chunk in chunk_generator:
             if not chunk.size:
+                print("No more data to process...")
                 break
 
+            print("No more data to process...")
             processed_bits = self.process_chunk(chunk)
             if processed_bits:
                 accumulated_bits += processed_bits
+                print(f"Accumulated bits length: {len(accumulated_bits)}")
+            else:
+                print("No processed bits from the current chunk...")
 
         return accumulated_bits[: self.key_length_bits]
 
@@ -90,6 +119,7 @@ class FastZIPProtocol(ProtocolInterface):
             remove_noise_list=[self.remove_noise],
             normalize_list=[self.normalize],
         )
+        print(f"Processed bits: {bits}")
         return bits
 
     def parameters(self, is_host: bool) -> str:
@@ -100,6 +130,7 @@ class FastZIPProtocol(ProtocolInterface):
         Conducts the device protocol over a given socket.
         """
         host_socket.setblocking(1)
+        print("Device: Setting socket to blocking.")
         if self.verbose:
             print("Sending ACK to host...")
         ack(host_socket)
@@ -132,6 +163,7 @@ class FastZIPProtocol(ProtocolInterface):
         Manages the host-side fPAKE protocol.
         """
         device_socket.setblocking(1)
+        print("Host: Setting socket to blocking.")
         if not ack_standby(device_socket, self.timeout):
             if self.verbose:
                 print("No ACK received within time limit - early exit.")

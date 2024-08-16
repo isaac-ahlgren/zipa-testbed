@@ -15,16 +15,16 @@ def test_fastzip_process_context():
         "verbose": False,
         "chunk_size": 1024,
         "n_bits": 128,
-        "power_thresh": 5,
-        "snr_thresh": 2,
-        "peak_thresh": 10,
-        "bias": 1,
-        "sample_rate": 1000,
-        "eqd_delta": 5,
-        "peak_status": True,
-        "ewma_filter": True,
-        "alpha": 0.015,
-        "remove_noise": True,
+        "power_thresh": 70,
+        "snr_thresh": 1.2,
+        "peak_thresh": 0,
+        "bias": 0,
+        "sample_rate": 44100,
+        "eqd_delta": 1,
+        "peak_status": None,
+        "ewma_filter": None,
+        "alpha": None,
+        "remove_noise": None,
         "normalize": True,
         "key_length": 16,  # Make sure to define all necessary parameters
         "parity_symbols": 2,  # Added this line to include parity_symbols
@@ -32,7 +32,7 @@ def test_fastzip_process_context():
     }
 
     # Create an instance of FastZIPProtocol
-    protocol = FastZIPProtocol(parameters, sensor=None, logger=None, network=None)
+    protocol = FastZIPProtocol(parameters, sensor=None, logger=None)
 
     # Mock the `read_samples` and `process_chunk` methods
     protocol.read_samples = lambda size: np.random.randn(size)
@@ -82,7 +82,7 @@ def test_device_protocol(mocker):
     mock_send_status = mocker.patch('networking.network.send_status', autospec=True)
 
     # Create an instance of FastZIPProtocol
-    protocol = FastZIPProtocol(parameters, sensor=None, logger=None, network=None)
+    protocol = FastZIPProtocol(parameters, sensor=None, logger=None)
 
     # Mock context retrieval and secret key generation
     protocol.get_context = MagicMock(return_value='context_data')
