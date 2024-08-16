@@ -161,12 +161,12 @@ class Perceptio_Protocol(ProtocolInterface):
             # Extract bits from sensor
             # witnesses, signal, status = self.extract_context(host_socket)
             witnesses = self.get_context()
-            print(f"[CLIENT] Witness: {witnesses}")
+
             # TODO: Must log signal somehow, and how does status play with new flow?
             signal = None
             status = True
 
-            if status is None:
+            """if status is None:
                 if self.verbose:
                     print(
                         "Other device did not respond during extraction - early exit\n"
@@ -175,12 +175,12 @@ class Perceptio_Protocol(ProtocolInterface):
             elif not status:
                 if self.verbose:
                     print("Not enough events detected: moving to next iteration")
-                continue
+                continue"""
 
             if self.verbose:
                 print("Waiting for commitment from host\n")
             commitments, hs = commit_standby(host_socket, self.timeout)
-            print(f"Client has recieved\nCommitments: {commitments}\nHash: {hs}\n")
+
             # Early exist if no commitment recieved in time
             if not commitments:
                 if self.verbose:
@@ -191,7 +191,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("Commitments recieved\n")
                 print("Uncommiting with witnesses\n")
             key = self.find_commitment(commitments, hs, witnesses)
-            print(f"Client derived key: {key}")
+            print(f"[CLIENT] Initial key: {key}")
 
             success = key is not None
             send_status(host_socket, success)
@@ -217,6 +217,8 @@ class Perceptio_Protocol(ProtocolInterface):
                 algorithm=self.hash_func, length=self.key_length, salt=None, info=None
             )
             derived_key = kdf.derive(key)
+            print(f"[CLIENT] Derived key: {derived_key}\n")
+
 
             # Hash prederived key
             pd_key_hash = self.hash_function(key)
@@ -257,7 +259,6 @@ class Perceptio_Protocol(ProtocolInterface):
                 successes += 1
 
             if self.verbose:
-                print(f"Produced Key: {derived_key}\n")
                 print(
                     f"success: {success}, Number of successes {successes}, Total number of iteration {iterations}\n"
                 )
@@ -315,11 +316,11 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("HOST Extracting context\n")
             # Extract bits from sensor
             witnesses = self.get_context()
-            print(f"[HOST] Witness: {witnesses}")
+
             signal = None
             status = True
 
-            if status is None:
+            """if status is None:
                 if self.verbose:
                     print(
                         "Other device did not respond during extraction - early exit\n"
@@ -328,15 +329,13 @@ class Perceptio_Protocol(ProtocolInterface):
             elif not status:
                 if self.verbose:
                     print("Not enough events detected: moving to next iteration")
-                continue
+                continue"""
 
             if self.verbose:
                 print("Commiting all the witnesses\n")
             # Create all commitments
             commitments, keys, hs = self.generate_commitments(witnesses)
-            print(
-                f"Host has generated\nCommitment: {commitments}\nKeys: {keys}\nHash: {hs}\n"
-            )
+            print(f"[HOST] Initial keys: {keys}")
 
             if self.verbose:
                 print("Sending commitments\n")
@@ -344,7 +343,7 @@ class Perceptio_Protocol(ProtocolInterface):
 
             send_commit(commitments, hs, device_socket)
 
-            # Check up on other devices status
+            """# Check up on other devices status
             status = status_standby(device_socket, self.timeout) # TODO Hangs here
             if status is None:
                 if self.verbose:
@@ -356,21 +355,21 @@ class Perceptio_Protocol(ProtocolInterface):
                         "Other device did not uncommit with witnesses - trying again\n"
                     )
                 success = False
-                """self.checkpoint_log(
+                self.checkpoint_log(
                     witnesses,
                     commitments,
                     success,
                     signal,
                     iterations,
                     ip_addr=device_ip_addr,
-                )"""
+                )
                 iterations += 1
-                continue
+                continue"""
 
             # Key Confirmation Phase
 
             # Recieve nonce message
-            recieved_nonce_msg = get_nonce_msg_standby(device_socket, self.timeout)
+            recieved_nonce_msg = get_nonce_msg_standby(device_socket, self.timeout) # TODO hangs here
 
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
@@ -380,6 +379,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 return
 
             derived_key = self.host_verify_mac(keys, recieved_nonce_msg)
+            print(f"[HOST] Derived key: {derived_key}")
 
             if derived_key:
                 success = True
