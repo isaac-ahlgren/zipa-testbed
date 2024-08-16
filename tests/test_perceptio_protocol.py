@@ -23,7 +23,7 @@ PROTOCOL_DUMMY_PARAMETERS = {
     "chunk_size": 44_100 * 5,
     "sleep_time": 5,
     "max_no_events_detected": 10,
-    "timeout": 30,
+    "timeout": 10,
     "key_length": 8,
     "parity_symbols": 4,
     "sensor": "Microphone",

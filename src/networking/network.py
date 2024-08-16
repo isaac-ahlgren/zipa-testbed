@@ -123,6 +123,7 @@ def send_commit(
             commitments[i] + hashes[i]
         )  # Works in Shurmann since it has hashes to send
         # message += commitments[i] # Works in mietinnen since it doens't do any hashes
+    print(f"Sending message: {message}\n")
 
     device.send(message)
 
@@ -156,6 +157,7 @@ def commit_standby(
             com_length = int.from_bytes(message[8:12], byteorder="big")
 
             commits = connection.recv(number_of_commits * (hash_length + com_length))
+            print(f"Print recieved commitments: {commits}\n")
             commitments = []
             hashes = []
 
@@ -170,7 +172,7 @@ def commit_standby(
                 hashes.append(
                     commits[
                         i * (hash_length + com_length)
-                        + hash_length : (i + 1) * (hash_length + com_length)
+                        + com_length : (i + 1) * (hash_length + com_length)
                     ]
                 )
             break
