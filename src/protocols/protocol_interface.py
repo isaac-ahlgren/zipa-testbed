@@ -1,5 +1,6 @@
 import queue
 import socket
+import time
 from multiprocessing import Lock, Process, Queue, Value
 from multiprocessing.shared_memory import ShareableList
 from typing import Any, List, Tuple
@@ -138,6 +139,9 @@ class ProtocolInterface:
             continue
 
         self.shm_active.value += 1
+
+        if self.shm_active.value > 1: # Stops race condition
+            time.sleep(0.01)
         # First process to grab the flag populates the list
         if self.processing_flag.value == READY:
             with self.mutex:
@@ -159,6 +163,7 @@ class ProtocolInterface:
 
         # Process no longer is using the shared list
         self.shm_active.value -= 1
+        print(f"Using results: {results}")
         return results
 
     # Must be implemented on a protocol basis
