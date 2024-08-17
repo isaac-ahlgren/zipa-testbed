@@ -177,6 +177,8 @@ class FastZIPProtocol(ProtocolInterface):
 
         if self.verbose:
             print("ACK received from device. Proceeding with fPAKE protocol...")
+            print("ACKing participants")
+        ack(device_socket) # Need this to continue protocol; clients were hanging
 
         fingerprints = self.get_context()
         if isinstance(fingerprints, (bytes, bytearray)):

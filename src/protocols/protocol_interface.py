@@ -1,5 +1,6 @@
 import queue
 import socket
+import time
 from multiprocessing import Lock, Process, Queue, Value
 from multiprocessing.shared_memory import ShareableList
 from typing import Any, List, Tuple
@@ -38,6 +39,9 @@ class ProtocolInterface:
         self.mutex = Lock()
         self.timeout = parameters["timeout"]
         self.hash_func = hashes.SHA256()
+        self.sensor.add_protocol_queue((self.queue_flag, self.queue))
+        # Line directly above is needed so that the sensor can write to the queue.
+        # It must've been accidentally removed when taking out the fuzzy commitment.
 
     def hash_function(self, bytes_data: bytes) -> bytes:
         """
@@ -138,6 +142,8 @@ class ProtocolInterface:
             continue
         print("Accessing shared memory...")
         self.shm_active.value += 1
+        if self.shm_active.value > 1: # Get race conditions when testing it locally; this mitigates it
+            time.sleep(1)
         # First process to grab the flag populates the list
         if self.processing_flag.value == READY:
             with self.mutex:
@@ -154,9 +160,7 @@ class ProtocolInterface:
         # Other processes wait for first process to finish
         else:
             while self.processing_flag.value == PROCESSING:
-                print("Waiting for data to be ready...")
                 continue
-
             results = self.read_shm()
 
         # Process no longer is using the shared list
@@ -212,18 +216,11 @@ class ProtocolInterface:
         ProtocolInterface.capture_flag(self.queue_flag)
 
         while samples_read < sample_num:
-            try:
-                chunk = self.queue.get(timeout=5)  # Adding a timeout to avoid indefinite blocking
-                if chunk is not None and len(chunk) > 0:
-                    output = np.append(output, chunk)
-                    samples_read += len(chunk)
-                    print(f"Successfully read {len(chunk)} samples, total read: {samples_read}")
-                else:
-                    print("Received empty or no data.")
-                    break  # Break if no data is received, indicating possible end of data or producer issue
-            except queue.Empty:
-                print("No data received within the timeout period.")
-            break  # Break the loop if no data is received within the timeout
+            print("Getting chunk")
+            chunk = self.queue.get()
+            print(f"Recieved chunk: {chunk}")
+            output = np.append(output, chunk)
+            samples_read += len(chunk)
 
         # TODO Must be implemented on a protocol basis
         # Signal status_queue doesn't need any more data
