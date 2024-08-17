@@ -164,7 +164,7 @@ def commit_standby(
                 commitments.append(
                     commits[
                         i * (hash_length + com_length) : i * (hash_length + com_length)
-                        + hash_length
+                        + com_length
                     ]
                 )
                 hashes.append(

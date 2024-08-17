@@ -155,6 +155,7 @@ class Perceptio_Protocol(ProtocolInterface):
             # Extract bits from sensor
             # witnesses, signal, status = self.extract_context(host_socket)
             witnesses = self.get_context()
+            print(f"[CLIENT] Witnesses: {witnesses}\n")
 
             # TODO: Must log signal somehow, and how does status play with new flow?
             signal = None
@@ -174,6 +175,8 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("[CLIENT] Waiting for commitment from host\n")
             commitments, hs = commit_standby(host_socket, self.timeout)
+            print(f"[CLIENT] Commitments: {commitments}\n")
+            print(f"[CLIENT] Hashes: {hs}\n")
 
             # Early exist if no commitment recieved in time
             if not commitments:
@@ -315,6 +318,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("[HOST]  Extracting context\n")
             # Extract bits from sensor
             witnesses = self.get_context()
+            print(f"[HOST] Witnesses: {witnesses}\n")
 
             signal = None
             status = True
@@ -334,6 +338,8 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("[HOST] Commiting all the witnesses\n")
             # Create all commitments
             commitments, keys, hs = self.generate_commitments(witnesses)
+            print(f"[HOST] Commitments: {commitments}\n")
+            print(f"[HOST] Hashes: {hs}")
 
             if self.verbose:
                 print("[HOST] Sending commitments\n")
