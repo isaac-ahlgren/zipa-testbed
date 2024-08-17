@@ -174,7 +174,6 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("[CLIENT] Waiting for commitment from host\n")
             commitments, hs = commit_standby(host_socket, self.timeout)
-            print(f"Client recieved hashes: {hs}\n")
 
             # Early exist if no commitment recieved in time
             if not commitments:
@@ -187,7 +186,6 @@ class Perceptio_Protocol(ProtocolInterface):
             if self.verbose:
                 print("[CLIENT] Uncommiting with witnesses\n")
             key = self.find_commitment(commitments, hs, witnesses)
-            print(f"[CLIENT] Initial key: {key}")
 
             success = key is not None
             
@@ -215,7 +213,6 @@ class Perceptio_Protocol(ProtocolInterface):
                 algorithm=self.hash_func, length=self.key_length, salt=None, info=None
             )
             derived_key = kdf.derive(key)
-            print(f"[CLIENT] Derived key: {derived_key}\n")
 
             # Hash prederived key
             pd_key_hash = self.hash_function(key)
@@ -237,7 +234,7 @@ class Perceptio_Protocol(ProtocolInterface):
             recieved_nonce_msg = get_nonce_msg_standby(
                 host_socket, self.timeout
             )  # TODO Hangs here
-            print(f"[CLIENT] Recieved nonce: {recieved_nonce_msg}")
+
             # Early exist if no commitment recieved in time
             if not recieved_nonce_msg:
                 if self.verbose:
@@ -337,7 +334,6 @@ class Perceptio_Protocol(ProtocolInterface):
                 print("[HOST] Commiting all the witnesses\n")
             # Create all commitments
             commitments, keys, hs = self.generate_commitments(witnesses)
-            print(f"[HOST] Initial commitments: {commitments}\n[HOST] Hashes: {hs}")
 
             if self.verbose:
                 print("[HOST] Sending commitments\n")
@@ -386,7 +382,6 @@ class Perceptio_Protocol(ProtocolInterface):
                 continue
 
             derived_key = self.host_verify_mac(keys, recieved_nonce_msg)
-            print(f"[HOST] Derived key: {derived_key}")
 
             if derived_key:
                 success = True
@@ -482,12 +477,7 @@ class Perceptio_Protocol(ProtocolInterface):
                     commitments[j], fingerprints[i]
                 )
                 potential_key_hash = self.hash_function(potential_key)
-                print(f"Potential: {potential_key_hash}\nHash: {hashes[j]}\n")
-                """if key is None:
-                    print("Using this key as a potential key as there's no other choice.")
-                    key = potential_key"""
                 if constant_time.bytes_eq(potential_key_hash, hashes[j]):
-                    print("MATCH FOUND; THIS IS THE KEY")
                     key = potential_key
                     break
         return key
