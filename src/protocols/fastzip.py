@@ -46,14 +46,12 @@ class FastZIPProtocol(ProtocolInterface):
     def manage_overlapping_chunks(self, window_size, overlap_size):
         previous_chunk = np.array([])
         while True:
-            if len(previous_chunk) < overlap_size:
-                new_data = self.read_samples(window_size)
-                if new_data.size == 0:
-                    break
-            else:
-                new_data = self.read_samples(window_size - overlap_size)
+            print(f"Previous chunk size: {len(previous_chunk)}, expected overlap: {overlap_size}")
+            required_samples = window_size if len(previous_chunk) < overlap_size else (window_size - overlap_size)
+            new_data = self.read_samples(required_samples)
 
             if new_data.size == 0:
+                print("No more data available to process, breaking loop.")
                 break
 
             if len(previous_chunk) >= overlap_size:
@@ -61,6 +59,7 @@ class FastZIPProtocol(ProtocolInterface):
             else:
                 current_chunk = new_data
 
+            print(f"Yielding chunk of size: {current_chunk.size}")
             yield current_chunk
             previous_chunk = current_chunk
 
@@ -75,10 +74,13 @@ class FastZIPProtocol(ProtocolInterface):
         print("Processing context...")
         accumulated_bits = b""
         window_size = self.chunk_size  # You can adjust this according to the actual needs
+        print("Window size: ", window_size)
         overlap_size = window_size // 2  # Example overlap of 50%
+        print("Overlap size: ", overlap_size)
 
         chunk_generator = self.manage_overlapping_chunks(window_size, overlap_size)
         for chunk in chunk_generator:
+            print(f"Processing chunk of size: {chunk.size}")
             if not chunk.size:
                 print("No more data to process...")
                 break
@@ -91,6 +93,10 @@ class FastZIPProtocol(ProtocolInterface):
             else:
                 print("No processed bits from the current chunk...")
 
+        # Reset and clear operations after processing is complete
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
+        
         return accumulated_bits[: self.key_length_bits]
 
     def process_chunk(self, chunk: np.ndarray) -> bytes:

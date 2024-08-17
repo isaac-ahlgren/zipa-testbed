@@ -205,15 +205,25 @@ class ProtocolInterface:
         :return: An array of the collected samples.
         """
         # Assuming only one process is handling this.
+        print(f"Attempting to read {sample_num} samples...")
         samples_read = 0
         output = np.array([])
         # Signal status_queue is ready for data
         ProtocolInterface.capture_flag(self.queue_flag)
 
         while samples_read < sample_num:
-            chunk = self.queue.get()
-            output = np.append(output, chunk)
-            samples_read += len(chunk)
+            try:
+                chunk = self.queue.get(timeout=5)  # Adding a timeout to avoid indefinite blocking
+                if chunk is not None and len(chunk) > 0:
+                    output = np.append(output, chunk)
+                    samples_read += len(chunk)
+                    print(f"Successfully read {len(chunk)} samples, total read: {samples_read}")
+                else:
+                    print("Received empty or no data.")
+                    break  # Break if no data is received, indicating possible end of data or producer issue
+            except queue.Empty:
+                print("No data received within the timeout period.")
+            break  # Break the loop if no data is received within the timeout
 
         # TODO Must be implemented on a protocol basis
         # Signal status_queue doesn't need any more data
