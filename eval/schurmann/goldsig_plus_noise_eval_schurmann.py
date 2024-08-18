@@ -16,8 +16,13 @@ sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import add_gauss_noise, cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
+WINDOW_LENGTH_DEFAULT = 16537
+BAND_LENGTH_DEFAULT = 500
+KEY_LENGTH_DEFAULT = 128
+TARGET_SNR_DEFAULT = 20
+TRIALS_DEFAULT = 1000
 
-def main(window_length, band_length, key_length, target_snr, trials):
+def main(window_length=WINDOW_LENGTH_DEFAULT, band_length=BAND_LENGTH_DEFAULT, key_length=KEY_LENGTH_DEFAULT, target_snr=TARGET_SNR_DEFAULT, trials=TRIALS_DEFAULT):
     # Calculating the number of samples needed
     sample_num = schurmann_calc_sample_num(
         key_length,
@@ -70,11 +75,11 @@ def main(window_length, band_length, key_length, target_snr, trials):
 
 if __name__ == "__main__":
     args = get_command_line_args(
-        window_length_default=16537,
-        band_length_default=500,
-        key_length_default=128,
-        snr_level_default=20,
-        trials_default=1000,
+        window_length_default=WINDOW_LENGTH_DEFAULT,
+        band_length_default=BAND_LENGTH_DEFAULT,
+        key_length_default=KEY_LENGTH_DEFAULT,
+        snr_level_default=TARGET_SNR_DEFAULT,
+        trials_default=TRIALS_DEFAULT,
     )
 
     main(*args)

@@ -17,23 +17,37 @@ from eval_tools import (  # noqa: E402
 )
 from evaluator import Evaluator  # noqa: E402
 
+TOP_TH_DEFAULT = 6
+BOTTOM_TH_DEFAULT = 4
+LUMP_TH_DEFAULT = 4
+A_DEFAULT = 0.75
+CLUSTER_SIZE_TO_CHECK_DEFAULT = 4
+CLUSTER_TH_DEFAULT = 0.1
+MIN_EVENTS_DEFAULT = 16
+SAMPLING_FREQ_DEFAULT = 10000
+CHUNK_SIZE_DEFAULT = 10000
+BUFFER_SIZE_DEFAULT = 50000
+KEY_SIZE_DEFAULT = 128
+TARGET_SNR_DEFAULT = 20
+TRIALS_DEFAULT = 100
 
 def main(
-    top_th,
-    bottom_th,
-    lump_th,
-    a,
-    cluster_sizes_to_check,
-    cluster_th,
-    min_events,
-    Fs,
-    chunk_size,
-    buffer_size,
-    key_size_in_bytes,
-    target_snr,
-    trials,
+    top_th=TOP_TH_DEFAULT,
+    bottom_th=BOTTOM_TH_DEFAULT,
+    lump_th=LUMP_TH_DEFAULT,
+    a=A_DEFAULT,
+    cluster_sizes_to_check=CLUSTER_SIZE_TO_CHECK_DEFAULT,
+    cluster_th=CLUSTER_TH_DEFAULT,
+    min_events=MIN_EVENTS_DEFAULT,
+    Fs=SAMPLING_FREQ_DEFAULT,
+    chunk_size=CHUNK_SIZE_DEFAULT,
+    buffer_size=BUFFER_SIZE_DEFAULT,
+    key_size=KEY_SIZE_DEFAULT,
+    target_snr=TARGET_SNR_DEFAULT,
+    trials=TRIALS_DEFAULT,
 ):
-
+    key_size_in_bytes = key_size // 8
+    
     #  Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
     adv_signal, sr = load_controlled_signal(

@@ -15,8 +15,15 @@ sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import add_gauss_noise, cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
+SNAP_SHOT_WIDTH_DEFAULT = 5
+NO_SNAP_SHOT_WIDTH_DEFAULT = 5
+ABS_THRESH_DEFAULT = 5e-15
+REL_THRESH_DEFAULT = 0.1
+KEY_LENGTH_DEFAULT = 128
+TARGET_SNR_DEFAULT = 20
+TRIALS_DEFAULT = 100
 
-def main(w, f, abs_thresh, rel_thresh, key_length, target_snr, trials):
+def main(w=SNAP_SHOT_WIDTH_DEFAULT, f=NO_SNAP_SHOT_WIDTH_DEFAULT, abs_thresh=ABS_THRESH_DEFAULT, rel_thresh=REL_THRESH_DEFAULT, key_length=KEY_LENGTH_DEFAULT, target_snr=TARGET_SNR_DEFAULT, trials=TRIALS_DEFAULT):
     # Converting time durations to number of samples
     w_in_samples = int(w * MICROPHONE_SAMPLING_RATE)
     f_in_samples = int(f * MICROPHONE_SAMPLING_RATE)
@@ -61,12 +68,12 @@ def main(w, f, abs_thresh, rel_thresh, key_length, target_snr, trials):
 
 if __name__ == "__main__":
     args = get_command_line_args(
-        snap_shot_width_default=5,
-        no_snap_shot_width_default=5,
-        absolute_threshold_default=5e-15,
-        relative_threshold_default=0.1,
-        key_length_default=128,
-        snr_level_default=20,
-        trials_default=100,
+        snap_shot_width_default=SNAP_SHOT_WIDTH_DEFAULT,
+        no_snap_shot_width_default=NO_SNAP_SHOT_WIDTH_DEFAULT,
+        absolute_threshold_default=ABS_THRESH_DEFAULT,
+        relative_threshold_default=REL_THRESH_DEFAULT,
+        key_length_default=KEY_LENGTH_DEFAULT,
+        snr_level_default=TARGET_SNR_DEFAULT,
+        trials_default=TRIALS_DEFAULT,
     )
     main(*args)

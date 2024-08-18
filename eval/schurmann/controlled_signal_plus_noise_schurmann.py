@@ -17,8 +17,13 @@ from eval_tools import (  # noqa: E402
 )
 from evaluator import Evaluator  # noqa: E402
 
+WINDOW_LENGTH_DEFAULT = 16537
+BAND_LENGTH_DEFAULT = 500
+KEY_LENGTH_DEFAULT = 128
+TARGET_SNR_DEFAULT = 20
+TRIALS_DEFAULT = 1000
 
-def main(window_length, band_length, key_length, target_snr, trials):
+def main(window_length=WINDOW_LENGTH_DEFAULT, band_length=BAND_LENGTH_DEFAULT, key_length=KEY_LENGTH_DEFAULT, target_snr=TARGET_SNR_DEFAULT, trials=TRIALS_DEFAULT):
     # Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
     adv_signal, sr = load_controlled_signal(
@@ -73,10 +78,10 @@ def main(window_length, band_length, key_length, target_snr, trials):
 
 if __name__ == "__main__":
     args = get_command_line_args(
-        window_length_default=16537,
-        band_length_default=500,
-        key_length_default=128,
-        snr_level_default=20,
-        trials_default=1000,
+        window_length_default=WINDOW_LENGTH_DEFAULT,
+        band_length_default=BAND_LENGTH_DEFAULT,
+        key_length_default=KEY_LENGTH_DEFAULT,
+        snr_level_default=TARGET_SNR_DEFAULT,
+        trials_default=TRIALS_DEFAULT,
     )
     main(*args)

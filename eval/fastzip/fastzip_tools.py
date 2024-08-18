@@ -136,7 +136,7 @@ def parse_command_line_args(
     power_threshold_default: int = 70,
     snr_threshold_default: float = 1.2,
     number_peaks_default: int = 0,
-    snr_level_default: int = 20,
+    target_snr_default: int = 20,
     trials_default: int = 1000,
 ) -> Tuple[
     int,
@@ -186,7 +186,7 @@ def parse_command_line_args(
         "-st", "--snr-threshold", type=float, default=snr_threshold_default
     )
     parser.add_argument("-np", "--number-peaks", type=int, default=number_peaks_default)
-    parser.add_argument("-snr", "--snr-level", type=int, default=snr_level_default)
+    parser.add_argument("-snr", "--snr-level", type=int, default=target_snr_default)
     parser.add_argument("-t", "--trials", type=int, default=trials_default)
 
     # Parsing command-line arguments
