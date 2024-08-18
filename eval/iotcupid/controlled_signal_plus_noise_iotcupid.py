@@ -13,47 +13,28 @@ from eval_tools import (  # noqa: E402
 )
 from evaluator import Evaluator  # noqa: E402
 
-if __name__ == "__main__":
-    (
-        top_th,
-        bottom_th,
-        lump_th,
-        a,
-        cluster_sizes_to_check,
-        cluster_th,
-        min_events,
-        Fs,
-        chunk_size,
-        buffer_size,
-        window_size,
-        feature_dimensions,
-        w,
-        m_start,
-        m_steps,
-        m_end,
-        key_size_in_bytes,
-        target_snr,
-        trials,
-    ) = get_command_line_args(
-        top_threshold_default=0.07,
-        bottom_threshold_default=0.05,
-        lump_threshold_default=4,
-        ewma_a_default=0.75,
-        cluster_sizes_to_check_default=4,
-        minimum_events_default=16,
-        sampling_frequency_default=10000,
-        chunk_size_default=10000,
-        buffer_size_default=50000,
-        window_size_default=10,
-        feature_dimensions_default=3,
-        quantization_factor_default=1,
-        mstart_default=1.1,
-        msteps_default=10,
-        mend_default=2,
-        key_length_default=128,
-        snr_level_default=1,
-        trials_default=10,
-    )
+
+def main(
+    top_th,
+    bottom_th,
+    lump_th,
+    a,
+    cluster_sizes_to_check,
+    cluster_th,
+    min_events,
+    Fs,
+    chunk_size,
+    buffer_size,
+    window_size,
+    feature_dimensions,
+    w,
+    m_start,
+    m_steps,
+    m_end,
+    key_size_in_bytes,
+    target_snr,
+    trials,
+):
 
     mem_th = 0.8
 
@@ -121,6 +102,34 @@ if __name__ == "__main__":
         events_cmp_bits, key_size_in_bytes
     )
 
+    le_avg_be = np.mean(legit_bit_errs)
+    adv_avg_be = np.mean(adv_bit_errs)
+
     # Printing the average bit error rates
-    print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
-    print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
+    print(f"Legit Average Bit Error Rate: {le_avg_be}")
+    print(f"Adversary Average Bit Error Rate: {adv_avg_be}")
+    return le_avg_be, adv_avg_be
+
+
+if __name__ == "__main__":
+    args = get_command_line_args(
+        top_threshold_default=0.07,
+        bottom_threshold_default=0.05,
+        lump_threshold_default=4,
+        ewma_a_default=0.75,
+        cluster_sizes_to_check_default=4,
+        minimum_events_default=16,
+        sampling_frequency_default=10000,
+        chunk_size_default=10000,
+        buffer_size_default=50000,
+        window_size_default=10,
+        feature_dimensions_default=3,
+        quantization_factor_default=1,
+        mstart_default=1.1,
+        msteps_default=10,
+        mend_default=2,
+        key_length_default=128,
+        snr_level_default=1,
+        trials_default=10,
+    )
+    main(*args)

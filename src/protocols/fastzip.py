@@ -1,5 +1,4 @@
 import multiprocessing as mp
-from typing import Any, List
 
 from protocols.protocol_interface import ProtocolInterface
 

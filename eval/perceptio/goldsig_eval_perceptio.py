@@ -15,41 +15,27 @@ sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import Signal_Buffer, events_cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
-if __name__ == "__main__":
-    (
-        top_th,
-        bottom_th,
-        lump_th,
-        a,
-        cluster_sizes_to_check,
-        cluster_th,
-        min_events,
-        Fs,
-        chunk_size,
-        buffer_size,
-        key_size_in_bytes,
-        target_snr,
-        trials,
-    ) = get_command_line_args(
-        top_threshold_default=6,
-        bottom_threshold_default=4,
-        lump_threshold_default=4,
-        ewma_a_default=0.75,
-        cluster_sizes_to_check_default=4,
-        minimum_events_default=16,
-        sampling_frequency_default=10000,
-        chunk_size_default=10000,
-        buffer_size_default=50000,
-        key_length_default=128,
-        snr_level_default=20,
-        trials_default=100,
-    )
 
+def main(
+    top_th,
+    bottom_th,
+    lump_th,
+    a,
+    cluster_sizes_to_check,
+    cluster_th,
+    min_events,
+    Fs,
+    chunk_size,
+    buffer_size,
+    key_size_in_bytes,
+    target_snr,
+    trials,
+):
     # Generating the signals
-    golden_signal = golden_signal(buffer_size)
+    gold_signal = golden_signal(buffer_size)
     adv_signal = adversary_signal(buffer_size)
-    legit_signal_buffer1 = Signal_Buffer(golden_signal.copy())
-    legit_signal_buffer2 = Signal_Buffer(golden_signal.copy())
+    legit_signal_buffer1 = Signal_Buffer(gold_signal.copy())
+    legit_signal_buffer2 = Signal_Buffer(gold_signal.copy())
     adv_signal_buffer = Signal_Buffer(adv_signal)
 
     # Grouping the signal buffers into a tuple
@@ -93,6 +79,28 @@ if __name__ == "__main__":
         events_cmp_bits, key_size_in_bytes
     )
 
+    le_avg_be = np.mean(legit_bit_errs)
+    adv_avg_be = np.mean(adv_bit_errs)
+
     # Printing the average bit error rates
-    print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
-    print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
+    print(f"Legit Average Bit Error Rate: {le_avg_be}")
+    print(f"Adversary Average Bit Error Rate: {adv_avg_be}")
+    return le_avg_be, adv_avg_be
+
+
+if __name__ == "__main__":
+    args = get_command_line_args(
+        top_threshold_default=6,
+        bottom_threshold_default=4,
+        lump_threshold_default=4,
+        ewma_a_default=0.75,
+        cluster_sizes_to_check_default=4,
+        minimum_events_default=16,
+        sampling_frequency_default=10000,
+        chunk_size_default=10000,
+        buffer_size_default=50000,
+        key_length_default=128,
+        snr_level_default=20,
+        trials_default=100,
+    )
+    main(*args)
