@@ -79,25 +79,32 @@ class FastZIPProtocol(ProtocolInterface):
         print("Overlap size: ", overlap_size)
 
         chunk_generator = self.manage_overlapping_chunks(window_size, overlap_size)
-        for chunk in chunk_generator:
-            print(f"Processing chunk of size: {chunk.size}")
-            if not chunk.size:
-                print("No more data to process...")
+        while len(accumulated_bits) < self.key_length_bits:
+            try:
+                chunk = next(chunk_generator)
+                print(f"Processing chunk of size: {chunk.size}")
+                if not chunk.size:
+                    print("No more data to process...")
+                    break
+            except StopIteration:
+                print("All chunks have been processed.")
                 break
-
-            print("No more data to process...")
             processed_bits = self.process_chunk(chunk)
             if processed_bits:
                 accumulated_bits += processed_bits
                 print(f"Accumulated bits length: {len(accumulated_bits)}")
+                if len(accumulated_bits) >= self.key_length_bits:
+                    print("Reached the required length of bits, stopping further processing.")
+                    break
             else:
                 print("No processed bits from the current chunk...")
 
+        accumulated_bits = accumulated_bits[:self.key_length_bits]
         # Reset and clear operations after processing is complete
         ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()
         
-        return accumulated_bits[: self.key_length_bits]
+        return accumulated_bits
 
     def process_chunk(self, chunk: np.ndarray) -> bytes:
         """
