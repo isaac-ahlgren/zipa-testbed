@@ -1,6 +1,6 @@
-import argparse
 import os
 import sys
+from typing import ByteString
 
 import numpy as np
 from fastzip_tools import (
@@ -9,6 +9,7 @@ from fastzip_tools import (
     fastzip_wrapper_function,
     golden_signal,
     manage_overlapping_chunks,
+    parse_command_line_args,
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
@@ -16,53 +17,60 @@ from eval_tools import Signal_Buffer, cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-ws", "--window_size", type=int, default=1000)
-    parser.add_argument("-os", "--overlap_size", type=int, default=200)
-    parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
-    parser.add_argument("-nb", "--n_bits", type=int, default=12)
-    parser.add_argument("-kl", "--key_length", type=int, default=128)
-    parser.add_argument("-b", "--bias", type=int, default=0)
-    parser.add_argument("-ed", "--eqd_delta", type=int, default=1)
-    parser.add_argument("-ef", "--ewma_filter", type=bool, default=None)
-    parser.add_argument("-ps", "--peak_status", type=bool, default=None)
-    parser.add_argument("-a", "--alpha", type=float, default=None)
-    parser.add_argument("-rn", "--remove_noise", type=bool, default=None)
-    parser.add_argument("-n", "--normalize", type=bool, default=True)
-    parser.add_argument("-pt", "--power_threshold", type=int, default=-12)
-    parser.add_argument("-st", "--snr_threshold", type=int, default=1.6)
-    parser.add_argument("-np", "--number_peaks", type=int, default=0)
-    parser.add_argument("-snr", "--snr_level", type=int, default=20)
-    parser.add_argument("-t", "--trials", type=int, default=1000)
-
-    args = parser.parse_args()
-    window_size = getattr(args, "window_size")
-    overlap_size = getattr(args, "overlap_size")
-    buffer_size = getattr(args, "buffer_size")
-    n_bits = getattr(args, "n_bits")
-    key_length = getattr(args, "key_length")
-    bias = getattr(args, "bias")
-    eqd_delta = getattr(args, "eqd_delta")
-    peak_status = getattr(args, "peak_status")
-    ewma_filter = getattr(args, "ewma_filter")
-    alpha = getattr(args, "alpha")
-    remove_noise = getattr(args, "remove_noise")
-    normalize = getattr(args, "normalize")
-    power_threshold = getattr(args, "power_threshold")
-    snr_threshold = getattr(args, "snr_threshold")
-    number_peaks = getattr(args, "number_peaks")
-    target_snr = getattr(args, "snr_level")
-    trials = getattr(args, "trials")
-
+    (
+        window_size,
+        overlap_size,
+        buffer_size,
+        n_bits,
+        key_length,
+        bias,
+        eqd_delta,
+        peak_status,
+        ewma_filter,
+        alpha,
+        remove_noise,
+        normalize,
+        power_threshold,
+        snr_threshold,
+        number_peaks,
+        snr_level,
+        trials,
+    ) = parse_command_line_args(
+        window_size_default := 200,
+        overlap_size_default=100,
+        buffer_size_default=50000,
+        n_bits_default=12,
+        key_length_default=128,
+        bias_default=0,
+        eqd_delta_default=1,
+        peak_status_default=None,
+        ewma_filter_default=None,
+        alpha_default=None,
+        remove_noise_default=None,
+        normalize_default=True,
+        power_threshold_default=-12,
+        snr_threshold_default=1.6,
+        number_peaks_default=0,
+        snr_level_default=20,
+        trials_default=1000,
+    )
     signal1 = golden_signal(buffer_size)
     signal2 = golden_signal(buffer_size)
     adv_signal = adversary_signal(buffer_size)
-    legit_signal_buffer1 = Signal_Buffer(signal1, noise=True, target_snr=target_snr)
-    legit_signal_buffer2 = Signal_Buffer(signal2, noise=True, target_snr=target_snr)
-    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
+    legit_signal_buffer1 = Signal_Buffer(signal1, noise=True, target_snr=snr_level)
+    legit_signal_buffer2 = Signal_Buffer(signal2, noise=True, target_snr=snr_level)
+    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=snr_level)
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
-    def bit_gen_algo(signal):
+    def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
+        """
+        Generates bits based on the analysis of overlapping chunks from a signal.
+
+        :param signal: The signal buffer to process.
+        :type signal: Signal_Buffer
+        :return: A byte string of the generated bits up to the specified key length.
+        :rtype: ByteString
+        """
         accumulated_bits = b""
         for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
             bits = fastzip_wrapper_function(

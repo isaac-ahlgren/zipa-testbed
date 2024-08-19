@@ -1,12 +1,13 @@
-import argparse
 import os
 import sys
+from typing import ByteString
 
 import numpy as np
 from perceptio_tools import (
     adversary_signal,
     gen_min_events,
     generate_bits,
+    get_command_line_args,
     golden_signal,
 )
 
@@ -15,34 +16,34 @@ from eval_tools import Signal_Buffer, events_cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 if __name__ == "__main__":
-    # Setting up command-line argument parsing
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-tt", "--top_threshold", type=float, default=6)
-    parser.add_argument("-bt", "--bottom_threshold", type=float, default=4)
-    parser.add_argument("-lt", "--lump_threshold", type=int, default=4)
-    parser.add_argument("-a", "--ewma_a", type=float, default=0.75)
-    parser.add_argument("-cl", "--cluster_sizes_to_check", type=int, default=4)
-    parser.add_argument("-min", "--minimum_events", type=int, default=16)
-    parser.add_argument("-fs", "--sampling_frequency", type=float, default=10000)
-    parser.add_argument("-ch", "--chunk_size", type=int, default=100)
-    parser.add_argument("-bs", "--buffer_size", type=int, default=50000)
-    parser.add_argument("-kl", "--key_length", type=int, default=128)
-    parser.add_argument("-t", "--trials", type=int, default=100)
-
-    # Parsing command-line arguments
-    args = parser.parse_args()
-    top_th = getattr(args, "top_threshold")
-    bottom_th = getattr(args, "bottom_threshold")
-    lump_th = getattr(args, "lump_threshold")
-    a = getattr(args, "ewma_a")
-    cluster_sizes_to_check = getattr(args, "cluster_sizes_to_check")
-    cluster_th = 0.1  # Set a fixed cluster threshold
-    min_events = getattr(args, "minimum_events")
-    Fs = getattr(args, "sampling_frequency")
-    chunk_size = getattr(args, "chunk_size")
-    buffer_size = getattr(args, "buffer_size")
-    key_size_in_bytes = getattr(args, "key_length") // 8
-    trials = getattr(args, "trials")
+    (
+        top_th,
+        bottom_th,
+        lump_th,
+        a,
+        cluster_sizes_to_check,
+        cluster_th,
+        min_events,
+        Fs,
+        chunk_size,
+        buffer_size,
+        key_size_in_bytes,
+        target_snr,
+        trials,
+    ) = get_command_line_args(
+        top_threshold_default=6,
+        bottom_threshold_default=4,
+        lump_threshold_default=4,
+        ewma_a_default=0.75,
+        cluster_sizes_to_check_default=4,
+        minimum_events_default=16,
+        sampling_frequency_default=10000,
+        chunk_size_default=10000,
+        buffer_size_default=50000,
+        key_length_default=128,
+        snr_level_default=20,
+        trials_default=100,
+    )
 
     # Generating the signals
     golden_signal = golden_signal(buffer_size)
@@ -55,7 +56,15 @@ if __name__ == "__main__":
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
     # Defining the bit generation algorithm
-    def bit_gen_algo(signal):
+    def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
+        """
+        Generates bits based on the analysis of overlapping chunks from a signal.
+
+        :param signal: The signal buffer to process.
+        :type signal: Signal_Buffer
+        :return: A byte string of the generated bits up to the specified key length.
+        :rtype: ByteString
+        """
         signal_events, signal_event_features = gen_min_events(
             signal,
             chunk_size,

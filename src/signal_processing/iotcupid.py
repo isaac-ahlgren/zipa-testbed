@@ -1,5 +1,5 @@
 import math
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -155,6 +155,13 @@ class IoTCupidProcessing:
         events: List[Tuple[int, int]],
         sensor_data: np.ndarray,
     ) -> np.ndarray:
+        """
+        Extract signal segments from sensor data based on provided events.
+
+        :param events: A list of tuples indicating the start and end indices of events in the sensor data.
+        :param sensor_data: The complete sensor data array from which events are extracted.
+        :return: A list of numpy arrays, each corresponding to the data segment of an event.
+        """
 
         event_signals = []
         for i, (start, end) in enumerate(events):
@@ -162,7 +169,16 @@ class IoTCupidProcessing:
 
         return event_signals
 
-    def get_event_features(event_signals, feature_dim):
+    def get_event_features(
+        event_signals: List[np.ndarray], feature_dim: int
+    ) -> np.ndarray:
+        """
+        Extract features from event signals and reduce dimensions using PCA.
+
+        :param event_signals: List of numpy arrays where each array represents sensor data for an event.
+        :param feature_dim: The number of principal components to retain in the PCA.
+        :return: A numpy array with reduced dimensions after PCA.
+        """
         timeseries = []
         for i in range(len(event_signals)):
             sensor_data = event_signals[i]
@@ -184,7 +200,27 @@ class IoTCupidProcessing:
 
         return reduced_dim
 
-    def grid_search_cmeans(features, c, m_start, m_end, m_searches, mem_thresh):
+    def grid_search_cmeans(
+        features: np.ndarray,
+        c: int,
+        m_start: float,
+        m_end: float,
+        m_searches: int,
+        mem_thresh: float,
+    ) -> Tuple[
+        Optional[float], Optional[float], Optional[np.ndarray], Optional[np.ndarray]
+    ]:
+        """
+        Perform a grid search to find the best fuzzification parameter for fuzzy c-means clustering.
+
+        :param features: The dataset features to cluster.
+        :param c: The number of clusters.
+        :param m_start: The start value for the fuzziness parameter `m`.
+        :param m_end: The end value for the fuzziness parameter `m`.
+        :param m_searches: The number of searches between `m_start` and `m_end`.
+        :param mem_thresh: The membership threshold for calculating cluster variance.
+        :return: A tuple containing the best score, the best FPC (Fuzzy Partition Coefficient), and the cluster centers and membership functions.
+        """
         best_cntr = None
         best_u = None
         best_fpc = None
@@ -348,7 +384,20 @@ class IoTCupidProcessing:
                 fp.append(key)
         return fp
 
-    def calculate_cluster_variance(features, cntr, u, mem_thresh):
+    def calculate_cluster_variance(
+        features: np.ndarray, cntr: np.ndarray, u: np.ndarray, mem_thresh: float
+    ) -> float:
+        """
+        Calculate the average variance of clusters based on fuzzy membership and a membership threshold.
+
+        This function calculates the variance by first determining which clusters each feature point is strongly associated with, based on a membership threshold. It then measures the distortion (squared Euclidean distance) of each feature from its associated cluster centers and averages these distortions across all clusters.
+
+        :param features: An array where each column represents a feature point in the space defined by the cluster centers.
+        :param cntr: An array where each row represents the coordinates of a cluster center.
+        :param u: A matrix of fuzzy membership degrees, where each column corresponds to a feature point and each row corresponds to a cluster.
+        :param mem_thresh: A threshold for determining if a feature point is strongly associated with a cluster, based on its membership degree.
+        :return: The average distortion as a measure of variance for the clusters.
+        """
         labels = IoTCupidProcessing.defuzz(u, mem_thresh)
         # Recalculate distances from each sample to each cluster center
         distortions = np.zeros(cntr.shape[0])
