@@ -99,15 +99,11 @@ def testing_basic_iotcupid_eval_run():
     os.chdir(original_dir)
 
 
-
 def testing_basic_fastzip_eval_run():
     os.chdir(original_dir)
     os.chdir("./eval/fastzip")
     output = subprocess.run(["python3", "goldsig_eval_fastzip.py", "-t", "1"])  # nosec
     output.check_returncode()
-
-    os.chdir(original_dir)
-
 
     output = subprocess.run(
         ["python3", "goldsig_plus_noise_eval_fastzip.py", "-t", "1"]
