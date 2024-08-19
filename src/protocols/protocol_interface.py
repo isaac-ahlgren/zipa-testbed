@@ -2,7 +2,7 @@ import queue
 import socket
 import time
 from multiprocessing import Lock, Process, Queue, Value
-from multiprocessing.shared_memory import ShareableList
+from multiprocessing.shared_memory import ShareableList, SharedMemory
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -106,10 +106,17 @@ class ProtocolInterface:
 
         :returns: bytes, from data sent into protocol algorithm
         """
-        ShareableList(
-            name=self.name + "_Bytes",
-            sequence=byte_list,
-        )
+        try:
+            ShareableList(
+                name=self.name + "_Bytes",
+                sequence=byte_list,
+            )
+        except FileExistsError:
+            shared_list = ShareableList(name=self.name + "_Bytes")
+            print(f"\nPrevious list: {shared_list}")
+            for i in range(len(shared_list)):
+                shared_list[i] = byte_list[i]
+            print(f"Overwritten with: {shared_list}\n")
 
     def read_shm(self) -> List[bytes]:
         """
@@ -128,6 +135,11 @@ class ProtocolInterface:
         shared_list = ShareableList(name=self.name + "_Bytes")
         shared_list.shm.unlink()
 
+    def clear_shm(self) -> None:
+        shared_list = ShareableList(name=self.name + "_bytes")
+        shared_list = [0 for _ in range(shared_list)]
+        print(f"\nSharable list: {shared_list}\n")
+
     def get_context(self) -> Any:
         """
         Manages the shared list usage for retrieving context data.
@@ -140,16 +152,12 @@ class ProtocolInterface:
 
         self.shm_active.value += 1
 
-        if self.shm_active.value > 1: # Stops race condition
-            time.sleep(0.01)
+        if self.shm_active.value > 1:  # Stops race condition
+            time.sleep(1)
         # First process to grab the flag populates the list
         if self.processing_flag.value == READY:
             with self.mutex:
                 ProtocolInterface.capture_flag(self.processing_flag)
-                try:
-                    self.destroy_shm()
-                except FileNotFoundError:
-                    pass  # No shared memory instance to destroy
                 results = self.process_context()
                 self.write_shm(results)
                 ProtocolInterface.reset_flag(self.processing_flag)
