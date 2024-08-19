@@ -1,9 +1,7 @@
 import queue
 import socket
-import time
-import time
 from multiprocessing import Lock, Process, Queue, Value
-from multiprocessing.shared_memory import ShareableList, SharedMemory
+from multiprocessing.shared_memory import ShareableList
 from typing import Any, List, Tuple
 
 import numpy as np
@@ -135,40 +133,35 @@ class ProtocolInterface:
         except FileNotFoundError:
             print("Shared memory not found for unlinking.")
 
-
     def clear_shm(self) -> None:
         shared_list = ShareableList(name=self.name + "_bytes")
         shared_list = [0 for _ in range(shared_list)]
         print(f"\nSharable list: {shared_list}\n")
 
-
     def get_context(self) -> Any:
         """
         Manages the shared list usage for retrieving context data.
         """
-        print("Entering get_context()")  # ADDED
         results = None
         # Keep track if shared list is being used
 
         while self.processing_flag.value == COMPLETE and self.shm_active.value != 0:
-            print("Waiting for shm to be free...")
             continue
-        print("Accessing shared memory...")
+
         self.shm_active.value += 1
 
-        if self.shm_active.value > 1:  # Stops race condition
-            time.sleep(1)
         # First process to grab the flag populates the list
-        if self.processing_flag.value == READY:
+        if self.processing_flag.value == READY and self.shm_active.value == 1:
             with self.mutex:
-                print("Populating shared memory...")
                 ProtocolInterface.capture_flag(self.processing_flag)
+                print("\n\nProcessing context\n\n")
                 results = self.process_context()
                 self.write_shm(results)
                 ProtocolInterface.reset_flag(self.processing_flag)
 
         # Other processes wait for first process to finish
         else:
+            print("\n\nWaiting for processing.\n\n")
             while self.processing_flag.value == PROCESSING:
                 continue
             results = self.read_shm()
@@ -219,16 +212,13 @@ class ProtocolInterface:
         :return: An array of the collected samples.
         """
         # Assuming only one process is handling this.
-        print(f"Attempting to read {sample_num} samples...")
         samples_read = 0
         output = np.array([])
         # Signal status_queue is ready for data
         ProtocolInterface.capture_flag(self.queue_flag)
 
         while samples_read < sample_num:
-            print("Getting chunk")
             chunk = self.queue.get()
-            print(f"Recieved chunk: {chunk}")
             output = np.append(output, chunk)
             samples_read += len(chunk)
 

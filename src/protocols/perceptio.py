@@ -4,6 +4,8 @@ import numpy as np
 from cryptography.hazmat.primitives import constant_time
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
+from error_correction.corrector import Fuzzy_Commitment
+from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import (
     ack,
     ack_standby,
@@ -40,6 +42,9 @@ class Perceptio_Protocol(ProtocolInterface):
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "Perceptio_Protocol"
         self.wip = False
+        self.key_length = parameters["key_length"]
+        self.parity_symbols = parameters["parity_symbols"]
+        self.commitment_length = self.key_length + self.parity_symbols
         self.a = parameters["a"]
         self.cluster_sizes_to_check = parameters["cluster_sizes_to_check"]
         self.cluster_th = parameters["cluster_th"]
@@ -53,6 +58,9 @@ class Perceptio_Protocol(ProtocolInterface):
         self.chunk_size = parameters["chunk_size"]
         self.nonce_byte_size = 16
         self.count = 0
+        self.re = Fuzzy_Commitment(
+            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
+        )
 
     def process_context(self) -> Any:
         """
@@ -191,7 +199,7 @@ class Perceptio_Protocol(ProtocolInterface):
             key = self.find_commitment(commitments, hs, witnesses)
 
             success = key is not None
-            
+
             send_status(host_socket, success)
 
             # TODO: Fails to uncommit only sometimes which is weird
@@ -204,7 +212,6 @@ class Perceptio_Protocol(ProtocolInterface):
                 # self.checkpoint_log(witnesses, commitments, success, signal, iterations)
                 iterations += 1
                 continue
-            
 
             # Key Confirmation Phase
 
@@ -346,9 +353,9 @@ class Perceptio_Protocol(ProtocolInterface):
             # Send all commitments
 
             send_commit(commitments, hs, device_socket)
-            
+
             # Check up on other devices status
-            status = status_standby(device_socket, self.timeout) # TODO Hangs here
+            status = status_standby(device_socket, self.timeout)  # TODO Hangs here
             if status is None:
                 if self.verbose:
                     print("No status recieved within time limit - early exit.\n\n")
@@ -369,7 +376,7 @@ class Perceptio_Protocol(ProtocolInterface):
                 )"""
                 iterations += 1
                 continue
-                
+
             # Key Confirmation Phase
 
             # Recieve nonce message
