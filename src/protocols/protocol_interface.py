@@ -1,15 +1,13 @@
 import queue
 import socket
 import time
+import time
 from multiprocessing import Lock, Process, Queue, Value
 from multiprocessing.shared_memory import ShareableList, SharedMemory
 from typing import Any, List, Tuple
 
 import numpy as np
 from cryptography.hazmat.primitives import hashes
-
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
 
 READY = 0
 PROCESSING = 1
@@ -34,15 +32,14 @@ class ProtocolInterface:
         self.shm_active = Value("i", 0)
         self.key_length = parameters["key_length"]
         self.time_length = None  # To be calculated in implementation
-        self.parity_symbols = parameters["parity_symbols"]
-        self.commitment_length = self.parity_symbols + self.key_length
+        # self.parity_symbols = parameters["parity_symbols"]
+        # self.commitment_length = self.parity_symbols + self.key_length
         self.mutex = Lock()
         self.timeout = parameters["timeout"]
         self.hash_func = hashes.SHA256()
-        self.re = Fuzzy_Commitment(
-            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
-        )
         self.sensor.add_protocol_queue((self.queue_flag, self.queue))
+        # Line directly above is needed so that the sensor can write to the queue.
+        # It must've been accidentally removed when taking out the fuzzy commitment.
 
     def hash_function(self, bytes_data: bytes) -> bytes:
         """
@@ -132,24 +129,31 @@ class ProtocolInterface:
         Destroys shared list reference, allowing namespace to be used
         again
         """
-        shared_list = ShareableList(name=self.name + "_Bytes")
-        shared_list.shm.unlink()
+        try:
+            shared_list = ShareableList(name=self.name + "_Bytes")
+            shared_list.shm.unlink()
+        except FileNotFoundError:
+            print("Shared memory not found for unlinking.")
+
 
     def clear_shm(self) -> None:
         shared_list = ShareableList(name=self.name + "_bytes")
         shared_list = [0 for _ in range(shared_list)]
         print(f"\nSharable list: {shared_list}\n")
 
+
     def get_context(self) -> Any:
         """
         Manages the shared list usage for retrieving context data.
         """
+        print("Entering get_context()")  # ADDED
         results = None
         # Keep track if shared list is being used
 
         while self.processing_flag.value == COMPLETE and self.shm_active.value != 0:
+            print("Waiting for shm to be free...")
             continue
-
+        print("Accessing shared memory...")
         self.shm_active.value += 1
 
         if self.shm_active.value > 1:  # Stops race condition
@@ -157,6 +161,7 @@ class ProtocolInterface:
         # First process to grab the flag populates the list
         if self.processing_flag.value == READY:
             with self.mutex:
+                print("Populating shared memory...")
                 ProtocolInterface.capture_flag(self.processing_flag)
                 results = self.process_context()
                 self.write_shm(results)
@@ -166,7 +171,6 @@ class ProtocolInterface:
         else:
             while self.processing_flag.value == PROCESSING:
                 continue
-
             results = self.read_shm()
 
         # Process no longer is using the shared list
@@ -215,13 +219,16 @@ class ProtocolInterface:
         :return: An array of the collected samples.
         """
         # Assuming only one process is handling this.
+        print(f"Attempting to read {sample_num} samples...")
         samples_read = 0
         output = np.array([])
         # Signal status_queue is ready for data
         ProtocolInterface.capture_flag(self.queue_flag)
 
         while samples_read < sample_num:
+            print("Getting chunk")
             chunk = self.queue.get()
+            print(f"Recieved chunk: {chunk}")
             output = np.append(output, chunk)
             samples_read += len(chunk)
 

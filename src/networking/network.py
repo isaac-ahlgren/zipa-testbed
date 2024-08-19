@@ -13,6 +13,7 @@ NONC = "nonce   "
 PRAM = "preamble"
 SUCC = "success "
 FAIL = "failed  "
+FPFM = "fpake   "
 
 
 def send_status(connection: socket.socket, status: bool) -> None:
@@ -304,3 +305,45 @@ def ack_standby(connection: socket.socket, timeout: int) -> bool:
         acknowledged = True
     
     return acknowledged
+
+
+def send_fpake_msg(connection, msg):
+    length_payload = 0
+    for m in msg:
+        length_payload += len(m) + 4
+
+    payload = length_payload.to_bytes(4, byteorder="big")
+    for m in msg:
+        payload += len(m).to_bytes(4, byteorder="big") + m
+
+    outgoing = FPFM.encode() + payload
+    connection.send(outgoing)
+
+
+def fpake_msg_standby(connection: socket.socket, timeout: int) -> bool:
+    msg = None
+    reference = time.time()
+    timestamp = reference
+
+    # While process hasn't timed out
+    while (timestamp - reference) < timeout:
+        timestamp = time.time()
+        message = connection.recv(12)
+
+        if message is None:
+            continue
+        elif message[:8] == FPFM.encode():
+            msg_size = int.from_bytes(message[8:], "big")
+
+            payload = connection.recv(msg_size)
+
+            msg = []
+            index = 0
+            while index < msg_size:
+                item_length = int.from_bytes(payload[index : index + 4], "big")
+                item = payload[index + 4 : index + 4 + item_length]
+                index += 4 + item_length
+                msg.append(item)
+            break
+
+    return msg

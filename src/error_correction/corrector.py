@@ -39,6 +39,8 @@ class Fuzzy_Commitment:
         :returns: The result of byte-wise XOR between `bytes1` and `bytes2`.
         :rtype: bytearray
         """
+        if len(bytes1) != len(bytes2):
+            raise ValueError(f"Mismatched lengths: {len(bytes1)} and {len(bytes2)}")
         output = bytearray([0 for i in range(len(bytes1))])
         for i in range(len(bytes2)):
             output[i] = bytes2[i] ^ bytes1[i]
