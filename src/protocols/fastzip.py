@@ -2,20 +2,19 @@ from typing import Any
 
 import numpy as np
 
+from error_correction.fPAKE import fPAKE
 from networking.network import ack, ack_standby, send_status, socket
 from protocols.protocol_interface import ProtocolInterface
 from signal_processing.fastzip import FastZIPProcessing
-from error_correction.fPAKE import fPAKE
 
 
 class FastZIPProtocol(ProtocolInterface):
-    def __init__(
-        self, parameters: dict, sensor: Any, logger: Any) -> None:
+    def __init__(self, parameters: dict, sensor: Any, logger: Any) -> None:
         super().__init__(parameters, sensor, logger)
         self.name = "Fastzip_Protocol"
-        
+
         # Store configuration directly
-        self.verbose = parameters.get('verbose', False)
+        self.verbose = parameters.get("verbose", False)
         self.timeout = parameters["timeout"]
         self.chunk_size = parameters["chunk_size"]
         self.n_bits = parameters["n_bits"]
@@ -30,23 +29,28 @@ class FastZIPProtocol(ProtocolInterface):
         self.alpha = parameters.get("alpha", 0.015)
         self.remove_noise = parameters.get("remove_noise", False)
         self.normalize = parameters.get("normalize", False)
-        self.key_length = parameters['key_length']
+        self.key_length = parameters["key_length"]
         self.parity_symbols = parameters["parity_symbols"]
 
         # fPAKE related
         self.commitment_length = self.key_length + self.parity_symbols
         self.fPAKE = fPAKE(
-            pw_length=self.commitment_length, 
-            key_length=self.key_length, 
-            timeout=self.timeout
+            pw_length=self.commitment_length,
+            key_length=self.key_length,
+            timeout=self.timeout,
         )
-
 
     def manage_overlapping_chunks(self, window_size, overlap_size):
         previous_chunk = np.array([])
         while True:
-            print(f"Previous chunk size: {len(previous_chunk)}, expected overlap: {overlap_size}")
-            required_samples = window_size if len(previous_chunk) < overlap_size else (window_size - overlap_size)
+            print(
+                f"Previous chunk size: {len(previous_chunk)}, expected overlap: {overlap_size}"
+            )
+            required_samples = (
+                window_size
+                if len(previous_chunk) < overlap_size
+                else (window_size - overlap_size)
+            )
             new_data = self.read_samples(required_samples)
 
             if new_data.size == 0:
@@ -54,14 +58,15 @@ class FastZIPProtocol(ProtocolInterface):
                 break
 
             if len(previous_chunk) >= overlap_size:
-                current_chunk = np.concatenate((previous_chunk[-overlap_size:], new_data))
+                current_chunk = np.concatenate(
+                    (previous_chunk[-overlap_size:], new_data)
+                )
             else:
                 current_chunk = new_data
 
             print(f"Yielding chunk of size: {current_chunk.size}")
             yield current_chunk
             previous_chunk = current_chunk
-
 
     def process_context(self) -> Any:
         """
@@ -72,7 +77,9 @@ class FastZIPProtocol(ProtocolInterface):
         """
         print("Processing context...")
         accumulated_bits = b""
-        window_size = self.chunk_size  # You can adjust this according to the actual needs
+        window_size = (
+            self.chunk_size
+        )  # You can adjust this according to the actual needs
         print("Window size: ", window_size)
         overlap_size = window_size // 2  # Example overlap of 50%
         print("Overlap size: ", overlap_size)
@@ -93,16 +100,18 @@ class FastZIPProtocol(ProtocolInterface):
                 accumulated_bits += processed_bits
                 print(f"Accumulated bits length: {len(accumulated_bits)}")
                 if len(accumulated_bits) >= self.commitment_length:
-                    print("Reached the required length of bits, stopping further processing.")
+                    print(
+                        "Reached the required length of bits, stopping further processing."
+                    )
                     break
             else:
                 print("No processed bits from the current chunk...")
 
-        accumulated_bits = accumulated_bits[:self.commitment_length]
+        accumulated_bits = accumulated_bits[: self.commitment_length]
         # Reset and clear operations after processing is complete
         ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()
-        
+
         return accumulated_bits
 
     def process_chunk(self, chunk: np.ndarray) -> bytes:
@@ -144,16 +153,16 @@ class FastZIPProtocol(ProtocolInterface):
         host_socket.setblocking(1)
         print("Device: Setting socket to blocking.")
         if self.verbose:
-            print("Sending ACK to host...")
+            print("Device: Sending ACK to host...")
         ack(host_socket)
 
         if not ack_standby(host_socket, self.timeout):
             if self.verbose:
-                print("ACK from host not received, exiting...")
+                print("Device: ACK from host not received, exiting...")
             return
 
         if self.verbose:
-            print("ACK received. Running fPAKE protocol...")
+            print("Device: ACK received. Running fPAKE protocol...")
         context_data = self.get_context()
         if isinstance(context_data, (bytes, bytearray)):
             context_bytes = context_data
@@ -163,11 +172,11 @@ class FastZIPProtocol(ProtocolInterface):
 
         if secret_key:
             if self.verbose:
-                print("Secret key derived successfully.")
+                print("Device: Secret key derived successfully.")
             send_status(host_socket, True)
         else:
             if self.verbose:
-                print("Failed to derive the secret key.")
+                print("Device: Failed to derive the secret key.")
             send_status(host_socket, False)
 
     def host_protocol_single_threaded(self, device_socket: socket.socket):
@@ -178,13 +187,13 @@ class FastZIPProtocol(ProtocolInterface):
         print("Host: Setting socket to blocking.")
         if not ack_standby(device_socket, self.timeout):
             if self.verbose:
-                print("No ACK received within time limit - early exit.")
+                print("Host: No ACK received within time limit - early exit.")
             return
 
         if self.verbose:
-            print("ACK received from device. Proceeding with fPAKE protocol...")
-            print("ACKing participants")
-        ack(device_socket) # Need this to continue protocol; clients were hanging
+            print("Host: ACK received from device. Proceeding with fPAKE protocol...")
+            print("Host: ACKing participants")
+        ack(device_socket)  # Need this to continue protocol; clients were hanging
 
         fingerprints = self.get_context()
         if isinstance(fingerprints, (bytes, bytearray)):
@@ -195,9 +204,9 @@ class FastZIPProtocol(ProtocolInterface):
 
         if secret_key:
             if self.verbose:
-                print("Key exchange confirmed successfully.")
+                print("Host: Key exchange confirmed successfully.")
             send_status(device_socket, True)
         else:
             if self.verbose:
-                print("Key exchange confirmation failed.")
+                print("Host: Key exchange confirmation failed.")
             send_status(device_socket, False)

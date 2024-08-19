@@ -8,9 +8,6 @@ from typing import Any, List, Tuple
 import numpy as np
 from cryptography.hazmat.primitives import hashes
 
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
-
 READY = 0
 PROCESSING = 1
 COMPLETE = -1
@@ -34,8 +31,8 @@ class ProtocolInterface:
         self.shm_active = Value("i", 0)
         self.key_length = parameters["key_length"]
         self.time_length = None  # To be calculated in implementation
-        self.parity_symbols = parameters["parity_symbols"]
-        self.commitment_length = self.parity_symbols + self.key_length
+        # self.parity_symbols = parameters["parity_symbols"]
+        # self.commitment_length = self.parity_symbols + self.key_length
         self.mutex = Lock()
         self.timeout = parameters["timeout"]
         self.hash_func = hashes.SHA256()
@@ -126,14 +123,19 @@ class ProtocolInterface:
         Destroys shared list reference, allowing namespace to be used
         again
         """
-        shared_list = ShareableList(name=self.name + "_Bytes")
-        shared_list.shm.unlink()
+        try:
+            shared_list = ShareableList(name=self.name + "_Bytes")
+            shared_list.shm.unlink()
+        except FileNotFoundError:
+            print("Shared memory not found for unlinking.")
+        except Exception as e:
+            print(f"An error occured: {str(e)}")
 
     def get_context(self) -> Any:
         """
         Manages the shared list usage for retrieving context data.
         """
-        print("Entering get_context()") #ADDED
+        print("Entering get_context()")  # ADDED
         results = None
         # Keep track if shared list is being used
 
@@ -142,7 +144,9 @@ class ProtocolInterface:
             continue
         print("Accessing shared memory...")
         self.shm_active.value += 1
-        if self.shm_active.value > 1: # Get race conditions when testing it locally; this mitigates it
+        if (
+            self.shm_active.value > 1
+        ):  # Get race conditions when testing it locally; this mitigates it
             time.sleep(1)
         # First process to grab the flag populates the list
         if self.processing_flag.value == READY:
