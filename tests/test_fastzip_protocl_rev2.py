@@ -26,8 +26,8 @@ FASTZIP_PROTOCOL_PARAMETERS = {
         "alpha": 0.015,
         "remove_noise": True,
         "normalize": True,
-        "key_length": 16,  # Make sure to define all necessary parameters
-        "parity_symbols": 2,  # Added this line to include parity_symbols
+        "key_length": 16,
+        "parity_symbols": 2,
         "timeout": 10
 }
 

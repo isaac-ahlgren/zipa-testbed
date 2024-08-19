@@ -32,7 +32,6 @@ class FastZIPProtocol(ProtocolInterface):
         self.normalize = parameters.get("normalize", False)
         self.key_length = parameters['key_length']
         self.parity_symbols = parameters["parity_symbols"]
-        self.key_length_bits = self.key_length * 8  # To calculate bits from bytes
 
         # fPAKE related
         self.commitment_length = self.key_length + self.parity_symbols
@@ -79,7 +78,7 @@ class FastZIPProtocol(ProtocolInterface):
         print("Overlap size: ", overlap_size)
 
         chunk_generator = self.manage_overlapping_chunks(window_size, overlap_size)
-        while len(accumulated_bits) < self.key_length_bits:
+        while len(accumulated_bits) < self.commitment_length:
             try:
                 chunk = next(chunk_generator)
                 print(f"Processing chunk of size: {chunk.size}")
@@ -93,13 +92,13 @@ class FastZIPProtocol(ProtocolInterface):
             if processed_bits:
                 accumulated_bits += processed_bits
                 print(f"Accumulated bits length: {len(accumulated_bits)}")
-                if len(accumulated_bits) >= self.key_length_bits:
+                if len(accumulated_bits) >= self.commitment_length:
                     print("Reached the required length of bits, stopping further processing.")
                     break
             else:
                 print("No processed bits from the current chunk...")
 
-        accumulated_bits = accumulated_bits[:self.key_length_bits]
+        accumulated_bits = accumulated_bits[:self.commitment_length]
         # Reset and clear operations after processing is complete
         ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()

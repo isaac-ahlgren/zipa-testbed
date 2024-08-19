@@ -143,7 +143,7 @@ class fPAKE:
         hash_val_1 = self.hash_function(secret_key + bytes(1))
 
         # Sign our E with the secret key
-        sig = signingKey.sign(commitment)
+        sig = signingKey.sign(bytes(commitment))
 
         # Send E + Signature + verification key + selected prime number to reconstruct
         send_fpake_msg(conn, [commitment, sig, hash_val_1])
