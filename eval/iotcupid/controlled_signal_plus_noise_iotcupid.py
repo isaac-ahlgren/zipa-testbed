@@ -13,8 +13,8 @@ from eval_tools import (  # noqa: E402
 )
 from evaluator import Evaluator  # noqa: E402
 
-TOP_TH_DEFAULT = 1
-BOTTOM_TH_DEFAULT = 0.4
+TOP_TH_DEFAULT = 1500
+BOTTOM_TH_DEFAULT = 750
 LUMP_TH_DEFAULT = 4
 A_DEFAULT = 0.75
 CLUSTER_SIZE_TO_CHECK_DEFAULT = 4

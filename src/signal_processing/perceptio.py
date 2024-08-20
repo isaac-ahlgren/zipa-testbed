@@ -182,7 +182,7 @@ class PerceptioProcessing:
                 k = i
                 break
 
-        return labels, k
+        return labels, k, inertias
 
     def group_events(
         events: List[Tuple[int, int]], labels: np.ndarray, k: int

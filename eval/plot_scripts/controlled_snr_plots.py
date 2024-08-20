@@ -11,15 +11,15 @@ sys.path.insert(1, os.getcwd() + "/../miettinen")  # Gives us path to other scri
 sys.path.insert(1, os.getcwd() + "/../perceptio")  # Gives us path to other scripts
 sys.path.insert(1, os.getcwd() + "/../iotcupid")  # Gives us path to other scripts
 sys.path.insert(1, os.getcwd() + "/../fastzip")  # Gives us path to other scripts
-from schurmann import goldsig_plus_noise_eval_schurmann, controlled_signal_plus_noise_schurmann
-from miettinen import goldsig_plus_noise_eval_miettinen, controlled_signal_plus_noise_miettinen
-from perceptio import goldsig_plus_noise_eval_perceptio, controlled_signal_plus_noise_perceptio
-from fastzip import goldsig_plus_noise_eval_fastzip, controlled_signal_plus_noise_fastzip
-from iotcupid import goldsig_plus_noise_eval_iotcupid, controlled_signal_plus_noise_iotcupid
+from schurmann import goldsig_plus_noise_eval_schurmann, controlled_signal_plus_noise_schurmann # noqa: E402
+from miettinen import goldsig_plus_noise_eval_miettinen, controlled_signal_plus_noise_miettinen # noqa: E402
+from perceptio import goldsig_plus_noise_eval_perceptio, controlled_signal_plus_noise_perceptio # noqa: E402
+from fastzip import goldsig_plus_noise_eval_fastzip, controlled_signal_plus_noise_fastzip # noqa: E402
+from iotcupid import goldsig_plus_noise_eval_iotcupid, controlled_signal_plus_noise_iotcupid # noqa: E402
 
 def get_command_line_args():
     p = argparse.ArgumentParser()
-    p.add_argument("-snr_levels", nargs="+", type=float, default=[1,5,10,20,40])
+    p.add_argument("-snr_levels", nargs="+", type=float, default=[1,5,10,20,40,80])
     args = p.parse_args()
 
     return args.snr_levels
