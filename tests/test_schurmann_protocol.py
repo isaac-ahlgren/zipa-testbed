@@ -6,34 +6,22 @@ from multiprocessing import Process
 sys.path.insert(1, os.getcwd() + "/src")
 
 from networking.nfs import NFSLogger  # noqa: E402
-from protocols.perceptio import Perceptio_Protocol  # noqa: E402
+from protocols.shurmann import Shurmann_Siggs_Protocol  # noqa: E402
 from sensors.sensor_reader import SensorReader  # noqa: E402
 from sensors.test_sensor import TestSensor  # noqa: E402
 
 PROTOCOL_DUMMY_PARAMETERS = {
-    "a": 0.3,
-    "cluster_sizes_to_check": 3,
-    "cluster_th": 0.08,
-    "top_th": 0.75,
-    "bottom_th": 0.5,
-    "lump_th": 5,
-    "conf_thresh": 5,
-    "min_events": 15,
-    "max_iterations": 20,
-    "chunk_size": 44_100 * 5,
-    "sleep_time": 5,
-    "max_no_events_detected": 10,
-    "timeout": 10,
+    "window_len": 12_000,
+    "band_len": 1_000,
     "key_length": 8,
     "parity_symbols": 4,
-    "sensor": "Microphone",
-    "time_length": 44_100 * 5,
-    "frequency": 44_100,
+    "sensor": "TestSensor",
+    "timeout": 10,
     "verbose": True,
 }
 
 SENSOR_DUMMY_PARAMETERS = {
-    "sample_rate": 44_100,
+    "sample_rate": 48_000,
     "time_collected": 400,
     "chunk_size": 1_024,
 }
@@ -49,19 +37,12 @@ DUMMY_LOGGER = NFSLogger(
     use_local_dir=True,
 )  # nosec
 
-
 def test_protocol_interaction():
-    """
-    Spawn host and device process, let them communicate with one another
-    and then see if they are able to successfully run through the pairing
-    process.
-    """
-    print("In test.")
+    print("In test")
     test_sensor = TestSensor(SENSOR_DUMMY_PARAMETERS, signal_type="random")
+    test_sensor.antialias_sample_rate = test_sensor.sample_rate // 2
     test_reader = SensorReader(test_sensor)
-    test_protocol = Perceptio_Protocol(
-        PROTOCOL_DUMMY_PARAMETERS, test_reader, DUMMY_LOGGER
-    )
+    test_protocol = Shurmann_Siggs_Protocol(PROTOCOL_DUMMY_PARAMETERS, test_reader, DUMMY_LOGGER)
 
     print("Creating processes")
     host_process = Process(target=host, args=[test_protocol], name="[HOST]")
@@ -71,13 +52,12 @@ def test_protocol_interaction():
     host_process.start()
     device_process.start()
 
-    print("Joining processes.")
+    print("Joining processes")
     host_process.join()
     device_process.join()
 
     assert host_process.exitcode == 0  # nosec
     assert device_process.exitcode == 0  # nosec
-
 
 def host(protocol):
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
