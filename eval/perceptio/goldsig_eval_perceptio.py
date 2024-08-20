@@ -41,11 +41,10 @@ def main(
     Fs=SAMPLING_FREQ_DEFAULT,
     chunk_size=CHUNK_SIZE_DEFAULT,
     buffer_size=BUFFER_SIZE_DEFAULT,
-    key_size=KEY_SIZE_DEFAULT,
+    key_size_in_bytes=KEY_SIZE_DEFAULT // 8,
     target_snr=TARGET_SNR_DEFAULT,
     trials=TRIALS_DEFAULT,
 ):
-    key_size_in_bytes = key_size // 8
 
     # Generating the signals
     gold_signal = golden_signal(buffer_size)
@@ -106,17 +105,17 @@ def main(
 
 if __name__ == "__main__":
     args = get_command_line_args(
-        top_threshold_default=6,
-        bottom_threshold_default=4,
-        lump_threshold_default=4,
-        ewma_a_default=0.75,
-        cluster_sizes_to_check_default=4,
-        minimum_events_default=16,
-        sampling_frequency_default=10000,
-        chunk_size_default=10000,
-        buffer_size_default=50000,
-        key_length_default=128,
-        snr_level_default=20,
-        trials_default=100,
+        top_threshold_default=TOP_TH_DEFAULT,
+        bottom_threshold_default=BOTTOM_TH_DEFAULT,
+        lump_threshold_default=LUMP_TH_DEFAULT,
+        ewma_a_default=A_DEFAULT,
+        cluster_sizes_to_check_default=CLUSTER_SIZE_TO_CHECK_DEFAULT,
+        minimum_events_default=MIN_EVENTS_DEFAULT,
+        sampling_frequency_default=SAMPLING_FREQ_DEFAULT,
+        chunk_size_default=CHUNK_SIZE_DEFAULT,
+        buffer_size_default=BUFFER_SIZE_DEFAULT,
+        key_length_default=KEY_SIZE_DEFAULT,
+        snr_level_default=TARGET_SNR_DEFAULT,
+        trials_default=TRIALS_DEFAULT,
     )
     main(*args)

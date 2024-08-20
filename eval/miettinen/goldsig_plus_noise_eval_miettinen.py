@@ -15,10 +15,10 @@ sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import add_gauss_noise, cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
-SNAP_SHOT_WIDTH_DEFAULT = 1
-NO_SNAP_SHOT_WIDTH_DEFAULT = 1
-ABS_THRESH_DEFAULT = 5e-15
-REL_THRESH_DEFAULT = 0.1
+SNAP_SHOT_WIDTH_DEFAULT = 0.1
+NO_SNAP_SHOT_WIDTH_DEFAULT = 0.1
+ABS_THRESH_DEFAULT = 5e-5
+REL_THRESH_DEFAULT = 2
 KEY_LENGTH_DEFAULT = 128
 TARGET_SNR_DEFAULT = 20
 TRIALS_DEFAULT = 100

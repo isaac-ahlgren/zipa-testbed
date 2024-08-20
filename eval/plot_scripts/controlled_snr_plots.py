@@ -73,9 +73,12 @@ def convert_to_data_frame(matrix_values, snr_levels):
     df = pd.DataFrame(matrix_values, columns=column_names)
     return df
 
-def plot_matrix(matrix_values, title):
+def plot_matrix(matrix_values, title, saveplot=True, filename=None):
     matrix_values.plot(x='Protocol', kind='bar', stacked=False, title=title, xlabel="Protocol", ylabel="Bit Error Rate")
-    plt.show()
+    if saveplot:
+        plt.savefig(filename)
+    else:
+        plt.show()
 
 def main(snr_levels):
     goldsig_legit_ber_matrix, goldsig_adv_ber_matrix = gen_gold_sig_data(snr_levels)
@@ -94,10 +97,10 @@ def main(snr_levels):
     goldsig_adv_mat.to_csv("./plot_data/gold_sig_adv_snr_plot_data.csv")
     controlled_adv_mat.to_csv("./plot_data/controlled_sig_adv_snr_plot_data.csv")
 
-    plot_matrix(goldsig_legit_mat, "Protocol BER by SNR Level Using Golden Signal")
-    plot_matrix(controlled_legit_mat, "Protocol BER by SNR Level Using Controlled Signal")
-    plot_matrix(goldsig_adv_mat, "Protocol BER by SNR Level Using Adversary Signal")
-    plot_matrix(controlled_adv_mat, "Protocol BER by SNR Level Using Controlled Adversary Signal")  
+    plot_matrix(goldsig_legit_mat, "Protocol BER by SNR Level Using Golden Signal", saveplot=True, filename="./plot_data/gold_sig_legit_snr.png")
+    plot_matrix(controlled_legit_mat, "Protocol BER by SNR Level Using Controlled Signal", saveplot=True, filename="./plot_data/controlled_sig_legit_snr.png")
+    plot_matrix(goldsig_adv_mat, "Protocol BER by SNR Level Using Adversary Signal", saveplot=True, filename="./plot_data/gold_sig_adv_snr.png")
+    plot_matrix(controlled_adv_mat, "Protocol BER by SNR Level Using Controlled Adversary Signal", saveplot=True, filename="./plot_data/controlled_sig_adv_snr.png")  
 
 if __name__ == "__main__":
     snr_levels = get_command_line_args()

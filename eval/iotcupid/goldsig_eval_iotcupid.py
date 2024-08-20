@@ -52,11 +52,10 @@ def main(
     m_start=MSTART_DEFAULT,
     m_steps=MSTEPS_DEFAULT,
     m_end=MEND_DEFAULT,
-    key_size=KEY_LENGTH_DEFAULT,
+    key_size_in_bytes=KEY_LENGTH_DEFAULT // 8,
     target_snr=TARGET_SNR_DEFAULT,
     trials=TRIALS_DEFAULT,
 ):
-    key_size_in_bytes = key_size // 8
     mem_th = 0.8
 
     # Generating the signals

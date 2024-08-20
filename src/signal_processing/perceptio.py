@@ -228,6 +228,6 @@ class PerceptioProcessing:
                 )  # Going to treat every interval as a 4 byte integer
 
             if len(key) >= key_size:
-                key = bytes(key[:key_size])
+                key = bytes(key[-key_size:])
                 fp.append(key)
         return fp

@@ -40,12 +40,10 @@ def main(
     Fs=SAMPLING_FREQ_DEFAULT,
     chunk_size=CHUNK_SIZE_DEFAULT,
     buffer_size=BUFFER_SIZE_DEFAULT,
-    key_size=KEY_SIZE_DEFAULT,
+    key_size_in_bytes=KEY_SIZE_DEFAULT // 8,
     target_snr=TARGET_SNR_DEFAULT,
     trials=TRIALS_DEFAULT,
 ):
-    key_size_in_bytes = key_size // 8
-
     # Generating the signals
     gold_signal = golden_signal(buffer_size)
     adv_signal = adversary_signal(buffer_size)

@@ -13,8 +13,8 @@ from eval_tools import (  # noqa: E402
 )
 from evaluator import Evaluator  # noqa: E402
 
-TOP_TH_DEFAULT = 0.07
-BOTTOM_TH_DEFAULT = 0.05
+TOP_TH_DEFAULT = 1
+BOTTOM_TH_DEFAULT = 0.4
 LUMP_TH_DEFAULT = 4
 A_DEFAULT = 0.75
 CLUSTER_SIZE_TO_CHECK_DEFAULT = 4
@@ -50,11 +50,10 @@ def main(
     m_start=MSTART_DEFAULT,
     m_steps=MSTEPS_DEFAULT,
     m_end=MEND_DEFAULT,
-    key_size=KEY_LENGTH_DEFAULT,
+    key_size_in_bytes=KEY_LENGTH_DEFAULT // 8,
     target_snr=TARGET_SNR_DEFAULT,
     trials=TRIALS_DEFAULT,
 ):
-    key_size_in_bytes = key_size // 8
     mem_th = 0.8
 
     # Loading the controlled signals
