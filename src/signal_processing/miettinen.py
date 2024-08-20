@@ -36,9 +36,12 @@ class MiettinenProcessing:
         :return: A binary string representing the generated key.
         """
         bits = ""
+        average = np.average(c)
         for i in range(len(c) - 1):
             feature1 = np.abs((c[i] / c[i - 1]) - 1)
             feature2 = np.abs(c[i] - c[i - 1])
+            # TODO Scale thresholds relative to the data (0.75 vs 10,000 * 0.75)? Data processing successfully occurs
+            #if feature1 > (average * rel_thresh) and feature2 > (average * abs_thresh):
             if feature1 > rel_thresh and feature2 > abs_thresh:
                 bits += "1"
             else:
