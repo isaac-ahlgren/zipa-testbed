@@ -16,50 +16,50 @@ sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import Signal_Buffer, cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
-if __name__ == "__main__":
-    (
-        window_size,
-        overlap_size,
-        buffer_size,
-        n_bits,
-        key_length,
-        bias,
-        eqd_delta,
-        peak_status,
-        ewma_filter,
-        alpha,
-        remove_noise,
-        normalize,
-        power_threshold,
-        snr_threshold,
-        number_peaks,
-        snr_level,
-        trials,
-    ) = parse_command_line_args(
-        window_size_default := 200,
-        overlap_size_default=100,
-        buffer_size_default=50000,
-        n_bits_default=12,
-        key_length_default=128,
-        bias_default=0,
-        eqd_delta_default=1,
-        peak_status_default=None,
-        ewma_filter_default=None,
-        alpha_default=None,
-        remove_noise_default=None,
-        normalize_default=True,
-        power_threshold_default=-12,
-        snr_threshold_default=1.6,
-        number_peaks_default=0,
-        snr_level_default=20,
-        trials_default=1000,
-    )
+WINDOW_SIZE_DEFAULT = 200
+OVERLAP_SIZE_DEFAULT = 100
+BUFFER_SIZE_DEAFULT = 50000
+N_BITS_DEFAULT = 12
+KEY_LENGTH_DEFAULT = 128
+BIAS_DEFAULT = 0
+EQD_DELTA_DEFAULT = 1
+PEAK_STATUS_DEFAULT = None
+EWMA_FILTER_DEFAULT = None
+ALPHA_DEFAULT = None
+REMOVE_NOISE_DEFAULT = None
+NORMALIZE_DEFAULT = True
+POWER_TH_DEFAULT = -12
+SNR_TH_DEFAULT = 1.6
+NUM_PEAKS_DEFAULT = 0
+TARGET_SNR_DEFAULT = 20
+TRIALS_DEFAULT = 1000
+
+
+def main(
+    window_size=WINDOW_SIZE_DEFAULT,
+    overlap_size=OVERLAP_SIZE_DEFAULT,
+    buffer_size=BUFFER_SIZE_DEAFULT,
+    n_bits=N_BITS_DEFAULT,
+    key_length=KEY_LENGTH_DEFAULT,
+    bias=BIAS_DEFAULT,
+    eqd_delta=EQD_DELTA_DEFAULT,
+    peak_status=PEAK_STATUS_DEFAULT,
+    ewma_filter=EWMA_FILTER_DEFAULT,
+    alpha=ALPHA_DEFAULT,
+    remove_noise=REMOVE_NOISE_DEFAULT,
+    normalize=NORMALIZE_DEFAULT,
+    power_threshold=POWER_TH_DEFAULT,
+    snr_threshold=SNR_TH_DEFAULT,
+    number_peaks=NUM_PEAKS_DEFAULT,
+    target_snr=TARGET_SNR_DEFAULT,
+    trials=TRIALS_DEFAULT,
+):
     signal1 = golden_signal(buffer_size)
     signal2 = golden_signal(buffer_size)
     adv_signal = adversary_signal(buffer_size)
-    legit_signal_buffer1 = Signal_Buffer(signal1, noise=True, target_snr=snr_level)
-    legit_signal_buffer2 = Signal_Buffer(signal2, noise=True, target_snr=snr_level)
-    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=snr_level)
+    legit_signal_buffer1 = Signal_Buffer(signal1, noise=True, target_snr=target_snr)
+    legit_signal_buffer2 = Signal_Buffer(signal2, noise=True, target_snr=target_snr)
+    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
     def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
@@ -102,5 +102,33 @@ if __name__ == "__main__":
 
     legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
 
-    print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
-    print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
+    le_avg_be = np.mean(legit_bit_errs)
+    adv_avg_be = np.mean(adv_bit_errs)
+
+    # Printing the average bit error rates
+    print(f"Legit Average Bit Error Rate: {le_avg_be}")
+    print(f"Adversary Average Bit Error Rate: {adv_avg_be}")
+    return le_avg_be, adv_avg_be
+
+
+if __name__ == "__main__":
+    args = parse_command_line_args(
+        window_size_default=WINDOW_SIZE_DEFAULT,
+        overlap_size_default=OVERLAP_SIZE_DEFAULT,
+        buffer_size_default=BUFFER_SIZE_DEAFULT,
+        n_bits_default=N_BITS_DEFAULT,
+        key_length_default=KEY_LENGTH_DEFAULT,
+        bias_default=BIAS_DEFAULT,
+        eqd_delta_default=EQD_DELTA_DEFAULT,
+        peak_status_default=PEAK_STATUS_DEFAULT,
+        ewma_filter_default=EWMA_FILTER_DEFAULT,
+        alpha_default=ALPHA_DEFAULT,
+        remove_noise_default=REMOVE_NOISE_DEFAULT,
+        normalize_default=NORMALIZE_DEFAULT,
+        power_threshold_default=POWER_TH_DEFAULT,
+        snr_threshold_default=SNR_TH_DEFAULT,
+        number_peaks_default=NUM_PEAKS_DEFAULT,
+        target_snr_default=TARGET_SNR_DEFAULT,
+        trials_default=TRIALS_DEFAULT,
+    )
+    main(*args)

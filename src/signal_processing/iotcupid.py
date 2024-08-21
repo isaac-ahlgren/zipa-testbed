@@ -295,6 +295,8 @@ class IoTCupidProcessing:
         rel_val = x1
         c = 1
 
+        scores = [best_score]
+
         prev_score = best_score
         prev_fpc = best_fpc
         prev_u = best_u
@@ -304,6 +306,7 @@ class IoTCupidProcessing:
             score, fpc, u, cntr = IoTCupidProcessing.grid_search_cmeans(
                 features, i, m_start, m_end, m_searches, mem_thresh
             )
+            scores.append(score)
             x2 = score
             perc = (x1 - x2) / rel_val
             x1 = x2
@@ -328,7 +331,7 @@ class IoTCupidProcessing:
             prev_cntr = cntr
             prev_score = score
 
-        return best_cntr, best_u, c, best_score
+        return best_cntr, best_u, c, scores
 
     def group_events(
         events: List[Tuple[int, int]], u: np.ndarray, mem_thresh

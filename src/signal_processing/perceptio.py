@@ -34,7 +34,7 @@ class PerceptioProcessing:
 
         event_features = PerceptioProcessing.get_event_features(events, signal)
 
-        labels, k = PerceptioProcessing.kmeans_w_elbow_method(
+        labels, k, intertias = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, cluster_sizes_to_check, cluster_th
         )
 
@@ -182,7 +182,7 @@ class PerceptioProcessing:
                 k = i
                 break
 
-        return labels, k
+        return labels, k, inertias
 
     def group_events(
         events: List[Tuple[int, int]], labels: np.ndarray, k: int
@@ -228,6 +228,6 @@ class PerceptioProcessing:
                 )  # Going to treat every interval as a 4 byte integer
 
             if len(key) >= key_size:
-                key = bytes(key[:key_size])
+                key = bytes(key[-key_size:])
                 fp.append(key)
         return fp

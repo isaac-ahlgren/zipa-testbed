@@ -15,43 +15,44 @@ sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import Signal_Buffer, events_cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
-if __name__ == "__main__":
-    (
-        top_th,
-        bottom_th,
-        lump_th,
-        a,
-        cluster_sizes_to_check,
-        cluster_th,
-        min_events,
-        Fs,
-        chunk_size,
-        buffer_size,
-        key_size_in_bytes,
-        target_snr,
-        trials,
-    ) = get_command_line_args(
-        top_threshold_default=6,
-        bottom_threshold_default=4,
-        lump_threshold_default=4,
-        ewma_a_default=0.75,
-        cluster_sizes_to_check_default=4,
-        minimum_events_default=16,
-        sampling_frequency_default=10000,
-        chunk_size_default=10000,
-        buffer_size_default=50000,
-        key_length_default=128,
-        snr_level_default=20,
-        trials_default=100,
-    )
+TOP_TH_DEFAULT = 6
+BOTTOM_TH_DEFAULT = 4
+LUMP_TH_DEFAULT = 4
+A_DEFAULT = 0.75
+CLUSTER_SIZE_TO_CHECK_DEFAULT = 4
+CLUSTER_TH_DEFAULT = 0.1
+MIN_EVENTS_DEFAULT = 16
+SAMPLING_FREQ_DEFAULT = 10000
+CHUNK_SIZE_DEFAULT = 10000
+BUFFER_SIZE_DEFAULT = 50000
+KEY_SIZE_DEFAULT = 128
+TARGET_SNR_DEFAULT = 20
+TRIALS_DEFAULT = 100
+
+
+def main(
+    top_th=TOP_TH_DEFAULT,
+    bottom_th=BOTTOM_TH_DEFAULT,
+    lump_th=LUMP_TH_DEFAULT,
+    a=A_DEFAULT,
+    cluster_sizes_to_check=CLUSTER_SIZE_TO_CHECK_DEFAULT,
+    cluster_th=CLUSTER_SIZE_TO_CHECK_DEFAULT,
+    min_events=MIN_EVENTS_DEFAULT,
+    Fs=SAMPLING_FREQ_DEFAULT,
+    chunk_size=CHUNK_SIZE_DEFAULT,
+    buffer_size=BUFFER_SIZE_DEFAULT,
+    key_size_in_bytes=KEY_SIZE_DEFAULT // 8,
+    target_snr=TARGET_SNR_DEFAULT,
+    trials=TRIALS_DEFAULT,
+):
     # Generating the signals
-    golden_signal = golden_signal(buffer_size)
+    gold_signal = golden_signal(buffer_size)
     adv_signal = adversary_signal(buffer_size)
     legit_signal_buffer1 = Signal_Buffer(
-        golden_signal.copy(), noise=True, target_snr=target_snr
+        gold_signal.copy(), noise=True, target_snr=target_snr
     )
     legit_signal_buffer2 = Signal_Buffer(
-        golden_signal.copy(), noise=True, target_snr=target_snr
+        gold_signal.copy(), noise=True, target_snr=target_snr
     )
     adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
 
@@ -96,6 +97,28 @@ if __name__ == "__main__":
         events_cmp_bits, key_size_in_bytes
     )
 
+    le_avg_be = np.mean(legit_bit_errs)
+    adv_avg_be = np.mean(adv_bit_errs)
+
     # Printing the average bit error rates
-    print(f"Legit Average Bit Error Rate: {np.mean(legit_bit_errs)}")
-    print(f"Adversary Average Bit Error Rate: {np.mean(adv_bit_errs)}")
+    print(f"Legit Average Bit Error Rate: {le_avg_be}")
+    print(f"Adversary Average Bit Error Rate: {adv_avg_be}")
+    return le_avg_be, adv_avg_be
+
+
+if __name__ == "__main__":
+    args = get_command_line_args(
+        top_threshold_default=TOP_TH_DEFAULT,
+        bottom_threshold_default=BOTTOM_TH_DEFAULT,
+        lump_threshold_default=LUMP_TH_DEFAULT,
+        ewma_a_default=A_DEFAULT,
+        cluster_sizes_to_check_default=CLUSTER_SIZE_TO_CHECK_DEFAULT,
+        minimum_events_default=MIN_EVENTS_DEFAULT,
+        sampling_frequency_default=SAMPLING_FREQ_DEFAULT,
+        chunk_size_default=CHUNK_SIZE_DEFAULT,
+        buffer_size_default=BUFFER_SIZE_DEFAULT,
+        key_length_default=KEY_SIZE_DEFAULT,
+        snr_level_default=TARGET_SNR_DEFAULT,
+        trials_default=TRIALS_DEFAULT,
+    )
+    main(*args)
