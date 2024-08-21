@@ -69,7 +69,7 @@ def gen_min_events(
         smoothed_data = IoTCupidProcessing.ewma(chunk, a)
 
         derivatives = IoTCupidProcessing.compute_derivative(smoothed_data, window_size)
- 
+
         received_events = IoTCupidProcessing.detect_events(
             abs(derivatives), bottom_th, top_th, agg_th
         )

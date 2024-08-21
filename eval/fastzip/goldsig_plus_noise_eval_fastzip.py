@@ -34,6 +34,7 @@ NUM_PEAKS_DEFAULT = 0
 TARGET_SNR_DEFAULT = 20
 TRIALS_DEFAULT = 1000
 
+
 def main(
     window_size=WINDOW_SIZE_DEFAULT,
     overlap_size=OVERLAP_SIZE_DEFAULT,
@@ -112,7 +113,7 @@ def main(
 
 if __name__ == "__main__":
     args = parse_command_line_args(
-        window_size_default = WINDOW_SIZE_DEFAULT,
+        window_size_default=WINDOW_SIZE_DEFAULT,
         overlap_size_default=OVERLAP_SIZE_DEFAULT,
         buffer_size_default=BUFFER_SIZE_DEAFULT,
         n_bits_default=N_BITS_DEFAULT,

@@ -34,7 +34,7 @@ class PerceptioProcessing:
 
         event_features = PerceptioProcessing.get_event_features(events, signal)
 
-        labels, k = PerceptioProcessing.kmeans_w_elbow_method(
+        labels, k, intertias = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, cluster_sizes_to_check, cluster_th
         )
 

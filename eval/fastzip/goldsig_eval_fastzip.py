@@ -34,10 +34,11 @@ NUM_PEAKS_DEFAULT = 0
 TARGET_SNR_DEFAULT = 20
 TRIALS_DEFAULT = 1000
 
+
 def main(
     window_size=WINDOW_SIZE_DEFAULT,
     overlap_size=OVERLAP_SIZE_DEFAULT,
-    buffer_size=BUFFER_SIZE_DEFAULT,   
+    buffer_size=BUFFER_SIZE_DEFAULT,
     n_bits=N_BITS_DEFAULT,
     key_length=KEY_LENGTH_DEFAULT,
     bias=BIAS_DEFAULT,

@@ -23,7 +23,16 @@ KEY_LENGTH_DEFAULT = 128
 TARGET_SNR_DEFAULT = 20
 TRIALS_DEFAULT = 100
 
-def main(w=SNAP_SHOT_WIDTH_DEFAULT, f=NO_SNAP_SHOT_WIDTH_DEFAULT, abs_thresh=ABS_THRESH_DEFAULT, rel_thresh=REL_THRESH_DEFAULT, key_length=KEY_LENGTH_DEFAULT, target_snr=TARGET_SNR_DEFAULT, trials=TRIALS_DEFAULT):
+
+def main(
+    w=SNAP_SHOT_WIDTH_DEFAULT,
+    f=NO_SNAP_SHOT_WIDTH_DEFAULT,
+    abs_thresh=ABS_THRESH_DEFAULT,
+    rel_thresh=REL_THRESH_DEFAULT,
+    key_length=KEY_LENGTH_DEFAULT,
+    target_snr=TARGET_SNR_DEFAULT,
+    trials=TRIALS_DEFAULT,
+):
     # Converting time durations to number of samples
     w_in_samples = int(w * MICROPHONE_SAMPLING_RATE)
     f_in_samples = int(f * MICROPHONE_SAMPLING_RATE)
