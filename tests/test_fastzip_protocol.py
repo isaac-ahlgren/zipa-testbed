@@ -52,7 +52,6 @@ DUMMY_LOGGER = NFSLogger(  # nosec
 
 def test_fastzip_interaction():
     """Test FastZIP by simulating host and device interactions."""
-    print("Setting up the test.")
     test_sensor = TestSensor(SENSOR_DUMMY_PARAMETERS, signal_type="random")
     test_reader = SensorReader(test_sensor)
     fastzip_protocol = FastZIPProtocol(
@@ -60,7 +59,6 @@ def test_fastzip_interaction():
     )
 
     # Create multiprocessing processes for host and device
-    print("Creating processes")
     host_process = Process(target=host, args=(fastzip_protocol,))
     device_process = Process(target=device, args=(fastzip_protocol,))
 
@@ -72,7 +70,7 @@ def test_fastzip_interaction():
     # Wait for both to finish
     host_process.join()
     device_process.join()
-    print("Test completed.")
+    test_reader.poll_process.terminate()
 
 
 def host(protocol):
