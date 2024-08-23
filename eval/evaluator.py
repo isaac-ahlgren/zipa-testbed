@@ -15,7 +15,7 @@ class Evaluator:
         self.legit_bits2 = []
         self.adv_bits = []
 
-    def evaluate(self, signals: Tuple[Any, Any, Any], trials: int) -> None:
+    def evaluate(self, signals: Tuple[Any, Any, Any], trials: int, *argv: Any) -> None:
         """
         Evaluate the signals over a specified number of trials to generate cryptographic bits.
 
@@ -24,19 +24,25 @@ class Evaluator:
         """
         legit_signal1, legit_signal2, adv_signal = signals
         for i in range(trials):
-            bits1 = self.bit_gen_algo_wrapper(legit_signal1)
+            bits1 = self.bit_gen_algo_wrapper(legit_signal1, *argv)
             self.legit_bits1.append(bits1)
 
-            bits2 = self.bit_gen_algo_wrapper(legit_signal2)
+            bits2 = self.bit_gen_algo_wrapper(legit_signal2, *argv)
             self.legit_bits2.append(bits2)
 
-            adv_bits = self.bit_gen_algo_wrapper(adv_signal)
+            adv_bits = self.bit_gen_algo_wrapper(adv_signal, *argv)
             self.adv_bits.append(adv_bits)
 
             if isinstance(legit_signal1, Signal_Buffer) or isinstance(
                 legit_signal1, Signal_File
             ):
                 legit_signal1.sync(legit_signal2)
+
+    def fuzzing_evaluation(self, signals: Tuple[Any, Any, Any], random_parameter_func, cmp_func, trials_per_choice, key_size) -> None:
+        params = random_parameter_func()
+        self.evaluate(signals, trials_per_choice, *params)
+        legit_bit_errs self.cmp_func(cmp_func, key_size)
+
 
     def cmp_func(
         self, func: Callable[[List[bytes], List[bytes], int], float], key_length: int
@@ -56,3 +62,11 @@ class Evaluator:
             legit_bit_errs.append(legit_bit_err)
             adv_bit_errs.append(adv_bit_err)
         return legit_bit_errs, adv_bit_errs
+    
+    def reset_bits():
+        del self.legit_bits1
+        del self.legit_bits2
+        del self.adv_bits
+        self.legit_bits1 = []
+        self.legit_bits2 = []
+        self.adv_bits = []

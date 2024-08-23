@@ -1,5 +1,7 @@
 import os
 import sys
+from typing import Any
+
 
 import numpy as np
 from schurmann_tools import (
@@ -46,7 +48,7 @@ def main(
     signals = (signal1, signal2, adv_signal)
 
     # Defining the bit generation algorithm
-    def bit_gen_algo(signal: np.ndarray) -> np.ndarray:
+    def bit_gen_algo(signal: np.ndarray, *argv: Any) -> np.ndarray:
         """
         Processes the signal using the Schurmann wrapper function to generate cryptographic bits.
 
@@ -55,19 +57,19 @@ def main(
         :return: The processed signal data after applying the Schurmann algorithm.
         :rtype: np.ndarray
         """
-        noisy_signal = add_gauss_noise(signal, target_snr)
+        noisy_signal = add_gauss_noise(signal, argv[4])
         return schurmann_wrapper_func(
             noisy_signal,
-            window_length,
-            band_length,
-            MICROPHONE_SAMPLING_RATE,
-            ANTIALIASING_FILTER,
+            argv[0],
+            argv[1],
+            argv[2],
+            argv[3],
         )
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials)
+    evaluator.evaluate(signals, trials, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER, target_snr)
     # Comparing the bit errors for legitimate and adversary signals
     legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
 
