@@ -1,4 +1,5 @@
 from typing import Any, Callable, List, Tuple
+import numpy as np
 
 from eval_tools import Signal_Buffer, Signal_File
 
@@ -14,6 +15,8 @@ class Evaluator:
         self.legit_bits1 = []
         self.legit_bits2 = []
         self.adv_bits = []
+        self.legit_avg_bit_err = []
+        self.adv_avg_bit_errs = []
 
     def evaluate(self, signals: Tuple[Any, Any, Any], trials: int, *argv: Any) -> None:
         """
@@ -38,11 +41,19 @@ class Evaluator:
             ):
                 legit_signal1.sync(legit_signal2)
 
-    def fuzzing_evaluation(self, signals: Tuple[Any, Any, Any], random_parameter_func, cmp_func, trials_per_choice, key_size) -> None:
-        params = random_parameter_func()
-        self.evaluate(signals, trials_per_choice, *params)
-        legit_bit_errs self.cmp_func(cmp_func, key_size)
-
+    def fuzzing_evaluation(self, signals: Tuple[Any, Any, Any], logging_func, random_parameter_func, cmp_func, trials_per_choice, number_of_choices, key_size) -> None:
+        legit_avg_bit_errs = []
+        adv_avg_bit_errs = []
+        for i in range(number_of_choices):
+            params = random_parameter_func()
+            self.evaluate(signals, trials_per_choice, *params)
+            legit_bit_errs, adv_bit_errs =  self.cmp_func(cmp_func, key_size)
+            legit_avg_bit_errs.append(np.mean(legit_bit_errs))
+            adv_avg_bit_errs.append(np.mean(adv_bit_errs))
+            self.reset_bits_lists()
+            signals[0].reset()
+            signals[1].reset()
+            signals[2].reset()
 
     def cmp_func(
         self, func: Callable[[List[bytes], List[bytes], int], float], key_length: int
@@ -63,7 +74,7 @@ class Evaluator:
             adv_bit_errs.append(adv_bit_err)
         return legit_bit_errs, adv_bit_errs
     
-    def reset_bits():
+    def reset_bits_lists(self):
         del self.legit_bits1
         del self.legit_bits2
         del self.adv_bits

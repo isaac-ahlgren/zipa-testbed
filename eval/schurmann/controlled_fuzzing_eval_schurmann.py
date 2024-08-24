@@ -1,5 +1,6 @@
 import os
 import sys
+import random
 from typing import List
 
 import numpy as np
@@ -18,19 +19,29 @@ from eval_tools import (  # noqa: E402
 )
 from evaluator import Evaluator  # noqa: E402
 
-WINDOW_LENGTH_DEFAULT = 16537
-BAND_LENGTH_DEFAULT = 500
+# Static default parameters
 KEY_LENGTH_DEFAULT = 128
-TARGET_SNR_DEFAULT = 20
-TRIALS_DEFAULT = 1000
+TRIALS_PER_CHOICE_DEFAULT = 100
+NUMBER_OF_CHOICES_DEFAULT = 1000
+
+# Random Parameter Ranges
+WINDOW_LENGTH_RANGE = (5000, 10*48000)
+MIN_BAND_LENGTH = 1
+
+
+def get_random_parameters():
+    window_length = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1])
+    band_length = random.randint(MIN_BAND_LENGTH, WINDOW_LENGTH_RANGE[1] // 2)
+    # Calculating the number of samples needed
+    sample_num = schurmann_calc_sample_num(
+        KEY_LENGTH_DEFAULT, window_length, band_length, sr, ANTIALIASING_FILTER
+    )
 
 
 def main(
-    window_length=WINDOW_LENGTH_DEFAULT,
-    band_length=BAND_LENGTH_DEFAULT,
     key_length=KEY_LENGTH_DEFAULT,
-    target_snr=TARGET_SNR_DEFAULT,
-    trials=TRIALS_DEFAULT,
+    trials_per_choice=TRIALS_PER_CHOICE_DEFAULT,
+    number_of_choices=NUMBER_OF_CHOICES_DEFAULT,
 ):
     # Loading the controlled signals
     legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
@@ -38,20 +49,23 @@ def main(
         "../../data/adversary_controlled_signal.wav"
     )
     legit_signal_buffer1 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
+        legit_signal.copy(), noise=False
     )
     legit_signal_buffer2 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
+        legit_signal.copy(), noise=False
     )
     adv_signal_buffer = Signal_Buffer(adv_signal)
 
     # Grouping the signal buffers into a tuple
     signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
-    # Calculating the number of samples needed
-    sample_num = schurmann_calc_sample_num(
-        key_length, window_length, band_length, sr, ANTIALIASING_FILTER
-    )
+    def get_random_parameters():
+        window_length = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1])
+        band_length = random.randint(MIN_BAND_LENGTH, WINDOW_LENGTH_RANGE[1] // 2)
+        # Calculating the number of samples needed
+        sample_num = schurmann_calc_sample_num(
+            key_length, window_length, band_length, sr, ANTIALIASING_FILTER
+        )
 
     # Defining thcontrolled_signal_fuzzinge bit generation algorithm
     def bit_gen_algo(signal: Signal_Buffer, *argv: List) -> np.ndarray:
@@ -68,28 +82,5 @@ def main(
             signal_chunk, argv[0], argv[1], argv[2], argv[3]
         )
 
-    # Creating an evaluator object with the bit generation algorithm
-    evaluator = Evaluator(bit_gen_algo)
-    # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials, window_length, band_length, sr, ANTIALIASING_FILTER, sample_num)
-    # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
-
-    le_avg_be = np.mean(legit_bit_errs)
-    adv_avg_be = np.mean(adv_bit_errs)
-
-    # Printing the average bit error rates
-    print(f"Legit Average Bit Error Rate: {le_avg_be}")
-    print(f"Adversary Average Bit Error Rate: {adv_avg_be}")
-    return le_avg_be, adv_avg_be
-
-
 if __name__ == "__main__":
-    args = get_command_line_args(
-        window_length_default=WINDOW_LENGTH_DEFAULT,
-        band_length_default=BAND_LENGTH_DEFAULT,
-        key_length_default=KEY_LENGTH_DEFAULT,
-        snr_level_default=TARGET_SNR_DEFAULT,
-        trials_default=TRIALS_DEFAULT,
-    )
-    main(*args)
+    main()

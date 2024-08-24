@@ -55,6 +55,9 @@ class Signal_Buffer:
         """
         self.index = other_signal_buff.index
 
+    def reset(self):
+        self.index = 0
+
 
 class Signal_File:
     def __init__(

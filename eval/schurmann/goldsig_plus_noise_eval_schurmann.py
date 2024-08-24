@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Any
+from typing import List
 
 
 import numpy as np
@@ -48,7 +48,7 @@ def main(
     signals = (signal1, signal2, adv_signal)
 
     # Defining the bit generation algorithm
-    def bit_gen_algo(signal: np.ndarray, *argv: Any) -> np.ndarray:
+    def bit_gen_algo(signal: np.ndarray, *argv: List) -> np.ndarray:
         """
         Processes the signal using the Schurmann wrapper function to generate cryptographic bits.
 
