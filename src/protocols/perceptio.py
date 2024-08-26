@@ -104,7 +104,7 @@ class Perceptio_Protocol(ProtocolInterface):
         ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()
 
-        labels, k = PerceptioProcessing.kmeans_w_elbow_method(
+        labels, k, _ = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, self.cluster_sizes_to_check, self.cluster_th
         )
 

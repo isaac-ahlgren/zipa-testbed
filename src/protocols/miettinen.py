@@ -34,8 +34,8 @@ class Miettinen_Protocol(ProtocolInterface):
         :param parameters: A dictionary filled with the parameters needed to initialize and run the protocol
         """
         ProtocolInterface.__init__(self, parameters, sensor, logger)
-        self.f = parameters["f"]# * self.sensor.sensor.sample_rate
-        self.w = parameters["w"]# * self.sensor.sensor.sample_rate
+        self.f = parameters["f"] * self.sensor.sensor.sample_rate
+        self.w = parameters["w"] * self.sensor.sensor.sample_rate
         self.key_length = parameters["key_length"]
         self.parity_symbols = parameters["parity_symbols"]
         self.commitment_length = self.key_length + self.parity_symbols

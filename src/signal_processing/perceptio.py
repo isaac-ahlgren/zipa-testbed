@@ -34,7 +34,7 @@ class PerceptioProcessing:
 
         event_features = PerceptioProcessing.get_event_features(events, signal)
 
-        labels, k, intertias = PerceptioProcessing.kmeans_w_elbow_method(
+        labels, k, _ = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, cluster_sizes_to_check, cluster_th
         )
 
@@ -78,17 +78,16 @@ class PerceptioProcessing:
         events = []
         found_event = False
         beg_event_num = None
-        average = np.mean(signal)
         for i in range(len(signal)):
             if (
                 not found_event
-                and signal[i] >= (average * bottom_th)
-                and signal[i] <= (average * top_th)
+                and signal[i] >= bottom_th
+                and signal[i] <= top_th
             ):
                 found_event = True
                 beg_event_num = i
             elif found_event and (
-                signal[i] < (average * bottom_th) or signal[i] > (average * top_th)
+                signal[i] < bottom_th or signal[i] > top_th
             ):
                 found_event = False
                 found_event = None
