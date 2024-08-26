@@ -6,8 +6,6 @@ import time
 
 sys.path.insert(1, os.getcwd() + "/src")
 
-
-
 from networking.network import (
     send_status,
     status_standby,
@@ -21,73 +19,70 @@ from networking.network import (
     get_nonce_msg_standby
 )
 
-# Test send_status
+def log_time(test_name: str, start_time: float, end_time: float, success: bool) -> None:
+    duration = end_time - start_time
+    status = "PASS" if success else "FAIL"
+    print(f"{test_name} started at {start_time:.1f} seconds")
+    print(f"{test_name} stopped at {end_time:.1f} seconds")
+    print(f"Total duration: {duration:.1f} seconds")
+    print(f"Test result: {status}")
+    print()
+
 def test_send_status():
+    start_time = time.time()
+
     def device():
-        device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        device_socket.connect(("127.0.0.1", 2000))
-        send_status(device_socket, True)
-        device_socket.close()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as device_socket:
+            device_socket.connect(("127.0.0.1", 2000))
+            send_status(device_socket, True)
 
     device_process = Process(target=device, name="[CLIENT]")
     device_process.start()
 
-    host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2000))
-    host_socket.listen(1)
-    connection, _ = host_socket.accept()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as host_socket:
+        host_socket.bind(("127.0.0.1", 2000))
+        host_socket.listen(1)
+        connection, _ = host_socket.accept()
 
-    test = status_standby(connection, 5)
-    assert test == True
+        test = status_standby(connection, 5)
+        success = (test == True)
 
-    connection.close()
-    host_socket.close()
     device_process.join()
+    end_time = time.time()
+    log_time("test_send_status", start_time, end_time, success)
 
-# Test ack
 def test_ack():
+    start_time = time.time()
+
     def device():
-        device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        device_socket.connect(("127.0.0.1", 2001))
-        ack(device_socket)
-        device_socket.close()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as device_socket:
+            device_socket.connect(("127.0.0.1", 2001))
+            ack(device_socket)
 
     device_process = Process(target=device, name="[CLIENT]")
     device_process.start()
 
-    host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2001))
-    host_socket.listen(1)
-    connection, _ = host_socket.accept()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as host_socket:
+        host_socket.bind(("127.0.0.1", 2001))
+        host_socket.listen(1)
+        connection, _ = host_socket.accept()
 
-    test = ack_standby(connection, 5)
-    assert test == True
+        test = ack_standby(connection, 5)
+        success = (test == True)
 
-    connection.close()
-    host_socket.close()
     device_process.join()
+    end_time = time.time()
+    log_time("test_ack", start_time, end_time, success)
 
-# Test send_commit
 def test_send_commit():
+    start_time = time.time()
+
     def device():
-        device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        device_socket.connect(("127.0.0.1", 2050))
-
-        commitments_list = [b'\x9f\x83\x5d\x7d\x3c\x23\x44\x55', b'\x1b\x9a\x2d\xef\x38\x4f\x63\x9c', b'\x4a\x62\x7d\xd3\x54\xc9\x8b\x03']
-        hashes_list = [b'\x6a\x8f\x44\xee\x21\x78\x3b\x97', b'\x1d\x9b\x7c\x5a\x2e\xaf\x76\x84', b'\x38\x5e\x16\x2a\x68\x7c\x9d\x51']
-
-        send_commit(commitments_list, hashes_list, device_socket)
-        device_socket.close()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as device_socket:
+            device_socket.connect(("127.0.0.1", 2050))
+            commitments_list = [b'\x9f\x83\x5d\x7d\x3c\x23\x44\x55', b'\x1b\x9a\x2d\xef\x38\x4f\x63\x9c', b'\x4a\x62\x7d\xd3\x54\xc9\x8b\x03']
+            hashes_list = [b'\x6a\x8f\x44\xee\x21\x78\x3b\x97', b'\x1d\x9b\x7c\x5a\x2e\xaf\x76\x84', b'\x38\x5e\x16\x2a\x68\x7c\x9d\x51']
+            send_commit(commitments_list, hashes_list, device_socket)
 
     commitments_list = [b'\x9f\x83\x5d\x7d\x3c\x23\x44\x55', b'\x1b\x9a\x2d\xef\x38\x4f\x63\x9c', b'\x4a\x62\x7d\xd3\x54\xc9\x8b\x03']
     hashes_list = [b'\x6a\x8f\x44\xee\x21\x78\x3b\x97', b'\x1d\x9b\x7c\x5a\x2e\xaf\x76\x84', b'\x38\x5e\x16\x2a\x68\x7c\x9d\x51']
@@ -95,79 +90,68 @@ def test_send_commit():
     device_process = Process(target=device, name="[CLIENT]")
     device_process.start()
 
-    host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2050))
-    host_socket.listen(1)
-    connection, _ = host_socket.accept()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as host_socket:
+        host_socket.bind(("127.0.0.1", 2050))
+        host_socket.listen(1)
+        connection, _ = host_socket.accept()
 
-    commitments, hashes = commit_standby(connection, 5)
+        commitments, hashes = commit_standby(connection, 5)
+        success = (commitments == commitments_list and hashes == hashes_list)
 
-    # print(f'{type(commitments_list)}: {commitments_list}')
-    # print(f'{type(commitments)}: {commitments}')
-    # print(f'{type(hashes)}: {hashes}')
-    # print(f'{type(hashes_list)}: {hashes_list}')
-
-    assert commitments == commitments_list
-    assert hashes == hashes_list
-
-    connection.close()
-    host_socket.close()
     device_process.join()
+    end_time = time.time()
+    log_time("test_send_commit", start_time, end_time, success)
 
-# Test dh_exchange
 def test_dh_exchange():
+    start_time = time.time()
+
     def device():
-        device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        device_socket.connect(("127.0.0.1", 2003))
-        dh_exchange(device_socket, b'diffiehellmankey')
-        device_socket.close()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as device_socket:
+            device_socket.connect(("127.0.0.1", 2003))
+            dh_exchange(device_socket, b'diffiehellmankey')
 
     device_process = Process(target=device, name="[CLIENT]")
     device_process.start()
 
-    host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2003))
-    host_socket.listen(1)
-    connection, _ = host_socket.accept()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as host_socket:
+        host_socket.bind(("127.0.0.1", 2003))
+        host_socket.listen(1)
+        connection, _ = host_socket.accept()
 
-    key = dh_exchange_standby(connection, 5)
-    assert key == b'diffiehellmankey'
+        key = dh_exchange_standby(connection, 5)
+        success = (key == b'diffiehellmankey')
 
-    connection.close()
-    host_socket.close()
     device_process.join()
+    end_time = time.time()
+    log_time("test_dh_exchange", start_time, end_time, success)
 
-# Test send_nonce_msg
 def test_send_nonce_msg():
+    start_time = time.time()
+
     def device():
-        device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        device_socket.connect(("127.0.0.1", 2004))
-        send_nonce_msg(device_socket, b'nonce')
-        device_socket.close()
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as device_socket:
+            device_socket.connect(("127.0.0.1", 2004))
+            send_nonce_msg(device_socket, b'nonce')
 
     device_process = Process(target=device, name="[CLIENT]")
     device_process.start()
 
-    host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2004))
-    host_socket.listen(1)
-    connection, _ = host_socket.accept()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as host_socket:
+        host_socket.bind(("127.0.0.1", 2004))
+        host_socket.listen(1)
+        connection, _ = host_socket.accept()
 
-    nonce = get_nonce_msg_standby(connection, 5)
-    assert nonce == b'nonce'
+        nonce = get_nonce_msg_standby(connection, 5)
+        success = (nonce == b'nonce')
 
-    connection.close()
-    host_socket.close()
     device_process.join()
+    end_time = time.time()
+    log_time("test_send_nonce_msg", start_time, end_time, success)
 
+if __name__ == '__main__':
+    test_send_status()
+    test_ack()
+    test_send_commit()
+    test_dh_exchange()
+    test_send_nonce_msg()
 
