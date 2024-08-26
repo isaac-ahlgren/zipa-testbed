@@ -1,8 +1,7 @@
 import os
 import sys
-import unittest
-import numpy as np
 
+import numpy as np
 
 sys.path.insert(1, os.path.join(os.getcwd(), "src", "signal_processing"))
 from fastzip import FastZIPProcessing  # noqa: E402
@@ -10,48 +9,46 @@ from fastzip import FastZIPProcessing  # noqa: E402
 
 def setUp():
     sample_rate = 100  # Hz
-    data = np.random.normal(
-        0, 1, sample_rate
-    )  # Simulate 1-second of data
+    data = np.random.normal(0, 1, sample_rate)  # Simulate 1-second of data
     return sample_rate, data
 
 
 def test_normalize_signal():
     sample_rate, data = setUp()
     normalized_data = FastZIPProcessing.normalize_signal(data)
-    assert len(normalized_data) == len(data)
-    assert np.isclose(np.mean(normalized_data), 0)
+    assert len(normalized_data) == len(data)  # nosec
+    assert np.isclose(np.mean(normalized_data), 0)  # nosec
 
 
 def test_remove_noise():
     sample_rate, data = setUp()
     noise_removed_data = FastZIPProcessing.remove_noise(data)
-    assert len(noise_removed_data) == len(data)
+    assert len(noise_removed_data) == len(data)  # nosec
 
 
 def test_ewma_filter():
     sample_rate, data = setUp()
     alpha = 0.015
     filtered_data = FastZIPProcessing.ewma_filter(data, alpha)
-    assert len(filtered_data) == len(data)
+    assert len(filtered_data) == len(data)  # nosec
 
 
 def test_compute_sig_power():
     sample_rate, data = setUp()
     power = FastZIPProcessing.compute_sig_power(data)
-    assert power is not None
+    assert power is not None  # nosec
 
 
 def test_compute_snr():
     sample_rate, data = setUp()
     snr = FastZIPProcessing.compute_snr(data)
-    assert snr is not None
+    assert snr is not None  # nosec
 
 
 def test_get_peaks():
     sample_rate, data = setUp()
     peaks = FastZIPProcessing.get_peaks(data, sample_rate)
-    assert isinstance(peaks, int)
+    assert isinstance(peaks, int)  # nosec
 
 
 def test_activity_filter():
@@ -68,23 +65,21 @@ def test_activity_filter():
         True,
         alpha,
     )
-    assert activity in [True, False]
+    assert activity in [True, False]  # nosec
 
 
 def test_compute_qs_thr():
     sample_rate, data = setUp()
     bias = 0
     threshold = FastZIPProcessing.compute_qs_thr(data, bias)
-    assert threshold is not None
+    assert threshold is not None  # nosec
 
 
 def test_generate_equidist_points():
     sample_rate, data = setUp()
     eqd_delta = 1
-    points = FastZIPProcessing.generate_equidist_points(
-        len(data), 10, eqd_delta
-    )
-    assert isinstance(points, list)
+    points = FastZIPProcessing.generate_equidist_points(len(data), 10, eqd_delta)
+    assert isinstance(points, list)  # nosec
 
 
 def test_compute_fingerprint():
@@ -109,6 +104,4 @@ def test_compute_fingerprint():
         False,
         True,
     )
-    assert isinstance(fingerprint, str)
-
-
+    assert isinstance(fingerprint, str)  # nosec
