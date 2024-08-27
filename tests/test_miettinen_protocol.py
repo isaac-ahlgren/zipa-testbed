@@ -11,10 +11,10 @@ from sensors.sensor_reader import SensorReader  # noqa: E402
 from sensors.test_sensor import TestSensor  # noqa: E402
 
 PROTOCOL_DUMMY_PARAMETERS = {
-    "f": 5,
-    "w": 5,
-    "rel_thresh": 0.1,
-    "abs_thresh": 0.5,
+    "f": 1,
+    "w": 1,
+    "rel_thresh": 0.002,
+    "abs_thresh": 0.001,
     "auth_thresh": 0.9,
     "success_thresh": 10,
     "max_iterations": 1,
@@ -59,15 +59,16 @@ def test_protocol_interaction():
     print("Joining processes")
     host_process.join()
     device_process.join()
+    test_reader.poll_process.terminate()
 
-    #assert host_process.exitcode == 0  # nosec
-    #assert device_process.exitcode == 0  # nosec
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
 
 def host(protocol):
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2000))
+    host_socket.bind(("127.0.0.1", 2002))
     host_socket.listen()
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
@@ -78,7 +79,7 @@ def device(protocol):
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    device_socket.connect(("127.0.0.1", 2000))
+    device_socket.connect(("127.0.0.1", 2002))
     protocol.device_protocol(device_socket)
 
 

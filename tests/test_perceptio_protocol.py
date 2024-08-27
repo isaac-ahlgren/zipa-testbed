@@ -74,6 +74,7 @@ def test_protocol_interaction():
     print("Joining processes.")
     host_process.join()
     device_process.join()
+    test_reader.poll_process.terminate()
 
     assert host_process.exitcode == 0  # nosec
     assert device_process.exitcode == 0  # nosec
@@ -83,7 +84,7 @@ def host(protocol):
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2000))
+    host_socket.bind(("127.0.0.1", 2004))
     host_socket.listen()
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
@@ -94,7 +95,7 @@ def device(protocol):
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    device_socket.connect(("127.0.0.1", 2000))
+    device_socket.connect(("127.0.0.1", 2004))
     protocol.device_protocol(device_socket)
 
 
