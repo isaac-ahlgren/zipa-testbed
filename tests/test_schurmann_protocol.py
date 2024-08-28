@@ -55,6 +55,7 @@ def test_protocol_interaction():
     print("Joining processes")
     host_process.join()
     device_process.join()
+    test_reader.poll_process.terminate()
 
     assert host_process.exitcode == 0  # nosec
     assert device_process.exitcode == 0  # nosec
