@@ -164,7 +164,6 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         )
 
         self.count += 1
-        self.destroy_shm()
 
 
     def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
@@ -217,7 +216,6 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         )
 
         self.count += 1
-        self.destroy_shm()
 
 
 ###TESTING CODE###
