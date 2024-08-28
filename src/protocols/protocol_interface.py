@@ -151,10 +151,10 @@ class ProtocolInterface:
         while self.processing_flag.value == COMPLETE and self.shm_active.value != 0:
             continue
 
-        self.shm_active.value += 1
+        ticket = self.shm_active.value = self.shm_active.value + 1
 
         # First process to grab the flag populates the list
-        if self.processing_flag.value == READY and self.shm_active.value == 1:
+        if self.processing_flag.value == READY and ticket == 1:
             with self.mutex:
                 ProtocolInterface.capture_flag(self.processing_flag)
                 print("\n\nProcessing context\n\n")

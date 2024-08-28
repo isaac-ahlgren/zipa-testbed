@@ -17,8 +17,8 @@ PROTOCOL_DUMMY_PARAMETERS = {
     "top_th": 0.75,
     "bottom_th": 0.5,
     "lump_th": 5,
-    "conf_thresh": 5,
-    "min_events": 15,
+    "conf_thresh": 3,
+    "min_events": 5,
     "max_iterations": 20,
     "chunk_size": 44_100 * 5,
     "sleep_time": 5,
@@ -84,7 +84,7 @@ def host(protocol):
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2004))
+    host_socket.bind(("127.0.0.1", 2000))
     host_socket.listen()
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
@@ -95,7 +95,7 @@ def device(protocol):
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    device_socket.connect(("127.0.0.1", 2004))
+    device_socket.connect(("127.0.0.1", 2000))
     protocol.device_protocol(device_socket)
 
 

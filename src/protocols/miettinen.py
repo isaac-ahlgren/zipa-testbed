@@ -3,6 +3,8 @@ from typing import Any, List
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
+from error_correction.corrector import Fuzzy_Commitment
+from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import (
     ack,
     ack_standby,
@@ -20,8 +22,6 @@ from protocols.common_protocols import (
 )
 from protocols.protocol_interface import ProtocolInterface
 from signal_processing.miettinen import MiettinenProcessing
-from error_correction.corrector import Fuzzy_Commitment
-from error_correction.reed_solomon import ReedSolomonObj
 
 
 class Miettinen_Protocol(ProtocolInterface):
@@ -266,6 +266,8 @@ class Miettinen_Protocol(ProtocolInterface):
         )
 
         self.count += 1
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
 
     def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         """

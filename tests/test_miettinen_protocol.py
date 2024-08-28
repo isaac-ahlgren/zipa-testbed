@@ -18,8 +18,8 @@ PROTOCOL_DUMMY_PARAMETERS = {
     "auth_thresh": 0.9,
     "success_thresh": 10,
     "max_iterations": 1,
-    "key_length": 8,
-    "parity_symbols": 4,
+    "key_length": 2,
+    "parity_symbols": 1,
     "sensor": "TestSensor",
     "timeout": 10,
     "verbose": True,
@@ -42,11 +42,14 @@ DUMMY_LOGGER = NFSLogger(
     use_local_dir=True,
 )  # nosec
 
+
 def test_protocol_interaction():
     print("In test")
     test_sensor = TestSensor(SENSOR_DUMMY_PARAMETERS, signal_type="random")
     test_reader = SensorReader(test_sensor)
-    test_protocol = Miettinen_Protocol(PROTOCOL_DUMMY_PARAMETERS, test_reader, DUMMY_LOGGER)
+    test_protocol = Miettinen_Protocol(
+        PROTOCOL_DUMMY_PARAMETERS, test_reader, DUMMY_LOGGER
+    )
 
     print("Creating processes")
     host_process = Process(target=host, args=[test_protocol], name="[HOST]")
@@ -64,11 +67,12 @@ def test_protocol_interaction():
     assert host_process.exitcode == 0  # nosec
     assert device_process.exitcode == 0  # nosec
 
+
 def host(protocol):
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2002))
+    host_socket.bind(("127.0.0.1", 2000))
     host_socket.listen()
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
@@ -79,7 +83,7 @@ def device(protocol):
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    device_socket.connect(("127.0.0.1", 2002))
+    device_socket.connect(("127.0.0.1", 2000))
     protocol.device_protocol(device_socket)
 
 

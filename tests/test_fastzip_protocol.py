@@ -72,6 +72,9 @@ def test_fastzip_interaction():
     device_process.join()
     test_reader.poll_process.terminate()
 
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
+
 
 def host(protocol):
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

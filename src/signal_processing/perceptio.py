@@ -79,16 +79,10 @@ class PerceptioProcessing:
         found_event = False
         beg_event_num = None
         for i in range(len(signal)):
-            if (
-                not found_event
-                and signal[i] >= bottom_th
-                and signal[i] <= top_th
-            ):
+            if not found_event and signal[i] >= bottom_th and signal[i] <= top_th:
                 found_event = True
                 beg_event_num = i
-            elif found_event and (
-                signal[i] < bottom_th or signal[i] > top_th
-            ):
+            elif found_event and (signal[i] < bottom_th or signal[i] > top_th):
                 found_event = False
                 found_event = None
                 events.append((beg_event_num, i))
@@ -158,6 +152,7 @@ class PerceptioProcessing:
             return np.zeros(len(event_features), dtype=int), 1
 
         km = KMeans(1, n_init=50, random_state=0).fit(event_features)
+
         x1 = km.inertia_
         rel_inert = x1
 
@@ -166,6 +161,7 @@ class PerceptioProcessing:
         inertias = [rel_inert]
 
         for i in range(2, cluster_sizes_to_check + 1):
+
             labels = km.labels_
 
             km = KMeans(i, n_init=50, random_state=0).fit(event_features)
