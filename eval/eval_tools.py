@@ -212,6 +212,8 @@ def bytes_to_bitstring(b: bytes, length: int) -> str:
         bs = bs[:length]
     return bs
 
+def bitstring_to_bytes(s: str) -> bytes:
+    return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
 def cmp_bits(bits1: bytes, bits2: bytes, length: int) -> float:
     """
@@ -279,6 +281,9 @@ def flatten_fingerprints(fps: List[List[bytes]]) -> List[bytes]:
         for bits in fp:
             flattened_fps.append(bits)
     return flattened_fps
+
+def log_bytes(file_name_stub, byte_list)
+    for b in 
 
 def log_parameters(file_name, name_list, parameter_list, legit_bit_errs, adv_bit_errs):
     csv_file = dict()

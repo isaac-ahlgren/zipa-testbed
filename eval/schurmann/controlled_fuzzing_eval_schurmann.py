@@ -22,16 +22,16 @@ from evaluator import Evaluator  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
-TRIALS_PER_CHOICE_DEFAULT = 100
+NUMBER_OF_KEYS = 100
 NUMBER_OF_CHOICES_DEFAULT = 1000
 
 # Random Parameter Ranges
-WINDOW_LENGTH_RANGE = (5000, 10*48000)
+WINDOW_LENGTH_RANGE = (5000, 3*48000)
 MIN_BAND_LENGTH = 1
 
 def main(
     key_length=KEY_LENGTH_DEFAULT,
-    trials_per_choice=TRIALS_PER_CHOICE_DEFAULT,
+    number_of_keys=NUMBER_OF_KEYS,
     number_of_choices=NUMBER_OF_CHOICES_DEFAULT,
 ):
     # Loading the controlled signals
@@ -40,10 +40,10 @@ def main(
         "../../data/adversary_controlled_signal.wav"
     )
     legit_signal_buffer1 = Signal_Buffer(
-        legit_signal.copy(), noise=False
+        legit_signal.copy(), noise=True, target_snr=20
     )
     legit_signal_buffer2 = Signal_Buffer(
-        legit_signal.copy(), noise=False
+        legit_signal.copy(), noise=True, target_snr=20
     )
     adv_signal_buffer = Signal_Buffer(adv_signal)
 
@@ -53,7 +53,6 @@ def main(
     def get_random_parameters():
         window_length = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1])
         band_length = random.randint(MIN_BAND_LENGTH, (WINDOW_LENGTH_RANGE[1] // 2 + 1) // 2)
-        print(f"window_length: {window_length}, band_length: {band_length}")
         # Calculating the number of samples needed
         sample_num = schurmann_calc_sample_num(
             key_length, window_length, band_length, sr, ANTIALIASING_FILTER
@@ -62,7 +61,6 @@ def main(
 
     base_file_name = "schurmann_ber_id"
     def log(legit_bit_errs, adv_bit_errs, *params):
-        print("here")
         names = ["window_length", "band_length", "sample_num"]
         param_list = [params[0], params[1], params[4]]
         id = random.randint(0, 2**64)
@@ -85,7 +83,7 @@ def main(
     
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
-    evaluator.fuzzing_evaluation(signals, log, get_random_parameters, cmp_bits, trials_per_choice, number_of_choices, key_length)
+    evaluator.fuzzing_evaluation(signals, log, get_random_parameters, cmp_bits, number_of_keys, number_of_choices, key_length)
 
 if __name__ == "__main__":
     main()

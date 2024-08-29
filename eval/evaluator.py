@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Tuple
 import numpy as np
 
-from eval_tools import Signal_Buffer, Signal_File
+from eval_tools import Signal_Buffer, Signal_File, cmp_bits, get_min_entropy
 
 
 class Evaluator:
@@ -15,8 +15,6 @@ class Evaluator:
         self.legit_bits1 = []
         self.legit_bits2 = []
         self.adv_bits = []
-        self.legit_avg_bit_err = []
-        self.adv_avg_bit_errs = []
 
     def evaluate(self, signals: Tuple[Any, Any, Any], trials: int, *argv: Any) -> None:
         """
@@ -41,19 +39,18 @@ class Evaluator:
             ):
                 legit_signal1.sync(legit_signal2)
 
-    def fuzzing_evaluation(self, signals: Tuple[Any, Any, Any], logging_func, random_parameter_func, cmp_func, trials_per_choice, number_of_choices, key_size) -> None:
+    def fuzzing_evaluation(self, signals: Tuple[Any, Any, Any], logging_func, random_parameter_func, number_of_keys, number_of_choices) -> None:
         for i in range(number_of_choices):
             params = random_parameter_func()
-            self.evaluate(signals, trials_per_choice, *params)
-            legit_bit_errs, adv_bit_errs =  self.cmp_func(cmp_func, key_size)
-            logging_func(legit_bit_errs, adv_bit_errs, *params)
+            self.evaluate(signals, number_of_keys, *params)
+            logging_func(self.legit_bits1, self.legit_bits2, self.adv_bits, *params)
             self.reset_bits_lists()
             signals[0].reset()
             signals[1].reset()
             signals[2].reset()
 
-    def cmp_func(
-        self, func: Callable[[List[bytes], List[bytes], int], float], key_length: int
+    def cmp_collected_bits(
+        self, key_length: int
     ) -> Tuple[List[float], List[float]]:
         """
         Compare bit errors using a specified comparison function and key length.
@@ -65,8 +62,8 @@ class Evaluator:
         legit_bit_errs = []
         adv_bit_errs = []
         for i in range(len(self.legit_bits1)):
-            legit_bit_err = func(self.legit_bits1[i], self.legit_bits2[i], key_length)
-            adv_bit_err = func(self.legit_bits1[i], self.adv_bits[i], key_length)
+            legit_bit_err = cmp_bits(self.legit_bits1[i], self.legit_bits2[i], key_length)
+            adv_bit_err = cmp_bits(self.legit_bits1[i], self.adv_bits[i], key_length)
             legit_bit_errs.append(legit_bit_err)
             adv_bit_errs.append(adv_bit_err)
         return legit_bit_errs, adv_bit_errs
