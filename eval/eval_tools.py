@@ -2,6 +2,7 @@ import glob
 from typing import Callable, List, Tuple
 
 import numpy as np
+import pandas as pd
 from scipy.io import wavfile
 
 
@@ -279,6 +280,17 @@ def flatten_fingerprints(fps: List[List[bytes]]) -> List[bytes]:
             flattened_fps.append(bits)
     return flattened_fps
 
+def log_parameters(file_name, name_list, parameter_list, legit_bit_errs, adv_bit_errs):
+    csv_file = dict()
+    for name, param in zip(name_list, parameter_list):
+        csv_file[name] = param
+
+    csv_file["legit bit errors"] = legit_bit_errs
+    csv_file["adversary bit errors"] = adv_bit_errs
+
+    df = pd.DataFrame(csv_file)
+    df.to_csv(file_name, index=False)
+ 
 
 def get_min_entropy(bits: List[bytes], key_length: int, symbol_size: int) -> float:
     """

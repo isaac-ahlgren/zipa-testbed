@@ -16,6 +16,7 @@ from eval_tools import (  # noqa: E402
     Signal_Buffer,
     cmp_bits,
     load_controlled_signal,
+    log_parameters,
 )
 from evaluator import Evaluator  # noqa: E402
 
@@ -27,16 +28,6 @@ NUMBER_OF_CHOICES_DEFAULT = 1000
 # Random Parameter Ranges
 WINDOW_LENGTH_RANGE = (5000, 10*48000)
 MIN_BAND_LENGTH = 1
-
-
-def get_random_parameters():
-    window_length = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1])
-    band_length = random.randint(MIN_BAND_LENGTH, WINDOW_LENGTH_RANGE[1] // 2)
-    # Calculating the number of samples needed
-    sample_num = schurmann_calc_sample_num(
-        KEY_LENGTH_DEFAULT, window_length, band_length, sr, ANTIALIASING_FILTER
-    )
-
 
 def main(
     key_length=KEY_LENGTH_DEFAULT,
@@ -61,13 +52,23 @@ def main(
 
     def get_random_parameters():
         window_length = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1])
-        band_length = random.randint(MIN_BAND_LENGTH, WINDOW_LENGTH_RANGE[1] // 2)
+        band_length = random.randint(MIN_BAND_LENGTH, (WINDOW_LENGTH_RANGE[1] // 2 + 1) // 2)
+        print(f"window_length: {window_length}, band_length: {band_length}")
         # Calculating the number of samples needed
         sample_num = schurmann_calc_sample_num(
             key_length, window_length, band_length, sr, ANTIALIASING_FILTER
         )
+        return window_length, band_length, sr, ANTIALIASING_FILTER, sample_num
 
-    # Defining thcontrolled_signal_fuzzinge bit generation algorithm
+    base_file_name = "schurmann_ber_id"
+    def log(legit_bit_errs, adv_bit_errs, *params):
+        print("here")
+        names = ["window_length", "band_length", "sample_num"]
+        param_list = [params[0], params[1], params[4]]
+        id = random.randint(0, 2**64)
+        file_name = base_file_name + str(id)
+        log_parameters(file_name, names, param_list, legit_bit_errs, adv_bit_errs)
+
     def bit_gen_algo(signal: Signal_Buffer, *argv: List) -> np.ndarray:
         """
         Processes the signal using the Schurmann wrapper function to generate cryptographic bits.
@@ -80,7 +81,11 @@ def main(
         signal_chunk = signal.read(argv[4])  # Reading a chunk of the signal
         return schurmann_wrapper_func(
             signal_chunk, argv[0], argv[1], argv[2], argv[3]
-        )
+        ) 
+    
+    # Creating an evaluator object with the bit generation algorithm
+    evaluator = Evaluator(bit_gen_algo)
+    evaluator.fuzzing_evaluation(signals, log, get_random_parameters, cmp_bits, trials_per_choice, number_of_choices, key_length)
 
 if __name__ == "__main__":
     main()

@@ -42,14 +42,11 @@ class Evaluator:
                 legit_signal1.sync(legit_signal2)
 
     def fuzzing_evaluation(self, signals: Tuple[Any, Any, Any], logging_func, random_parameter_func, cmp_func, trials_per_choice, number_of_choices, key_size) -> None:
-        legit_avg_bit_errs = []
-        adv_avg_bit_errs = []
         for i in range(number_of_choices):
             params = random_parameter_func()
             self.evaluate(signals, trials_per_choice, *params)
             legit_bit_errs, adv_bit_errs =  self.cmp_func(cmp_func, key_size)
-            legit_avg_bit_errs.append(np.mean(legit_bit_errs))
-            adv_avg_bit_errs.append(np.mean(adv_bit_errs))
+            logging_func(legit_bit_errs, adv_bit_errs, *params)
             self.reset_bits_lists()
             signals[0].reset()
             signals[1].reset()
