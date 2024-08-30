@@ -301,3 +301,53 @@ def fpake_msg_standby(connection: socket.socket, timeout: int) -> bool:
             break
 
     return msg
+
+
+def send_gpake_msg(connection: socket.socket, msg: List[bytes]) -> None:
+    """
+    Sends a GPAKE-related message over a network connection.
+
+    :param connection: The network connection to send the message over.
+    :param msg: A list of byte-encoded messages to be sent.
+    """
+    length_payload = sum(len(m) + 4 for m in msg)
+
+    payload = length_payload.to_bytes(4, byteorder="big")
+    for m in msg:
+        payload += len(m).to_bytes(4, byteorder="big") + m
+
+    outgoing = b"gpake   " + payload
+    connection.send(outgoing)
+
+
+def gpake_msg_standby(connection: socket.socket, timeout: int) -> Optional[List[bytes]]:
+    """
+    Waits to receive a GPAKE-related message within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the message.
+    :returns: A list of byte-encoded messages if received, None otherwise.
+    """
+    reference = time.time()
+    msg = None
+
+    while (time.time() - reference) < timeout:
+        message = connection.recv(12)
+
+        if not message:
+            continue
+        elif message[:8] == b"gpake   ":
+            msg_size = int.from_bytes(message[8:], "big")
+
+            payload = connection.recv(msg_size)
+
+            msg = []
+            index = 0
+            while index < msg_size:
+                item_length = int.from_bytes(payload[index : index + 4], "big")
+                item = payload[index + 4 : index + 4 + item_length]
+                index += 4 + item_length
+                msg.append(item)
+            break
+
+    return msg
