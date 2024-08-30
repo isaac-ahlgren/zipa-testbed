@@ -118,7 +118,7 @@ def generate_bits(
     :param key_size_in_bytes: Size of the generated key in bytes.
     :return: A tuple containing fingerprints and grouped events.
     """
-    labels, k = PerceptioProcessing.kmeans_w_elbow_method(
+    labels, k, inertias = PerceptioProcessing.kmeans_w_elbow_method(
         event_features, cluster_sizes_to_check, cluster_th
     )
 

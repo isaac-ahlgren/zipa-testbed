@@ -1,6 +1,9 @@
 build:
 	poetry build
 	pip install dist/*.tar.gz
+	cd ./lib/rscode-1.3
+	make all
+	cd ../..
 
 build-docs:
 	sphinx-build --builder html src-docs build-docs

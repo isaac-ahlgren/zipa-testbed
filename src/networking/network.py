@@ -1,4 +1,3 @@
-import json
 import socket
 import time
 from typing import List, Optional, Tuple  # Union
@@ -13,6 +12,7 @@ NONC = "nonce   "
 PRAM = "preamble"
 SUCC = "success "
 FAIL = "failed  "
+FPFM = "fpake   "
 
 
 def send_status(connection: socket.socket, status: bool) -> None:
@@ -68,7 +68,7 @@ def ack(connection: socket.socket) -> None:
     connection.send(ACKN.encode())
 
 
-def ack_standby(connection: socket.socket, timeout: int) -> bool:
+def ack_standby2(connection: socket.socket, timeout: int) -> bool:
     """
     Waits for an acknowledgement within a specified timeout period.
 
@@ -164,13 +164,13 @@ def commit_standby(
                 commitments.append(
                     commits[
                         i * (hash_length + com_length) : i * (hash_length + com_length)
-                        + hash_length
+                        + com_length
                     ]
                 )
                 hashes.append(
                     commits[
                         i * (hash_length + com_length)
-                        + hash_length : (i + 1) * (hash_length + com_length)
+                        + com_length : (i + 1) * (hash_length + com_length)
                     ]
                 )
             break
@@ -231,7 +231,7 @@ def send_nonce_msg(connection: socket.socket, nonce: bytes) -> None:
     connection.send(message)
 
 
-def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[bytes]:
+def get_nonce_msg_standby2(connection: socket.socket, timeout: int) -> Optional[bytes]:
     """
     Waits to receive a nonce within a specified timeout period.
 
@@ -258,3 +258,92 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
                 break
 
     return nonce
+
+
+def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[bytes]:
+    """
+    Waits to receive a nonce within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the nonce.
+    :returns: The received nonce if successful, None otherwise.
+    """
+    nonce = None
+    message = None
+
+    try:
+        message = connection.recv(12)
+    except TimeoutError:
+        print("Nonce timeout reached.")
+
+    # While process hasn't timed out
+    if message is not None:
+        command = message[:8]
+        if command == NONC.encode():
+            nonce_size = int.from_bytes(message[8:], "big")
+            nonce = connection.recv(nonce_size)
+
+    return nonce
+
+
+def ack_standby(connection: socket.socket, timeout: int) -> bool:
+    """
+    Waits for an acknowledgement within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for an acknowledgement.
+    :returns: True if acknowledged, False if timeout occurred.
+    """
+    acknowledged = False
+
+    try:
+        command = connection.recv(8)
+    except TimeoutError:
+        print("Ack not received.")
+
+    if command == ACKN.encode():
+        acknowledged = True
+
+    return acknowledged
+
+
+def send_fpake_msg(connection, msg):
+    length_payload = 0
+    for m in msg:
+        length_payload += len(m) + 4
+
+    payload = length_payload.to_bytes(4, byteorder="big")
+    for m in msg:
+        payload += len(m).to_bytes(4, byteorder="big") + m
+
+    outgoing = FPFM.encode() + payload
+    connection.send(outgoing)
+
+
+def fpake_msg_standby(connection: socket.socket, timeout: int) -> bool:
+    msg = None
+    reference = time.time()
+    timestamp = reference
+
+    # While process hasn't timed out
+    while (timestamp - reference) < timeout:
+        timestamp = time.time()
+        message = connection.recv(12)
+
+        if message is None:
+            continue
+        elif message[:8] == FPFM.encode():
+            msg_size = int.from_bytes(message[8:], "big")
+
+            payload = connection.recv(msg_size)
+
+            msg = []
+            index = 0
+            while index < msg_size:
+                item_length = int.from_bytes(payload[index : index + 4], "big")
+                item = payload[index + 4 : index + 4 + item_length]
+                index += 4 + item_length
+                msg.append(item)
+            break
+
+    return msg

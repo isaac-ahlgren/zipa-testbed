@@ -168,10 +168,10 @@ def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
     :param target_snr: The desired signal-to-noise ratio in dB.
     :return: The calculated noise standard deviation.
     """
-    sig_avg_sqr = np.mean(signal) ** 2
-    sig_avg_db = 10 * np.log10(sig_avg_sqr)
-    noise_avg_db = sig_avg_db - target_snr
-    noise_avg_sqr = 10 ** (noise_avg_db / 10)
+    sig_sqr_sum = np.mean(signal**2)
+    sig_db = 10 * np.log10(sig_sqr_sum)
+    noise_db = sig_db - target_snr
+    noise_avg_sqr = 10 ** (noise_db / 10)
     return np.sqrt(noise_avg_sqr)
 
 
@@ -183,6 +183,7 @@ def add_gauss_noise(signal: np.ndarray, target_snr: float) -> np.ndarray:
     :param target_snr: The desired signal-to-noise ratio in dB.
     :return: The signal with added Gaussian noise.
     """
+
     noise_std = calc_snr_dist_params(signal, target_snr)
     noise = np.random.normal(0, noise_std, len(signal))
     return signal + noise

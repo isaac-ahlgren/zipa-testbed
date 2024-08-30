@@ -12,6 +12,8 @@ from networking.network import (
 )
 from protocols.protocol_interface import ProtocolInterface
 from signal_processing.shurmann import SchurmannProcessing
+from error_correction.corrector import Fuzzy_Commitment
+from error_correction.reed_solomon import ReedSolomonObj
 
 
 class Shurmann_Siggs_Protocol(ProtocolInterface):
@@ -27,6 +29,9 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "Shurmann_Siggs_Protocol"
         self.wip = False
+        self.key_length = parameters["key_length"]
+        self.parity_symbols = parameters["parity_symbols"]
+        self.commitment_length = self.key_length + self.parity_symbols
         self.window_len = parameters["window_len"]
         self.band_len = parameters["band_len"]
         self.count = 0
@@ -40,6 +45,9 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                 + 1
             )
             * self.window_len
+        )
+        self.re = Fuzzy_Commitment(
+            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
 
     def process_context(self) -> List[bytes]:
@@ -157,6 +165,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
 
         self.count += 1
 
+
     def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         """
         Manages the protocol operations for a single device connection in a threaded environment.
@@ -209,7 +218,7 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         self.count += 1
 
 
-"""###TESTING CODE###
+###TESTING CODE###
 import socket
 def device(prot):
     print("device")
@@ -245,4 +254,4 @@ if __name__ == "__main__":
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
-    d.start()"""
+    d.start()
