@@ -195,78 +195,73 @@ class PartitionedGPAKE:
         group_key = hkdf.derive(combined_key_material)
         return group_key
 
-    def host_protocol(self, passwords, conn, signal_data):
-        #Inter event timings are the passwords maybe, need to change how inter event timings and grouped events are passed in
-        # Step 1: Process the signal data using IoTCupid
-        inter_event_timings, grouped_events = IoTCupidProcessing.iotcupid(signal_data, ...)
+    def host_protocol(self, passwords, grouped_events, conn):
     
-        # Step 2: Generate key pairs for each event group
+        # Step 1: Generate key pairs for each event group
         event_keys = self.generate_key_pairs_for_events(grouped_events)
     
-        # Step 3: Encrypt public keys using passwords
+        # Step 2: Encrypt public keys using passwords
         encrypted_keys = self.encrypt_public_keys(event_keys, passwords)
     
-        # Step 4: Broadcast encrypted public keys
+        # Step 3: Broadcast encrypted public keys
         self.broadcast_encrypted_keys(conn, encrypted_keys)
     
-        # Step 5: Receive and decrypt public keys from other devices
+        # Step 4: Receive and decrypt public keys from other devices
         valid_keys = self.receive_and_decrypt_keys(conn, passwords)
     
-        # Step 6: Generate session IDs using valid public keys
+        # Step 5: Generate session IDs using valid public keys
         session_ids = self.generate_session_ids("host", ["device"], valid_keys)
     
-        # Step 7: Derive intermediate ECDH keys
+        # Step 6: Derive intermediate ECDH keys
         private_key = self.private_key  # Host uses its existing private key
         ecdh_keys = self.derive_ecdh_keys(private_key, valid_keys)
     
-        # Step 8: Generate random values for each event group
+        # Step 7: Generate random values for each event group
         random_values = self.generate_random_values(grouped_events)
     
-        # Step 9: Encrypt the random values using the intermediate ECDH keys
+        # Step 8: Encrypt the random values using the intermediate ECDH keys
         encrypted_values = self.encrypt_random_values(random_values, ecdh_keys)
     
-        # Step 10: Broadcast the encrypted random values along with session IDs
+        # Step 9: Broadcast the encrypted random values along with session IDs
         self.broadcast_encrypted_values(conn, "host", session_ids, encrypted_values)
     
-        # Step 11: Process incoming messages to retrieve the random values sent by other devices
+        # Step 10: Process incoming messages to retrieve the random values sent by other devices
         derived_random_values = self.process_incoming_messages(conn, "host", ecdh_keys)
     
-        # Step 12: Derive the group key by summing or using a KDF on the collected random values
+        # Step 11: Derive the group key by summing or using a KDF on the collected random values
         group_key = self.derive_group_key(derived_random_values)
     
-        # Step 13: Notify other devices about the success of key establishment
+        # Step 12: Notify other devices about the success of key establishment
         send_status(conn, True)
     
         return group_key
 
 
-    def device_protocol(self, passwords, conn, local_id, remote_ids, signal_data):
-        # Step 1: Process the signal data using IoTCupid
-        inter_event_timings, grouped_events = IoTCupidProcessing.iotcupid(signal_data, ...)
+    def device_protocol(self, passwords, grouped_events, conn, local_id, remote_ids):
     
-        # Step 2: Receive and decrypt the encrypted public keys using all passwords
+        # Step 1: Receive and decrypt the encrypted public keys using all passwords
         valid_keys = self.receive_and_decrypt_keys(conn, passwords)
     
-        # Step 3: Generate session IDs for the valid keys
+        # Step 2: Generate session IDs for the valid keys
         session_ids = self.generate_session_ids(local_id, remote_ids, valid_keys)
     
-        # Step 4: Derive the intermediate ECDH keys using the private key and the valid public keys
+        # Step 3: Derive the intermediate ECDH keys using the private key and the valid public keys
         private_key = ec.generate_private_key(self.curve)  # Assume each device has its private key
         ecdh_keys = self.derive_ecdh_keys(private_key, valid_keys)
     
-        # Step 5: Generate random values for each grouped event
+        # Step 4: Generate random values for each grouped event
         random_values = self.generate_random_values(grouped_events)
     
-        # Step 6: Encrypt the random values using the intermediate ECDH keys
+        # Step 5: Encrypt the random values using the intermediate ECDH keys
         encrypted_values = self.encrypt_random_values(random_values, ecdh_keys)
     
-        # Step 7: Broadcast the encrypted random values along with the session ID and device ID
+        # Step 6: Broadcast the encrypted random values along with the session ID and device ID
         self.broadcast_encrypted_values(conn, local_id, session_ids, encrypted_values)
     
-        # Step 8: Process incoming messages to retrieve the random values sent by other devices
+        # Step 7: Process incoming messages to retrieve the random values sent by other devices
         derived_random_values = self.process_incoming_messages(conn, local_id, ecdh_keys)
     
-        # Step 9: Derive the group key by summing or using a KDF on the collected random values
+        # Step 8: Derive the group key by summing or using a KDF on the collected random values
         group_key = self.derive_group_key(derived_random_values)
     
         return group_key
