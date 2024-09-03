@@ -59,8 +59,15 @@ class PartitionedGPAKE:
                 format=serialization.PublicFormat.CompressedPoint
             )
             # Derive a key from the password
-            password = passwords[event_type].encode('utf-8')
-            cipher = ChaCha20Poly1305(password[:32])  # Using a 32-byte key for ChaCha20-Poly1305
+            hkdf = HKDF(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=None,
+                info=b'GPAKE encryption',
+            )
+            derived_key = hkdf.derive(passwords[event_type])
+            #password = passwords[event_type] #.encode('utf-8')
+            cipher = ChaCha20Poly1305(derived_key)  # Using a 32-byte key for ChaCha20-Poly1305
             nonce = secrets.token_bytes(12)  # ChaCha20-Poly1305 requires a 12-byte nonce
             encrypted_pub_key = cipher.encrypt(nonce, pub_key_bytes, None)
             encrypted_keys[event_type] = (nonce, encrypted_pub_key)
@@ -207,73 +214,85 @@ class PartitionedGPAKE:
         return group_key
 
     def host_protocol(self, passwords, grouped_events, conn):
-    
+        print("Host protocol started")
         # Step 1: Generate key pairs for each event group
         event_keys = self.generate_key_pairs_for_events(grouped_events)
-    
+        print("Host: Generated key pairs")
         # Step 2: Encrypt public keys using passwords
         encrypted_keys = self.encrypt_public_keys(event_keys, passwords)
-    
+        print("Host: Encrypted public keys")
         # Step 3: Broadcast encrypted public keys
         self.broadcast_encrypted_keys(conn, encrypted_keys)
-    
+        print("Host: Broadcasted encrypted public keys")
         # Step 4: Receive and decrypt public keys from other devices
         valid_keys = self.receive_and_decrypt_keys(conn, passwords)
-    
+        print("Host: Received and decrypted public keys")
         # Step 5: Generate session IDs using valid public keys
         session_ids = self.generate_session_ids("host", ["device"], valid_keys)
-    
+        
         # Step 6: Derive intermediate ECDH keys
         private_key = self.private_key  # Host uses its existing private key
         ecdh_keys = self.derive_ecdh_keys(private_key, valid_keys)
-    
+        print("Host: Derived intermediate ECDH keys")
+        
         # Step 7: Generate random values for each event group
         random_values = self.generate_random_values(grouped_events)
     
         # Step 8: Encrypt the random values using the intermediate ECDH keys
         encrypted_values = self.encrypt_random_values(random_values, ecdh_keys)
+        print("Host: Encrypted random values")
     
         # Step 9: Broadcast the encrypted random values along with session IDs
         self.broadcast_encrypted_values(conn, "host", session_ids, encrypted_values)
+        print("Host: Broadcasted encrypted random values")
     
         # Step 10: Process incoming messages to retrieve the random values sent by other devices
         derived_random_values = self.process_incoming_messages(conn, "host", ecdh_keys)
+        print("Host: Processed incoming messages")
     
         # Step 11: Derive the group key by summing or using a KDF on the collected random values
         group_key = self.derive_group_key(derived_random_values)
     
         # Step 12: Notify other devices about the success of key establishment
         send_status(conn, True)
-    
+
         return group_key
 
 
     def device_protocol(self, passwords, grouped_events, conn, local_id, remote_ids):
-    
+        print("Device protocol started")
         # Step 1: Receive and decrypt the encrypted public keys using all passwords
         valid_keys = self.receive_and_decrypt_keys(conn, passwords)
+        print("Device: Received and decrypted public keys")
     
         # Step 2: Generate session IDs for the valid keys
         session_ids = self.generate_session_ids(local_id, remote_ids, valid_keys)
+        print("Device: Generated session IDs")
     
         # Step 3: Derive the intermediate ECDH keys using the private key and the valid public keys
         private_key = ec.generate_private_key(self.curve)  # Assume each device has its private key
         ecdh_keys = self.derive_ecdh_keys(private_key, valid_keys)
+        print("Device: Derived intermediate ECDH keys")
     
         # Step 4: Generate random values for each grouped event
         random_values = self.generate_random_values(grouped_events)
     
         # Step 5: Encrypt the random values using the intermediate ECDH keys
         encrypted_values = self.encrypt_random_values(random_values, ecdh_keys)
+        print("Device: Encrypted random values")
     
         # Step 6: Broadcast the encrypted random values along with the session ID and device ID
         self.broadcast_encrypted_values(conn, local_id, session_ids, encrypted_values)
+        print("Device: Broadcasted encrypted random values")
     
         # Step 7: Process incoming messages to retrieve the random values sent by other devices
         derived_random_values = self.process_incoming_messages(conn, local_id, ecdh_keys)
+        print("Device: Processed incoming messages")
     
         # Step 8: Derive the group key by summing or using a KDF on the collected random values
         group_key = self.derive_group_key(derived_random_values)
+        print("Device: Derived group key")
+        print("Device protocol finished")
     
         return group_key
 

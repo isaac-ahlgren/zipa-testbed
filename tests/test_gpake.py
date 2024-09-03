@@ -117,5 +117,5 @@ def test_partitioned_gpake_device_protocol(setup_keys):
 
 
 if __name__ == "__main__":
-    pytest.main([__file__])
+    pytest.main([__file__, "-s"])
 
