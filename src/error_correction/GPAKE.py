@@ -19,12 +19,13 @@ from networking.network import (
 class PartitionedGPAKE:
     def __init__(self, key_length, timeout):
         # Initialize cryptographic components
+        #Step 3
         self.curve = ec.SECP256R1()  # Example elliptic curve choice
-        self.P = self.curve.generator
+        # Generate a private key and use its public key as the generator point
+        temp_private_key = ec.generate_private_key(self.curve)
+        self.P = temp_private_key.public_key().public_numbers().x  # Use the x-coordinate as an example generator value
         self.hash_algo = hashes.BLAKE2b(64)  # BLAKE2b with a 64-byte digest
-        self.encryption_algo = (
-            ChaCha20Poly1305  # Authenticated encryption with ChaCha20-Poly1305
-        )
+        self.encryption_algo = ChaCha20Poly1305  # Authenticated encryption with ChaCha20-Poly1305
         self.key_length = key_length
         self.timeout = timeout
 
@@ -33,7 +34,7 @@ class PartitionedGPAKE:
         self.public_key = self.private_key.public_key()
 
     # Other initialization methods if necessary
-
+    #Step 4
     def generate_key_pair(self):
         priv_key = ec.generate_private_key(self.curve)
         pub_key = priv_key.public_key()
@@ -49,7 +50,7 @@ class PartitionedGPAKE:
             }
         return event_keys
 
-    
+    #Step 5
     def encrypt_public_keys(self, event_keys, passwords):
         encrypted_keys = {}
         for event_type, keys in event_keys.items():
@@ -65,10 +66,12 @@ class PartitionedGPAKE:
             encrypted_keys[event_type] = (nonce, encrypted_pub_key)
         return encrypted_keys
     
+    #Step 6
     def broadcast_encrypted_keys(self, conn, encrypted_keys):
         for event_type, (nonce, encrypted_key) in encrypted_keys.items():
             send_gpake_msg(conn, [nonce, encrypted_key])
 
+    #Step 7 and 8
     def receive_and_decrypt_keys(self, conn, passwords):
         valid_keys = {}
         while True:
@@ -94,6 +97,7 @@ class PartitionedGPAKE:
                     continue
         return valid_keys
 
+    #Step 9
     def generate_session_ids(self, local_id, remote_ids, valid_keys):
         session_ids = {}
         for password, pub_key in valid_keys.items():
@@ -102,6 +106,7 @@ class PartitionedGPAKE:
                 session_ids[password] = session_id
         return session_ids
 
+    #Step 10
     def derive_ecdh_keys(self, private_key, valid_keys):
         ecdh_keys = {}
         for password, pub_key in valid_keys.items():
@@ -112,6 +117,7 @@ class PartitionedGPAKE:
             ecdh_keys[password] = derived_key
         return ecdh_keys
     
+    #Step 11
     def generate_random_values(self, grouped_events):
         random_values = {}
         for group_index, events in enumerate(grouped_events):
@@ -119,6 +125,7 @@ class PartitionedGPAKE:
             random_values[group_index] = random_value
         return random_values
     
+    #Step 11.5
     def encrypt_random_values(self, random_values, ecdh_keys):
         encrypted_values = {}
         for event_type, random_value in random_values.items():
@@ -129,20 +136,24 @@ class PartitionedGPAKE:
             encrypted_values[event_type] = (nonce, encrypted_value)
         return encrypted_values
     
+    #Step 12
     def broadcast_encrypted_values(self, conn, local_id, session_ids, encrypted_values):
         for event_type, (nonce, encrypted_value) in encrypted_values.items():
             session_id = session_ids[event_type]
             message = [local_id.encode('utf-8'), session_id.encode('utf-8'), nonce, encrypted_value]
             send_gpake_msg(conn, message)
 
+    #Step 13
     def check_session_id(self, session_id, local_id):
         return local_id in session_id
     
+    #Step 14
     def decrypt_random_value(self, encrypted_value, nonce, intermediate_key):
         cipher = ChaCha20Poly1305(intermediate_key)
         random_value = cipher.decrypt(nonce, encrypted_value, None)
         return random_value
     
+    #Step 15
     def process_incoming_messages(self, conn, local_id, ecdh_keys):
         derived_random_values = {}
     
