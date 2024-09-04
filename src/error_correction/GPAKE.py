@@ -1,6 +1,7 @@
 import hashlib
 import os
 import secrets
+import traceback  # Import to help with detailed error tracing
 
 import zmq
 from cryptography.hazmat.primitives import hashes, serialization
@@ -81,27 +82,64 @@ class PartitionedGPAKE:
     #Step 7 and 8
     def receive_and_decrypt_keys(self, conn, passwords):
         valid_keys = {}
-        while True:
+        print("Device: receive_and_decrypt_keys started", flush=True)
+        
+        used_passwords = set()
+
+        num_expected_keys = len(passwords)
+        num_received_keys = 0
+        
+        while num_received_keys < num_expected_keys:
+            print("Device: Waiting for data...", flush=True)
             received_data = gpake_msg_standby(conn, self.timeout)
             if received_data is None:
+                print("Device: No more data to receive or timed out", flush=True)
                 break  # No more data to receive or timed out
         
+            print(f"Device: Received data: {received_data}", flush=True)
             nonce, encrypted_pub_key = received_data
+
             for password in passwords:
+                if password in used_passwords:
+                    # Skip already used passwords
+                    print(f"Device: Skipping password {password} as it has already been successful", flush=True)
+                    continue
+
                 try:
-                    cipher = ChaCha20Poly1305(password.encode('utf-8')[:32])
+                    print(f"Device: Trying to decrypt with password: {password}", flush=True)
+                    hkdf = HKDF(
+                        algorithm=hashes.SHA256(),
+                        length=32,
+                        salt=None,
+                        info=b'GPAKE encryption',
+                    )
+                    derived_key = hkdf.derive(password)
+                    cipher = ChaCha20Poly1305(derived_key)
                     pub_key_bytes = cipher.decrypt(nonce, encrypted_pub_key, None)
+                    print(f"Device: Successfully decrypted bytes: {pub_key_bytes}", flush=True)
                 
                     # Deserialize the public key
                     pub_key = ec.EllipticCurvePublicKey.from_encoded_point(self.curve, pub_key_bytes)
+                    print(f"Device: Successfully decrypted and deserialized public key: {pub_key}", flush=True)
                 
                     # Check if the public key is valid on the curve
                     if isinstance(pub_key, ec.EllipticCurvePublicKey):
                         valid_keys[password] = pub_key
+                        used_passwords.add(password)  # Mark password as used
+                        num_received_keys += 1  # Increment the number of received keys
+                        print(f"Device: Valid public key found with password: {password}", flush=True)
                         break  # Exit the loop once a valid key is found
                 except Exception as e:
+                    print(f"Device: Decryption failed with password: {password}", flush=True)
+                    traceback.print_exc()  # Detailed error output
                     # If decryption or validation fails, continue with the next password
                     continue
+
+            # Check if all keys have been processed
+            if num_received_keys >= num_expected_keys:
+                print(f"Device: All {num_received_keys} keys successfully received and decrypted.", flush=True)
+                break
+
         return valid_keys
 
     #Step 9
@@ -122,6 +160,7 @@ class PartitionedGPAKE:
             # Optionally, you can hash the shared key to derive the final key material
             derived_key = hashlib.blake2b(shared_key).digest()
             ecdh_keys[password] = derived_key
+            print(f"Derived ECDH key for event type {event_type}: {derived_key.hex()}", flush=True)
         return ecdh_keys
     
     #Step 11
@@ -130,12 +169,17 @@ class PartitionedGPAKE:
         for group_index, events in enumerate(grouped_events):
             random_value = secrets.token_bytes(self.key_length)
             random_values[group_index] = random_value
+            print(f"Generated random value for group {group_index}: {random_value.hex()}", flush=True)
         return random_values
     
     #Step 11.5
     def encrypt_random_values(self, random_values, ecdh_keys):
         encrypted_values = {}
         for event_type, random_value in random_values.items():
+            if event_type not in ecdh_keys:
+                print(f"Error: No ECDH key found for event type {event_type}", flush=True)
+                print(f"Available ECDH keys: {list(ecdh_keys.keys())}", flush=True)
+                raise KeyError(f"Missing ECDH key for event type {event_type}")
             key = ecdh_keys[event_type]
             cipher = ChaCha20Poly1305(key)
             nonce = secrets.token_bytes(12)  # ChaCha20-Poly1305 requires a 12-byte nonce
