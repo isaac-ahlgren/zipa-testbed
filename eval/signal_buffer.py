@@ -1,5 +1,18 @@
 import numpy as np
-from eval_tools import calc_snr_dist_params
+
+def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
+    """
+    Calculate the noise standard deviation for a given signal and target SNR.
+
+    :param signal: The input signal array.
+    :param target_snr: The desired signal-to-noise ratio in dB.
+    :return: The calculated noise standard deviation.
+    """
+    sig_sqr_sum = np.mean(signal**2)
+    sig_db = 10 * np.log10(sig_sqr_sum)
+    noise_db = sig_db - target_snr
+    noise_avg_sqr = 10 ** (noise_db / 10)
+    return np.sqrt(noise_avg_sqr)
 
 class Signal_Buffer:
     def __init__(self, buf: np.ndarray, noise: bool = False, target_snr: int = 20):

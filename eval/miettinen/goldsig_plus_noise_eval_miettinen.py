@@ -12,7 +12,7 @@ from miettinen_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import add_gauss_noise, cmp_bits  # noqa: E402
+from eval_tools import add_gauss_noise # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 SNAP_SHOT_WIDTH_DEFAULT = 0.1
@@ -62,9 +62,9 @@ def main(
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials)
+    evaluator.evaluate_controlled_signals(signals, trials)
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)
 
     le_avg_be = np.mean(legit_bit_errs)
     adv_avg_be = np.mean(adv_bit_errs)

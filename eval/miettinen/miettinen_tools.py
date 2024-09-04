@@ -12,7 +12,7 @@ sys.path.insert(
 
 from signal_processing.miettinen import MiettinenProcessing  # noqa: E402
 
-MICROPHONE_SAMPLING_RATE = 48000
+MICROPHONE_SAMPLING_RATE = 44100
 
 
 def miettinen_wrapper_func(

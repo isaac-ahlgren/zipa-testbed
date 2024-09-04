@@ -14,8 +14,7 @@ from schurmann_tools import (
     schurmann_wrapper_func,
 )
 
-sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import cmp_bits  # noqa: E402
+sys.path.insert(1, os.getcwd() + "/..") 
 from evaluator import Evaluator  # noqa: E402
 
 WINDOW_LENGTH_DEFAULT = 16537
@@ -68,8 +67,8 @@ def main(
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER)
-    # Comparing the bit errors for legitimate and adversary signals
+    evaluator.evaluate_controlled_signals(signals, trials, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER)
+    # Comparing the bit errors for legitimate adversary signals
     legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)
 
     le_avg_be = np.mean(legit_bit_errs)

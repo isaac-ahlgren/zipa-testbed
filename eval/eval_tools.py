@@ -5,8 +5,21 @@ import numpy as np
 import pandas as pd
 from scipy.io import wavfile
 
-from signal_buffer import Signal_Buffer
+from signal_buffer import Signal_Buffer, calc_snr_dist_params
 from signal_file import Signal_File
+
+def add_gauss_noise(signal: np.ndarray, target_snr: float) -> np.ndarray:
+    """
+    Add Gaussian noise to a signal based on a target SNR.
+
+    :param signal: The input signal array.
+    :param target_snr: The desired signal-to-noise ratio in dB.
+    :return: The signal with added Gaussian noise.
+    """
+
+    noise_std = calc_snr_dist_params(signal, target_snr)
+    noise = np.random.normal(0, noise_std, len(signal))
+    return signal + noise
 
 def gen_id():
     return random.randint(0, 2**64) # nosec
@@ -29,11 +42,11 @@ def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     :return: A tuple containing the signal data as a numpy array and the sample rate.
     """
     sr, data = wavfile.read(file_name)
-    return data.astype(np.int64), sr
+    return data.astype(np.int64)
 
 def load_controlled_signal_buffers(target_snr=20, noise=True):
-    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal(
+    legit_signal = load_controlled_signal("../../data/controlled_signal.wav")
+    adv_signal = load_controlled_signal(
         "../../data/adversary_controlled_signal.wav"
     )
     legit_signal_buffer1 = Signal_Buffer(
@@ -45,34 +58,14 @@ def load_controlled_signal_buffers(target_snr=20, noise=True):
     adv_signal_buffer = Signal_Buffer(adv_signal)
     return (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
-
-def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
-    """
-    Calculate the noise standard deviation for a given signal and target SNR.
-
-    :param signal: The input signal array.
-    :param target_snr: The desired signal-to-noise ratio in dB.
-    :return: The calculated noise standard deviation.
-    """
-    sig_sqr_sum = np.mean(signal**2)
-    sig_db = 10 * np.log10(sig_sqr_sum)
-    noise_db = sig_db - target_snr
-    noise_avg_sqr = 10 ** (noise_db / 10)
-    return np.sqrt(noise_avg_sqr)
-
-
-def add_gauss_noise(signal: np.ndarray, target_snr: float) -> np.ndarray:
-    """
-    Add Gaussian noise to a signal based on a target SNR.
-
-    :param signal: The input signal array.
-    :param target_snr: The desired signal-to-noise ratio in dB.
-    :return: The signal with added Gaussian noise.
-    """
-
-    noise_std = calc_snr_dist_params(signal, target_snr)
-    noise = np.random.normal(0, noise_std, len(signal))
-    return signal + noise
+def load_controlled_signal_files():
+    legit_signal_file1 = Signal_File("../../data/", "controlled_signal.wav", load_func=load_controlled_signal, id="legit_signal1"
+    )
+    legit_signal_file1 = Signal_File("../../data/", "controlled_signal.wav", load_func=load_controlled_signal, id="legit_signal2"
+    )
+    adv_signal_buffer = Signal_File("../../data/", "adversary_controlled_signal.wav", load_func=load_controlled_signal, id="adv_signal"
+    )
+    return (legit_signal_file1, legit_signal_file2, adv_signal_file)
 
 
 def bytes_to_bitstring(b: bytes, length: int) -> str:

@@ -69,7 +69,7 @@ def main(
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER, target_snr)
+    evaluator.evaluate_controlled_signals(signals, trials, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER, target_snr)
     # Comparing the bit errors for legitimate and adversary signals
     legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)
 

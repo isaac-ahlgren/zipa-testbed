@@ -16,12 +16,11 @@ from schurmann_tools import (
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
     cmp_bits,
-    load_controlled_signal_buffers,
+    load_controlled_signal_files,
     log_bytes,
     log_parameters,
     gen_id
 )
-from signal_buffer import Signal_Buffer # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 # Static default parameters
@@ -40,7 +39,7 @@ def main(
     if os.path.isdir(DATA_DIRECTORY):
         os.mkdir(DATA_DIRECTORY)
 
-    signals = load_controlled_signal_buffers()
+    signals = load_controlled_signal_files()
 
     def get_random_parameters():
         window_length = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1])
@@ -53,7 +52,7 @@ def main(
 
     def log(byte_list, *params):
         id = gen_id()
-        os.mkdir(f"schurmann_id{id}")
+        os.mkdir(f"./{DATA_DIRECTORY}/schurmann_id{id}")
         file_stub = f"{DATA_DIRECTORY}/schurmann_id{id}/schurmann_id{id}"
         names = ["window_length", "band_length", "sample_num"]
         param_list = [params[0], params[1], params[4]]
