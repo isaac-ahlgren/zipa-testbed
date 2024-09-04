@@ -209,16 +209,12 @@ class FastZIPProcessing:
         power, snr, peaks = 0, 0, 0
 
         power = FastZIPProcessing.compute_sig_power(signal)
-        print("Power threshold: ", power_thresh)
-        print("Actual power: ", power)
 
         if peak_status:
             signal = FastZIPProcessing.ewma_filter(abs(signal), alpha)
             peaks = FastZIPProcessing.get_peaks(signal, sample_rate)
 
         snr = FastZIPProcessing.compute_snr(signal)
-        print("Snr threshold: ", snr_thresh)
-        print("Actual snr: ", snr)
 
         activity_detected = False
         if power > power_thresh and snr > snr_thresh and peaks >= peak_thresh:

@@ -1,157 +1,25 @@
-import glob
-from typing import Callable, List, Tuple
+from typing import List, Tuple
+import random
 
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
 
+from signal_buffer import Signal_Buffer
+from signal_file import Signal_File
 
-class Signal_Buffer:
-    def __init__(self, buf: np.ndarray, noise: bool = False, target_snr: int = 20):
-        """
-        Initialize a buffer to manage signal data with optional noise addition.
+def gen_id():
+    return random.randint(0, 2**64) # nosec
 
-        :param buf: Array containing the signal data.
-        :param noise: If true, Gaussian noise is added to the output based on the target SNR.
-        :param target_snr: The signal-to-noise ratio used to calculate noise level.
-        """
-        self.signal_buffer = buf
-        self.index = 0
-        self.noise = noise
-        if self.noise:
-            self.noise_std = calc_snr_dist_params(buf, target_snr)
+def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
+    bits = []
+    while not signal.finished_reading():
+        b = bit_gen_algo_wrapper(signal, *argv)
+        bits.append(b)
+    return bits
 
-    def read(self, samples_to_read: int) -> np.ndarray:
-        """
-        Read a specific number of samples from the buffer, adding noise if specified.
-
-        :param samples_to_read: The number of samples to read from the buffer.
-        :return: An array of the read samples, possibly with noise added.
-        """
-        samples = samples_to_read
-
-        output = np.array([])
-        while samples_to_read != 0:
-            samples_can_read = len(self.signal_buffer) - self.index
-            if samples_can_read <= samples_to_read:
-                buf = self.signal_buffer[self.index : self.index + samples_can_read]
-                output = np.append(output, buf)
-                samples_to_read = samples_to_read - samples_can_read
-                self.index = 0
-            else:
-                buf = self.signal_buffer[self.index : self.index + samples_to_read]
-                output = np.append(output, buf)
-                self.index = self.index + samples_to_read
-                samples_to_read = 0
-        if self.noise:
-            noise = np.random.normal(0, self.noise_std, samples)
-            output += noise
-        return output
-
-    def sync(self, other_signal_buff: "Signal_Buffer"):
-        """
-        Synchronize this buffer's index with another signal buffer's index.
-
-        :param other_signal_buff: Another Signal_Buffer instance to synchronize with.
-        """
-        self.index = other_signal_buff.index
-
-    def reset(self):
-        self.index = 0
-
-
-class Signal_File:
-    def __init__(
-        self,
-        signal_directory: str,
-        file_names: str,
-        wrap_around_read: bool = False,
-        load_func: Callable = np.loadtxt,
-    ):
-        """
-        Initialize a file-based signal manager that can handle multiple signal files.
-
-        :param signal_directory: The directory containing signal files.
-        :param file_pattern: The glob pattern to match files within the directory.
-        :param wrap_around_read: If True, wraps around to the first file after the last file is read.
-        :param load_func: The function used to load signal data from a file.
-        """
-        self.signal_directory = signal_directory
-        self.files = glob.glob(file_names, root_dir=signal_directory)
-        if len(self.files) == 0:
-            print("No files found")
-        else:
-            self.files.sort()
-        self.file_index = 0
-        self.start_sample = 0
-        self.load_func = load_func
-        self.sample_buffer = self.load_func(self.signal_directory + self.files[0])
-        self.wrap_around_read = wrap_around_read
-
-    def switch_files(self):
-        """
-        Switch to the next file in the directory or wrap around if enabled.
-        """
-        self.start_sample = 0
-        self.file_index += 1
-        print("Loading in " + self.signal_directory + self.files[self.file_index])
-        if len(self.files) == self.file_index and self.wrap_around_read:
-            self.reset()
-        else:
-            del self.sample_buffer
-            self.sample_buffer = self.load_func(
-                self.signal_directory + self.files[self.file_index]
-            )
-
-    def read(self, samples: int) -> np.ndarray:
-        """
-        Read a specified number of samples across multiple files.
-
-        :param samples: Number of samples to read.
-        :return: Array containing the read samples.
-        """
-        output = np.array([])
-
-        while samples != 0:
-            samples_can_read = len(self.sample_buffer) - self.start_sample
-            if samples_can_read <= samples:
-                buffer = self.sample_buffer[
-                    self.start_sample : self.start_sample + samples_can_read
-                ]
-                output = np.append(output, buffer)
-                self.switch_files()
-                samples -= samples_can_read
-            else:
-                buffer = self.sample_buffer[
-                    self.start_sample : self.start_sample + samples
-                ]
-                output = np.append(output, buffer)
-                self.start_sample = self.start_sample + samples
-                samples = 0
-        return output
-
-    def reset(self):
-        """
-        Reset the reader to the start of the first file.
-        """
-        self.start_sample = 0
-        self.file_index = 0
-        del self.sample_buffer
-        self.sample_buffer = self.load_func(self.signal_directory + self.files[0])
-
-    def sync(self, other_sf: "Signal_File"):
-        """
-        Synchronize this file reader with another, matching the current file and sample index.
-
-        :param other_sf: Another Signal_File instance to synchronize with.
-        """
-        self.file_index = other_sf.file_index
-        self.start_sample = other_sf.start_sample
-        del self.sample_buffer
-        self.sample_buffer = self.load_func(
-            self.signal_directory + self.files[self.file_index]
-        )
-
+def calc_all_events(signal: Signal_File, event_gen_algo_wrapper):
+    pass
 
 def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     """
@@ -162,6 +30,20 @@ def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     """
     sr, data = wavfile.read(file_name)
     return data.astype(np.int64), sr
+
+def load_controlled_signal_buffers(target_snr=20, noise=True):
+    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
+    adv_signal, sr = load_controlled_signal(
+        "../../data/adversary_controlled_signal.wav"
+    )
+    legit_signal_buffer1 = Signal_Buffer(
+        legit_signal.copy(), noise=noise, target_snr=target_snr
+    )
+    legit_signal_buffer2 = Signal_Buffer(
+        legit_signal.copy(), noise=noise, target_snr=target_snr
+    )
+    adv_signal_buffer = Signal_Buffer(adv_signal)
+    return (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
 
 def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
@@ -282,17 +164,21 @@ def flatten_fingerprints(fps: List[List[bytes]]) -> List[bytes]:
             flattened_fps.append(bits)
     return flattened_fps
 
-def log_bytes(file_name_stub, byte_list)
-    for b in 
+def log_bytes(file_name_stub, byte_list, key_length):
+    iteration = 0
+    for b in byte_list:
+        file_name = file_name_stub + "_" + str(iteration) + ".txt"
+        bit_string = bytes_to_bitstring(b, key_length)
+        with open(file_name, "w") as file:
+            file.write(bit_string)
+        iteration += 1
 
-def log_parameters(file_name, name_list, parameter_list, legit_bit_errs, adv_bit_errs):
+def log_parameters(file_name_stub, name_list, parameter_list):
     csv_file = dict()
     for name, param in zip(name_list, parameter_list):
         csv_file[name] = param
 
-    csv_file["legit bit errors"] = legit_bit_errs
-    csv_file["adversary bit errors"] = adv_bit_errs
-
+    file_name = file_name_stub + "_params.csv"
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name, index=False)
  
