@@ -26,9 +26,11 @@ def gen_id():
 
 def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
     bits = []
-    while not signal.finished_reading():
+    while not signal.get_finished_reading():
+        print("here")
         b = bit_gen_algo_wrapper(signal, *argv)
         bits.append(b)
+    print("exit")
     return bits
 
 def calc_all_events(signal: Signal_File, event_gen_algo_wrapper):
@@ -61,9 +63,9 @@ def load_controlled_signal_buffers(target_snr=20, noise=True):
 def load_controlled_signal_files():
     legit_signal_file1 = Signal_File("../../data/", "controlled_signal.wav", load_func=load_controlled_signal, id="legit_signal1"
     )
-    legit_signal_file1 = Signal_File("../../data/", "controlled_signal.wav", load_func=load_controlled_signal, id="legit_signal2"
+    legit_signal_file2 = Signal_File("../../data/", "controlled_signal.wav", load_func=load_controlled_signal, id="legit_signal2"
     )
-    adv_signal_buffer = Signal_File("../../data/", "adversary_controlled_signal.wav", load_func=load_controlled_signal, id="adv_signal"
+    adv_signal_file = Signal_File("../../data/", "adversary_controlled_signal.wav", load_func=load_controlled_signal, id="adv_signal"
     )
     return (legit_signal_file1, legit_signal_file2, adv_signal_file)
 

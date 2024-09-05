@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Tuple
 from multiprocessing import Process
 
-from eval_tools import Signal_Buffer, calc_all_bits, calc_all_events, cmp_bits, events_cmp_bits
+from eval_tools import Signal_Buffer, calc_all_bits, calc_all_events, cmp_bits, events_cmp_bits, gen_id
 from signal_file import Signal_File
 
 
@@ -81,21 +81,21 @@ class Evaluator:
     def evaluate_device_ed(self, signal: Signal_File, params: Tuple):
         return calc_all_events(signal, self.bit_gen_algo_wrapper, *params)
 
-    def fuzzing_func(self, signal, params):
+    def fuzzing_func(self, signal, choice_id, params):
         if self.event_driven:
                 outcome = self.evaluate_device_ed(signal, params)
         else:
                 outcome = self.evaluate_device_non_ed(signal, params)
-        self.logging_func(outcome, *params)
+        self.logging_func(outcome, choice_id, signal.get_id(), *params)
 
-    def fuzzing_single_threaded(self, signals, params):
+    def fuzzing_single_threaded(self, signals, choice_id, params):
         for signal in signals:
-            self.fuzzing_func(signal, params)
+            self.fuzzing_func(signal, choice_id, params)
 
-    def fuzzing_multithreaded(self, signals, params):
+    def fuzzing_multithreaded(self, signals, choice_id, params):
         threads = []
         for signal in signals:
-            p = Process(target=self.fuzzing_func, args=(signal, params))
+            p = Process(target=self.fuzzing_func, args=(signal, choice_id, params))
             p.start()
             threads.append(p)
 
@@ -105,7 +105,8 @@ class Evaluator:
     def fuzzing_evaluation(self, signals, number_of_choices, multithreaded=True) -> None:
         for i in range(number_of_choices):
             params = self.random_parameter_func()
+            choice_id = gen_id()
             if multithreaded:
-                self.fuzzing_multithreaded(signals, params)
+                self.fuzzing_multithreaded(signals, choice_id, params)
             else:
-                self.fuzzing_single_threaded(signals, params)
+                self.fuzzing_single_threaded(signals, choice_id, params)
