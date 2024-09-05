@@ -12,8 +12,8 @@ from perceptio_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import Signal_Buffer, events_cmp_bits  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
+from signal_buffer import Signal_Buffer  # noqa: E402
 
 TOP_TH_DEFAULT = 6
 BOTTOM_TH_DEFAULT = 4
@@ -89,13 +89,11 @@ def main(
         return bits
 
     # Creating an evaluator object with the bit generation algorithm
-    evaluator = Evaluator(bit_gen_algo)
+    evaluator = Evaluator(bit_gen_algo, event_driven=True)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials)
+    evaluator.evaluate_controlled_signals(signals, trials)
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(
-        events_cmp_bits, key_size_in_bytes
-    )
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_size_in_bytes * 8)
 
     le_avg_be = np.mean(legit_bit_errs)
     adv_avg_be = np.mean(adv_bit_errs)

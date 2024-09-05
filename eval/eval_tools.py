@@ -1,12 +1,12 @@
-from typing import List, Tuple
 import random
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
-
 from signal_buffer import Signal_Buffer, calc_snr_dist_params
 from signal_file import Signal_File
+
 
 def add_gauss_noise(signal: np.ndarray, target_snr: float) -> np.ndarray:
     """
@@ -21,20 +21,23 @@ def add_gauss_noise(signal: np.ndarray, target_snr: float) -> np.ndarray:
     noise = np.random.normal(0, noise_std, len(signal))
     return signal + noise
 
+
 def gen_id():
-    return random.randint(0, 2**64) # nosec
+    return random.randint(0, 2**64)  # nosec
+
 
 def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
     bits = []
     while not signal.get_finished_reading():
         b = bit_gen_algo_wrapper(signal, *argv)
-        print(f"{b}, {signal.get_finished_reading()}")
         if b is not None:
             bits.append(b)
     return bits
 
+
 def calc_all_events(signal: Signal_File, event_gen_algo_wrapper):
     pass
+
 
 def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     """
@@ -46,11 +49,10 @@ def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     sr, data = wavfile.read(file_name)
     return data.astype(np.int64)
 
+
 def load_controlled_signal_buffers(target_snr=20, noise=True):
     legit_signal = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal = load_controlled_signal(
-        "../../data/adversary_controlled_signal.wav"
-    )
+    adv_signal = load_controlled_signal("../../data/adversary_controlled_signal.wav")
     legit_signal_buffer1 = Signal_Buffer(
         legit_signal.copy(), noise=noise, target_snr=target_snr
     )
@@ -60,12 +62,25 @@ def load_controlled_signal_buffers(target_snr=20, noise=True):
     adv_signal_buffer = Signal_Buffer(adv_signal)
     return (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
 
+
 def load_controlled_signal_files():
-    legit_signal_file1 = Signal_File("../../data/", "controlled_signal.wav", load_func=load_controlled_signal, id="legit_signal1"
+    legit_signal_file1 = Signal_File(
+        "../../data/",
+        "controlled_signal.wav",
+        load_func=load_controlled_signal,
+        id="legit_signal1",
     )
-    legit_signal_file2 = Signal_File("../../data/", "controlled_signal.wav", load_func=load_controlled_signal, id="legit_signal2"
+    legit_signal_file2 = Signal_File(
+        "../../data/",
+        "controlled_signal.wav",
+        load_func=load_controlled_signal,
+        id="legit_signal2",
     )
-    adv_signal_file = Signal_File("../../data/", "adversary_controlled_signal.wav", load_func=load_controlled_signal, id="adv_signal"
+    adv_signal_file = Signal_File(
+        "../../data/",
+        "adversary_controlled_signal.wav",
+        load_func=load_controlled_signal,
+        id="adv_signal",
     )
     return (legit_signal_file1, legit_signal_file2, adv_signal_file)
 
@@ -89,8 +104,10 @@ def bytes_to_bitstring(b: bytes, length: int) -> str:
         bs = bs[:length]
     return bs
 
+
 def bitstring_to_bytes(s: str) -> bytes:
     return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
+
 
 def cmp_bits(bits1: bytes, bits2: bytes, length: int) -> float:
     """
@@ -159,6 +176,7 @@ def flatten_fingerprints(fps: List[List[bytes]]) -> List[bytes]:
             flattened_fps.append(bits)
     return flattened_fps
 
+
 def log_bytes(file_name_stub, byte_list, key_length):
     iteration = 0
     for b in byte_list:
@@ -168,15 +186,16 @@ def log_bytes(file_name_stub, byte_list, key_length):
             file.write(bit_string)
         iteration += 1
 
+
 def log_parameters(file_name_stub, name_list, parameter_list):
     csv_file = dict()
     for name, param in zip(name_list, parameter_list):
-        csv_file[name] = param
+        csv_file[name] = [param]
 
     file_name = file_name_stub + "_params.csv"
     df = pd.DataFrame(csv_file)
-    df.to_csv(file_name, index=False)
- 
+    df.to_csv(file_name)
+
 
 def get_min_entropy(bits: List[bytes], key_length: int, symbol_size: int) -> float:
     """

@@ -4,18 +4,16 @@ from typing import ByteString
 
 import numpy as np
 from fastzip_tools import (
+    MICROPHONE_SAMPLING_RATE,
     fastzip_wrapper_function,
     manage_overlapping_chunks,
     parse_command_line_args,
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import (  # noqa: E402
-    Signal_Buffer,
-    cmp_bits,
-    load_controlled_signal,
-)
+from eval_tools import load_controlled_signal_buffers  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
+from signal_buffer import Signal_Buffer  # noqa: E402
 
 WINDOW_SIZE_DEFAULT = 200
 OVERLAP_SIZE_DEFAULT = 100
@@ -56,20 +54,7 @@ def main(
     trials=TRIALS_DEFAULT,
 ):
 
-    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal(
-        "../../data/adversary_controlled_signal.wav"
-    )
-
-    legit_signal_buffer1 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
-    )
-    legit_signal_buffer2 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
-    )
-    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
-
-    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+    signals = load_controlled_signal_buffers(target_snr=target_snr)
 
     def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
         """
@@ -89,7 +74,7 @@ def main(
                 snr_threshold,
                 number_peaks,
                 bias,
-                sr,
+                MICROPHONE_SAMPLING_RATE,
                 eqd_delta,
                 peak_status,
                 ewma_filter,
@@ -107,9 +92,9 @@ def main(
         return accumulated_bits
 
     evaluator = Evaluator(bit_gen_algo)
-    evaluator.evaluate(signals, trials)
+    evaluator.evaluate_controlled_signals(signals, trials)
 
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)
 
     le_avg_be = np.mean(legit_bit_errs)
     adv_avg_be = np.mean(adv_bit_errs)

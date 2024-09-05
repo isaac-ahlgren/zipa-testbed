@@ -11,6 +11,7 @@ sys.path.insert(
 from signal_processing.fastzip import FastZIPProcessing  # noqa: E402
 
 SAMPLING_RATE = 50
+MICROPHONE_SAMPLING_RATE = 44100
 
 
 def manage_overlapping_chunks(

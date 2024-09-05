@@ -1,14 +1,13 @@
 import os
-import sys
 import random
+import sys
 from typing import List
 
 import numpy as np
 from schurmann_tools import (
     ANTIALIASING_FILTER,
-    MICROPHONE_SAMPLING_RATE,
     DATA_DIRECTORY,
-    get_command_line_args,
+    MICROPHONE_SAMPLING_RATE,
     schurmann_calc_sample_num,
     schurmann_wrapper_func,
 )
@@ -18,19 +17,18 @@ from eval_tools import (  # noqa: E402
     load_controlled_signal_files,
     log_bytes,
     log_parameters,
-    gen_id
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Signal_File # noqa: E402
+from signal_file import Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
-NUMBER_OF_KEYS = 100
 NUMBER_OF_CHOICES_DEFAULT = 100
 
 # Random Parameter Ranges
-WINDOW_LENGTH_RANGE = (5000, 2*48000)
+WINDOW_LENGTH_RANGE = (5000, 2 * 48000)
 MIN_BAND_LENGTH = 1
+
 
 def main(
     key_length=KEY_LENGTH_DEFAULT,
@@ -42,18 +40,31 @@ def main(
     signals = load_controlled_signal_files()
 
     def get_random_parameters():
-        window_length = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1])
-        band_length = random.randint(MIN_BAND_LENGTH, (window_length // 2 + 1) // 2)
+        window_length = random.randint(
+            WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1]
+        )  # nosec
+        band_length = random.randint(
+            MIN_BAND_LENGTH, (window_length // 2 + 1) // 2
+        )  # nosec
         # Calculating the number of samples needed
-        print(f"window_length: {window_length}, band_length: {band_length}")
         sample_num = schurmann_calc_sample_num(
-            key_length, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER
+            key_length,
+            window_length,
+            band_length,
+            MICROPHONE_SAMPLING_RATE,
+            ANTIALIASING_FILTER,
         )
-        print(f"sample_num: {sample_num}")
-        return window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER, sample_num
+        return (
+            window_length,
+            band_length,
+            MICROPHONE_SAMPLING_RATE,
+            ANTIALIASING_FILTER,
+            sample_num,
+        )
 
     def log(byte_list, choice_id, signal_id, *params):
-        os.mkdir(f"./{DATA_DIRECTORY}/schurmann_id{choice_id}")
+        if not os.path.isdir(f"./{DATA_DIRECTORY}/schurmann_id{choice_id}"):
+            os.mkdir(f"./{DATA_DIRECTORY}/schurmann_id{choice_id}")
         file_stub = f"{DATA_DIRECTORY}/schurmann_id{choice_id}/schurmann_id{choice_id}_{signal_id}"
         names = ["window_length", "band_length", "sample_num"]
         param_list = [params[0], params[1], params[4]]
@@ -78,10 +89,16 @@ def main(
         else:
             output = None
         return output
-    
+
     # Creating an evaluator object with the bit generation algorithm
-    evaluator = Evaluator(bit_gen_algo, random_parameter_func=get_random_parameters, logging_func=log, event_driven=False)
+    evaluator = Evaluator(
+        bit_gen_algo,
+        random_parameter_func=get_random_parameters,
+        logging_func=log,
+        event_driven=False,
+    )
     evaluator.fuzzing_evaluation(signals, number_of_choices, multithreaded=False)
+
 
 if __name__ == "__main__":
     main()

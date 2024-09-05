@@ -12,7 +12,7 @@ from miettinen_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import add_gauss_noise # noqa: E402
+from eval_tools import add_gauss_noise  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 SNAP_SHOT_WIDTH_DEFAULT = 0.1

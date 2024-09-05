@@ -3,6 +3,7 @@ from typing import Callable
 
 import numpy as np
 
+
 class Signal_File:
     def __init__(
         self,
@@ -40,14 +41,20 @@ class Signal_File:
         """
         self.start_sample = 0
         self.file_index += 1
-        if len(self.files) == self.file_index and self.wrap_around_read: # Reset if wrap around enabled
+        if (
+            len(self.files) == self.file_index and self.wrap_around_read
+        ):  # Reset if wrap around enabled
             self.reset()
-        else:  
+        else:
             del self.sample_buffer
-            if len(self.files) == self.file_index: # If no more to read, set the finished reading flag
+            if (
+                len(self.files) == self.file_index
+            ):  # If no more to read, set the finished reading flag
                 self.finished_reading = True
             else:
-                print("Loading in " + self.signal_directory + self.files[self.file_index])
+                print(
+                    "Loading in " + self.signal_directory + self.files[self.file_index]
+                )
                 self.sample_buffer = self.load_func(
                     self.signal_directory + self.files[self.file_index]
                 )
@@ -61,7 +68,7 @@ class Signal_File:
         """
         output = np.array([])
 
-        while samples != 0 and not self.finished_reading :
+        while samples != 0 and not self.finished_reading:
             samples_can_read = len(self.sample_buffer) - self.start_sample
             if samples_can_read <= samples:
                 buffer = self.sample_buffer[
@@ -81,7 +88,7 @@ class Signal_File:
 
     def get_finished_reading(self):
         return self.finished_reading
-    
+
     def get_id(self):
         return self.id
 

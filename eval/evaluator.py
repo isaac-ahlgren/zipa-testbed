@@ -1,12 +1,25 @@
-from typing import Any, Callable, List, Tuple
 from multiprocessing import Process
+from typing import Any, Callable, List, Tuple
 
-from eval_tools import Signal_Buffer, calc_all_bits, calc_all_events, cmp_bits, events_cmp_bits, gen_id
+from eval_tools import (
+    Signal_Buffer,
+    calc_all_bits,
+    calc_all_events,
+    cmp_bits,
+    events_cmp_bits,
+    gen_id,
+)
 from signal_file import Signal_File
 
 
 class Evaluator:
-    def __init__(self, bit_gen_algo_wrapper: Callable[[Any], List[bytes]], random_parameter_func=None, logging_func=None, event_driven=False):
+    def __init__(
+        self,
+        bit_gen_algo_wrapper: Callable[[Any], List[bytes]],
+        random_parameter_func=None,
+        logging_func=None,
+        event_driven=False,
+    ):
         """
         Initialize the Evaluator with a specific bit generation algorithm.
 
@@ -20,7 +33,9 @@ class Evaluator:
         self.legit_bits2 = []
         self.adv_bits = []
 
-    def evaluate_controlled_signals(self, signals: Tuple[Any, Any, Any], trials: int, *argv: Any) -> None:
+    def evaluate_controlled_signals(
+        self, signals: Tuple[Any, Any, Any], trials: int, *argv: Any
+    ) -> None:
         """
         Evaluate the signals over a specified number of trials to generate cryptographic bits.
 
@@ -43,9 +58,7 @@ class Evaluator:
             ):
                 legit_signal1.sync(legit_signal2)
 
-    def cmp_collected_bits(
-        self, key_length: int
-    ) -> Tuple[List[float], List[float]]:
+    def cmp_collected_bits(self, key_length: int) -> Tuple[List[float], List[float]]:
         """
         Compare bit errors using a specified comparison function and key length.
 
@@ -66,7 +79,7 @@ class Evaluator:
             legit_bit_errs.append(legit_bit_err)
             adv_bit_errs.append(adv_bit_err)
         return legit_bit_errs, adv_bit_errs
-    
+
     def reset_bits_lists(self):
         del self.legit_bits1
         del self.legit_bits2
@@ -83,9 +96,9 @@ class Evaluator:
 
     def fuzzing_func(self, signal, choice_id, params):
         if self.event_driven:
-                outcome = self.evaluate_device_ed(signal, params)
+            outcome = self.evaluate_device_ed(signal, params)
         else:
-                outcome = self.evaluate_device_non_ed(signal, params)
+            outcome = self.evaluate_device_non_ed(signal, params)
         self.logging_func(outcome, choice_id, signal.get_id(), *params)
 
     def fuzzing_single_threaded(self, signals, choice_id, params):
@@ -102,7 +115,9 @@ class Evaluator:
         for thread in threads:
             thread.join()
 
-    def fuzzing_evaluation(self, signals, number_of_choices, multithreaded=True) -> None:
+    def fuzzing_evaluation(
+        self, signals, number_of_choices, multithreaded=True
+    ) -> None:
         for i in range(number_of_choices):
             params = self.random_parameter_func()
             choice_id = gen_id()

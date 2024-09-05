@@ -12,9 +12,9 @@ from schurmann_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_controlled_signal_buffers # noqa: E402
+from eval_tools import load_controlled_signal_buffers  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
-from signal_buffer import Signal_Buffer # noqa: E402
+from signal_buffer import Signal_Buffer  # noqa: E402
 
 WINDOW_LENGTH_DEFAULT = 16537
 BAND_LENGTH_DEFAULT = 500
@@ -35,7 +35,11 @@ def main(
 
     # Calculating the number of samples needed
     sample_num = schurmann_calc_sample_num(
-        key_length, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER
+        key_length,
+        window_length,
+        band_length,
+        MICROPHONE_SAMPLING_RATE,
+        ANTIALIASING_FILTER,
     )
 
     # Defining thcontrolled_signal_fuzzinge bit generation algorithm
@@ -49,14 +53,20 @@ def main(
         :rtype: np.ndarray
         """
         signal_chunk = signal.read(argv[4])  # Reading a chunk of the signal
-        return schurmann_wrapper_func(
-            signal_chunk, argv[0], argv[1], argv[2], argv[3]
-        )
+        return schurmann_wrapper_func(signal_chunk, argv[0], argv[1], argv[2], argv[3])
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate_controlled_signals(signals, trials, window_length, band_length, MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER, sample_num)
+    evaluator.evaluate_controlled_signals(
+        signals,
+        trials,
+        window_length,
+        band_length,
+        MICROPHONE_SAMPLING_RATE,
+        ANTIALIASING_FILTER,
+        sample_num,
+    )
     # Comparing the bit errors for legitimate and adversary signals
     legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)
 

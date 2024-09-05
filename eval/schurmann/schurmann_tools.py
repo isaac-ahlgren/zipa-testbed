@@ -16,6 +16,7 @@ MICROPHONE_SAMPLING_RATE = 44100
 ANTIALIASING_FILTER = 18000
 DATA_DIRECTORY = "./schurmann_data"
 
+
 def schurmann_wrapper_func(
     arr: np.ndarray,
     window_length: int,
