@@ -40,14 +40,14 @@ class Signal_File:
         """
         self.start_sample = 0
         self.file_index += 1
-        print("Loading in " + self.signal_directory + self.files[self.file_index])
         if len(self.files) == self.file_index and self.wrap_around_read: # Reset if wrap around enabled
             self.reset()
         else:  
             del self.sample_buffer
             if len(self.files) == self.file_index: # If no more to read, set the finished reading flag
-                self.finished_reading = False
+                self.finished_reading = True
             else:
+                print("Loading in " + self.signal_directory + self.files[self.file_index])
                 self.sample_buffer = self.load_func(
                     self.signal_directory + self.files[self.file_index]
                 )

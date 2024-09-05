@@ -27,10 +27,10 @@ def gen_id():
 def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
     bits = []
     while not signal.get_finished_reading():
-        print("here")
         b = bit_gen_algo_wrapper(signal, *argv)
-        bits.append(b)
-    print("exit")
+        print(f"{b}, {signal.get_finished_reading()}")
+        if b is not None:
+            bits.append(b)
     return bits
 
 def calc_all_events(signal: Signal_File, event_gen_algo_wrapper):

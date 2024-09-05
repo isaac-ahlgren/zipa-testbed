@@ -69,10 +69,15 @@ def main(
         :return: The processed signal data after applying the Schurmann algorithm.
         :rtype: np.ndarray
         """
+        read_length = argv[4]
         signal_chunk = signal.read(argv[4])  # Reading a chunk of the signal
-        return schurmann_wrapper_func(
-            signal_chunk, argv[0], argv[1], argv[2], argv[3]
-        ) 
+        if len(signal_chunk) == read_length:
+            output = schurmann_wrapper_func(
+                signal_chunk, argv[0], argv[1], argv[2], argv[3]
+            )
+        else:
+            output = None
+        return output
     
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo, random_parameter_func=get_random_parameters, logging_func=log, event_driven=False)
