@@ -54,7 +54,7 @@ def main(
 ):
     mem_th = 0.8
 
-    signals = load_controlled_signal_files(noise=True, target_snr=target_snr, wrap_around=True)
+    signals = load_controlled_signal_files(target_snr, wrap_around=True)
 
     # Defining the bit generation algorithm
     def bit_gen_algo(signal: Signal_Buffer) -> List[int]:

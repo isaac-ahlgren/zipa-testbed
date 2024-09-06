@@ -61,37 +61,39 @@ def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     sr, data = wavfile.read(file_name)
     return data.astype(np.int64)
 
-def load_controlled_signal_files(noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None):
-    legit_signal_file1 = Signal_File(
-        "../../data/",
-        "controlled_signal.wav",
-        load_func=load_controlled_signal,
-        id="legit_signal1",
-    )
-    legit_signal_file2 = Signal_File(
-        "../../data/",
-        "controlled_signal.wav",
-        load_func=load_controlled_signal,
-        id="legit_signal2",
-    )
-    adv_signal_file = Signal_File(
-        "../../data/",
-        "adversary_controlled_signal.wav",
-        load_func=load_controlled_signal,
-        id="adv_signal",
-    )
-
+def wrap_signal_file(sf, noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None):
     if wrap_around:
-        legit_signal_file1 = Wrap_Around_File(legit_signal_file1, wrap_around_limit=wrap_around_limit)
-        legit_signal_file2 = Wrap_Around_File(legit_signal_file2, wrap_around_limit=wrap_around_limit)
-        adv_signal_file = Wrap_Around_File(adv_signal_file, wrap_around_limit=wrap_around_limit)
-
+        sf = Wrap_Around_File(sf, wrap_around_limit=wrap_around_limit)
     if noise:
-        legit_signal_file1 = Noisy_File(legit_signal_file1, target_snr)
-        legit_signal_file2 = Noisy_File(legit_signal_file2, target_snr)
-        adv_signal_file = Noisy_File(adv_signal_file, target_snr)
+        sf = Noisy_File(sf, target_snr)
+    return sf
 
-    return (legit_signal_file1, legit_signal_file2, adv_signal_file)
+def load_signal_files(dir, files, ids, load_func=np.loadtxt, noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None):
+    sfs = []
+    for file, id in zip(files, ids):
+        sf = Signal_File(dir, file, load_func=load_func, id=id)
+        sf = wrap_signal_file(sf, noise=noise, target_snr=target_snr, wrap_around=wrap_around, wrap_around_limit=wrap_around_limit)
+        sfs.append(sf)
+    return sfs
+
+def load_signal_buffers(buffers, ids, noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None):
+    sbs = []
+    for buf, id in zip(buffers, ids):
+        sb = Signal_Buffer(buf, id=id)
+        sb = wrap_signal_file(sb, noise=noise, target_snr=target_snr, wrap_around=wrap_around, wrap_around_limit=wrap_around_limit)
+        sbs.append(sb)
+    return sbs
+    
+def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limit=None):
+    return load_signal_files("../../data/", 
+                             ["controlled_signal.wav", "controlled_signal.wav", "adversary_controlled_signal.wav"],
+                             ["legit_signal1", "legit_signal2", "adv_signal"],
+                             load_func=load_controlled_signal,
+                             noise=True, target_snr=target_snr,
+                             wrap_around=wrap_around, wrap_around_limit=wrap_around_limit)
+
+def load_controlled_signal_buffers(buffers, target_snr=None, noise=False):
+    return load_signal_buffers([buffers[0], buffers[1], buffers[2]], ids=["legit1", "legit2", "adv"], noise=noise, target_snr=target_snr, wrap_around=True, wrap_around_limit=None)
 
 
 def bytes_to_bitstring(b: bytes, length: int) -> str:

@@ -46,7 +46,7 @@ class Noisy_File(Signal_File_Interface):
         return self.add_gauss_noise(buf, self.target_snr)
 
     def get_finished_reading(self):
-        return self.get_finished_reading()
+        return self.sf.get_finished_reading()
 
     def get_id(self):
         return self.sf.get_id()
@@ -91,13 +91,13 @@ class Wrap_Around_File(Signal_File_Interface):
         return self.sf.get_id()
 
     def reset(self):
-        self.resets_done = 0
+        self.num_of_resets = 0
         self.finished_reading = False
         self.sf.reset()
 
     def sync(self, other_sf):
-        self.resets_done = other_sf.resets_done
-        self.sf.sync(self.other_sf.sf)
+        self.num_of_resets = other_sf.num_of_resets
+        self.sf.sync(other_sf.sf)
 
 class Signal_File(Signal_File_Interface):
     def __init__(
@@ -219,7 +219,7 @@ class Signal_Buffer(Signal_File_Interface):
         """
         self.signal_buffer = buf
         self.dtype = buf.dtype
-        self.index = 0
+        self.start_sample = 0
         self.finished_reading = False
         self.id = id
 
@@ -229,22 +229,20 @@ class Signal_Buffer(Signal_File_Interface):
 
         :param samples_to_read: The number of samples to read from the buffer.
         :return: An array of the read samples, possibly with noise added.
-        """
-        samples = samples_to_read
-        
+        """        
 
         output = np.array([], dtype=self.dtype)
         while samples_to_read != 0 and not self.get_finished_reading():
-            samples_can_read = len(self.signal_buffer) - self.index
+            samples_can_read = len(self.signal_buffer) - self.start_sample
             if samples_can_read <= samples_to_read:
-                buf = self.signal_buffer[self.index : self.index + samples_can_read]
+                buf = self.signal_buffer[self.start_sample : self.start_sample + samples_can_read]
                 output = np.append(output, buf)
                 samples_to_read = samples_to_read - samples_can_read
                 self.finished_reading = True
             else:
-                buf = self.signal_buffer[self.index : self.index + samples_to_read]
+                buf = self.signal_buffer[self.start_sample : self.start_sample + samples_to_read]
                 output = np.append(output, buf)
-                self.index = self.index + samples_to_read
+                self.start_sample = self.start_sample + samples_to_read
                 samples_to_read = 0
         return output
 
@@ -260,7 +258,8 @@ class Signal_Buffer(Signal_File_Interface):
 
         :param other_signal_buff: Another Signal_Buffer instance to synchronize with.
         """
-        self.index = other_signal_buff.index
+        self.start_sample = other_signal_buff.start_sample
 
     def reset(self):
-        self.index = 0
+        self.finished_reading = False
+        self.start_sample = 0

@@ -14,6 +14,7 @@ from fastzip_tools import (
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from evaluator import Evaluator  # noqa: E402
+from eval_tools import load_controlled_signal_buffers # noqa: E402
 from signal_file import Signal_Buffer  # noqa: E402
 
 WINDOW_SIZE_DEFAULT = 200
@@ -58,11 +59,7 @@ def main(
     signal1 = golden_signal(buffer_size)
     signal2 = golden_signal(buffer_size)
     adv_signal = adversary_signal(buffer_size)
-
-    legit_signal_buffer1 = Signal_Buffer(signal1)
-    legit_signal_buffer2 = Signal_Buffer(signal2)
-    adv_signal_buffer = Signal_Buffer(adv_signal)
-    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+    signals = load_controlled_signal_buffers([signal1, signal2, adv_signal])
 
     def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
         """

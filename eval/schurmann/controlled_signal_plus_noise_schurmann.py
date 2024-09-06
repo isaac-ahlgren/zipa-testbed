@@ -31,7 +31,7 @@ def main(
     trials=TRIALS_DEFAULT,
 ):
     # Loading the controlled signals
-    signals = load_controlled_signal_files(noise=True, target_snr=target_snr, wrap_around=True)
+    signals = load_controlled_signal_files(target_snr, wrap_around=True)
 
     # Calculating the number of samples needed
     sample_num = schurmann_calc_sample_num(

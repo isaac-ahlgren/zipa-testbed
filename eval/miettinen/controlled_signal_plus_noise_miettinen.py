@@ -33,7 +33,7 @@ def main(
     target_snr=TARGET_SNR_DEFAULT,
     trials=TRIALS_DEFAULT,
 ):
-    signals = load_controlled_signal_files(noise=True, target_snr=target_snr, wrap_around=True)
+    signals = load_controlled_signal_files(target_snr, wrap_around=True)
 
     # Converting time durations to number of samples
     w_in_samples = int(w * MICROPHONE_SAMPLING_RATE)

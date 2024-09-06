@@ -13,6 +13,7 @@ from iotcupid_tools import (
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from evaluator import Evaluator  # noqa: E402
+from eval_tools import load_controlled_signal_buffers
 from signal_file import Signal_Buffer  # noqa: E402
 
 TOP_TH_DEFAULT = 0.07
@@ -60,14 +61,11 @@ def main(
     mem_th = 0.8
 
     # Generating the signals
-    gold_signal = golden_signal(buffer_size)
+    signal1 = golden_signal(buffer_size)
+    signal2 = golden_signal(buffer_size)
     adv_signal = adversary_signal(buffer_size)
-    legit_signal_buffer1 = Signal_Buffer(gold_signal.copy())
-    legit_signal_buffer2 = Signal_Buffer(gold_signal.copy())
-    adv_signal_buffer = Signal_Buffer(adv_signal)
 
-    # Grouping the signal buffers into a tuple
-    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+    signals = load_controlled_signal_buffers([signal1, signal2, adv_signal])
 
     # Defining the bit generation algorithm
     def bit_gen_algo(signal: Signal_Buffer) -> List[int]:
