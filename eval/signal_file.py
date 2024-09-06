@@ -5,20 +5,6 @@ import numpy as np
 
 from signal_file_interface import Signal_File_Interface
 
-def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
-    """
-    Calculate the noise standard deviation for a given signal and target SNR.
-
-    :param signal: The input signal array.
-    :param target_snr: The desired signal-to-noise ratio in dB.
-    :return: The calculated noise standard deviation.
-    """
-    sig_sqr_sum = np.mean(signal**2)
-    sig_db = 10 * np.log10(sig_sqr_sum)
-    noise_db = sig_db - target_snr
-    noise_avg_sqr = 10 ** (noise_db / 10)
-    return np.sqrt(noise_avg_sqr)
-
 class Noisy_File(Signal_File_Interface):
     def __init__(
         self,
@@ -79,7 +65,7 @@ class Wrap_Arround_File(Signal_File_Interface):
     ):
         self.sf = sf
         self.wrap_around_limit = wrap_around_limit
-        self.resets_done = 0
+        self.num_of_resets = 0
         self.finished_reading = False
 
     def read(self, samples: int) -> np.ndarray:
@@ -92,11 +78,11 @@ class Wrap_Arround_File(Signal_File_Interface):
             np.append(output, buf)
 
             if self.sf.get_finished_reading():
-                resets_done += 1
-                if self.wrap_around_limit is None or self.resets < self.wrap_around_limit:
-                    self.sf.reset()
+                if self.wrap_around_limit is None or self.num_of_resets < self.wrap_around_limit:
+                    self.reset()
                 else:
                     self.finished_reading = True
+                self.num_of_resets += 1
         return output
 
     def get_finished_reading(self):
@@ -141,6 +127,7 @@ class Signal_File(Signal_File_Interface):
         self.load_func = load_func
         self.curr_file_name = self.signal_directory + self.files[0]
         self.sample_buffer = self.load_func(self.curr_file_name)
+        self.dtype = self.sample_buffer.dtype
         self.finished_reading = False
         self.id = id
 
@@ -171,7 +158,7 @@ class Signal_File(Signal_File_Interface):
         :param samples: Number of samples to read.
         :return: Array containing the read samples.
         """
-        output = np.array([])
+        output = np.array([], dtype=self.dtype)
 
         while samples != 0 and not self.finished_reading:
             samples_can_read = len(self.sample_buffer) - self.start_sample
@@ -230,6 +217,7 @@ class Signal_Buffer(Signal_File_Interface):
         :param buf: Array containing the signal data.
         """
         self.signal_buffer = buf
+        self.dtype = buf.dtype
         self.index = 0
         self.finished_reading = False
         self.id = id
@@ -244,7 +232,7 @@ class Signal_Buffer(Signal_File_Interface):
         samples = samples_to_read
         
 
-        output = np.array([])
+        output = np.array([], dtype=self.dtype)
         while samples_to_read != 0 and not self.get_finished_reading():
             samples_can_read = len(self.signal_buffer) - self.index
             if samples_can_read <= samples_to_read:
