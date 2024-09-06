@@ -4,9 +4,21 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
-from signal_buffer import Signal_Buffer, calc_snr_dist_params
-from signal_file import Signal_File
+from signal_file import Signal_File, Signal_Buffer, Noisy_File, Wrap_Arround_File
 
+def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
+    """
+    Calculate the noise standard deviation for a given signal and target SNR.
+
+    :param signal: The input signal array.
+    :param target_snr: The desired signal-to-noise ratio in dB.
+    :return: The calculated noise standard deviation.
+    """
+    sig_sqr_sum = np.mean(signal**2)
+    sig_db = 10 * np.log10(sig_sqr_sum)
+    noise_db = sig_db - target_snr
+    noise_avg_sqr = 10 ** (noise_db / 10)
+    return np.sqrt(noise_avg_sqr)
 
 def add_gauss_noise(signal: np.ndarray, target_snr: float) -> np.ndarray:
     """
@@ -49,21 +61,7 @@ def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     sr, data = wavfile.read(file_name)
     return data.astype(np.int64)
 
-
-def load_controlled_signal_buffers(target_snr=20, noise=True):
-    legit_signal = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal = load_controlled_signal("../../data/adversary_controlled_signal.wav")
-    legit_signal_buffer1 = Signal_Buffer(
-        legit_signal.copy(), noise=noise, target_snr=target_snr
-    )
-    legit_signal_buffer2 = Signal_Buffer(
-        legit_signal.copy(), noise=noise, target_snr=target_snr
-    )
-    adv_signal_buffer = Signal_Buffer(adv_signal)
-    return (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
-
-
-def load_controlled_signal_files():
+def load_controlled_signal_files(noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None):
     legit_signal_file1 = Signal_File(
         "../../data/",
         "controlled_signal.wav",
@@ -82,6 +80,17 @@ def load_controlled_signal_files():
         load_func=load_controlled_signal,
         id="adv_signal",
     )
+
+    if wrap_around:
+        legit_signal_file1 = Wrap_Arround_File(legit_signal_file1, wrap_around_limit=wrap_around_limit)
+        legit_signal_file2 = Wrap_Arround_File(legit_signal_file2, wrap_around_limit=wrap_around_limit)
+        adv_signal_file = Wrap_Arround_File(adv_signal_file, wrap_around_limit=wrap_around_limit)
+
+    if noise:
+        legit_signal_file1 = Noisy_File(legit_signal_file1, target_snr)
+        legit_signal_file2 = Noisy_File(legit_signal_file2, target_snr)
+        adv_signal_file = Noisy_File(adv_signal_file, target_snr)
+
     return (legit_signal_file1, legit_signal_file2, adv_signal_file)
 
 

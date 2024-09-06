@@ -12,9 +12,9 @@ from schurmann_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_controlled_signal_buffers  # noqa: E402
+from eval_tools import load_controlled_signal_files  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
-from signal_buffer import Signal_Buffer  # noqa: E402
+from signal_file import Signal_Buffer  # noqa: E402
 
 WINDOW_LENGTH_DEFAULT = 16537
 BAND_LENGTH_DEFAULT = 500
@@ -31,7 +31,7 @@ def main(
     trials=TRIALS_DEFAULT,
 ):
     # Loading the controlled signals
-    signals = load_controlled_signal_buffers(target_snr=target_snr, noise=True)
+    signals = load_controlled_signal_files(noise=True, target_snr=target_snr, wrap_around=True)
 
     # Calculating the number of samples needed
     sample_num = schurmann_calc_sample_num(

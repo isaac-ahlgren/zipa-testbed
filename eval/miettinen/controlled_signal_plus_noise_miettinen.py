@@ -11,9 +11,9 @@ from miettinen_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_controlled_signal_buffers  # noqa: E402
+from eval_tools import load_controlled_signal_files  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
-from signal_buffer import Signal_Buffer  # noqa: E402
+from signal_file import Signal_Buffer  # noqa: E402
 
 SNAP_SHOT_WIDTH_DEFAULT = 1
 NO_SNAP_SHOT_WIDTH_DEFAULT = 1
@@ -33,7 +33,7 @@ def main(
     target_snr=TARGET_SNR_DEFAULT,
     trials=TRIALS_DEFAULT,
 ):
-    signals = load_controlled_signal_buffers(target_snr=target_snr, noise=True)
+    signals = load_controlled_signal_files(noise=True, target_snr=target_snr, wrap_around=True)
 
     # Converting time durations to number of samples
     w_in_samples = int(w * MICROPHONE_SAMPLING_RATE)

@@ -13,7 +13,7 @@ from perceptio_tools import (
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from evaluator import Evaluator  # noqa: E402
-from signal_buffer import Signal_Buffer  # noqa: E402
+from signal_file import Signal_Buffer  # noqa: E402
 
 TOP_TH_DEFAULT = 6
 BOTTOM_TH_DEFAULT = 4

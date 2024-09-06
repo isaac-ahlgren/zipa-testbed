@@ -3,13 +3,122 @@ from typing import Callable
 
 import numpy as np
 
+from signal_file_interface import Signal_File_Interface
 
-class Signal_File:
+def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
+    """
+    Calculate the noise standard deviation for a given signal and target SNR.
+
+    :param signal: The input signal array.
+    :param target_snr: The desired signal-to-noise ratio in dB.
+    :return: The calculated noise standard deviation.
+    """
+    sig_sqr_sum = np.mean(signal**2)
+    sig_db = 10 * np.log10(sig_sqr_sum)
+    noise_db = sig_db - target_snr
+    noise_avg_sqr = 10 ** (noise_db / 10)
+    return np.sqrt(noise_avg_sqr)
+
+class Noisy_File(Signal_File_Interface):
+    def __init__(
+        self,
+        sf: Signal_File_Interface,
+        target_snr: float        
+    ):
+        self.sf = sf
+        self.target_snr = target_snr
+
+    def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
+        """
+        Calculate the noise standard deviation for a given signal and target SNR.
+
+        :param signal: The input signal array.
+        :param target_snr: The desired signal-to-noise ratio in dB.
+        :return: The calculated noise standard deviation.
+        """
+        sig_sqr_sum = np.mean(signal**2)
+        sig_db = 10 * np.log10(sig_sqr_sum)
+        noise_db = sig_db - target_snr
+        noise_avg_sqr = 10 ** (noise_db / 10)
+        return np.sqrt(noise_avg_sqr)
+
+    def add_gauss_noise(self, signal: np.ndarray, target_snr: float) -> np.ndarray:
+        """
+        Add Gaussian noise to a signal based on a target SNR.
+        
+        :param signal: The input signal array.
+        :param target_snr: The desired signal-to-noise ratio in dB.
+        :return: The signal with added Gaussian noise.
+        """
+
+        noise_std = calc_snr_dist_params(signal, target_snr)
+        noise = np.random.normal(0, noise_std, len(signal))
+        return signal + noise
+
+    def read(self, samples: int) -> np.ndarray:
+        buf = self.sf.read(samples)
+        return self.add_gauss_noise(buf, self.target_snr)
+
+    def get_finished_reading(self):
+        return self.get_finished_reading()
+
+    def get_id(self):
+        return self.sf.get_id()
+
+    def reset(self):
+        self.sf.reset()
+
+    def sync(self, other_sf):
+        self.sf.sync(self.other_sf.sf)
+
+class Wrap_Arround_File(Signal_File_Interface):
+    def __init__(
+        self,
+        sf: Signal_File_Interface,
+        wrap_around_limit=None,
+    ):
+        self.sf = sf
+        self.wrap_around_limit = wrap_around_limit
+        self.resets_done = 0
+        self.finished_reading = False
+
+    def read(self, samples: int) -> np.ndarray:
+        output = np.array([])
+        done = False
+
+        while not self.finished_reading:
+            buf = self.sf.read(samples)
+            samples -= len(buf)
+            np.append(output, buf)
+
+            if self.sf.get_finished_reading():
+                resets_done += 1
+                if self.wrap_around_limit is None or self.resets < self.wrap_around_limit:
+                    self.sf.reset()
+                else:
+                    self.finished_reading = True
+        return output
+
+    def get_finished_reading(self):
+        return self.finished_reading 
+
+    def get_id(self):
+        return self.sf.get_id()
+
+    def reset(self):
+        self.resets_done = 0
+        self.finished_reading = False
+        self.sf.reset()
+
+    def sync(self, other_sf):
+        self.resets_done = other_sf.resets_done
+        self.sf.sync(self.other_sf.sf)
+
+class Signal_File(Signal_File_Interface):
     def __init__(
         self,
         signal_directory: str,
         file_names: str,
-        wrap_around_read: bool = False,
         load_func: Callable = np.loadtxt,
         id: str = "",
     ):
@@ -30,8 +139,8 @@ class Signal_File:
         self.file_index = 0
         self.start_sample = 0
         self.load_func = load_func
-        self.sample_buffer = self.load_func(self.signal_directory + self.files[0])
-        self.wrap_around_read = wrap_around_read
+        self.curr_file_name = self.signal_directory + self.files[0]
+        self.sample_buffer = self.load_func(self.curr_file_name)
         self.finished_reading = False
         self.id = id
 
@@ -41,23 +150,19 @@ class Signal_File:
         """
         self.start_sample = 0
         self.file_index += 1
+        del self.sample_buffer
         if (
-            len(self.files) == self.file_index and self.wrap_around_read
-        ):  # Reset if wrap around enabled
-            self.reset()
+            len(self.files) == self.file_index
+        ):  # If no more to read, set the finished reading flag
+            self.finished_reading = True
         else:
-            del self.sample_buffer
-            if (
-                len(self.files) == self.file_index
-            ):  # If no more to read, set the finished reading flag
-                self.finished_reading = True
-            else:
-                print(
-                    "Loading in " + self.signal_directory + self.files[self.file_index]
-                )
-                self.sample_buffer = self.load_func(
-                    self.signal_directory + self.files[self.file_index]
-                )
+            self.curr_file_name = self.signal_directory + self.files[self.file_index]
+            print(
+                "Loading in " + self.curr_file_name
+            )
+            self.sample_buffer = self.load_func(
+                self.curr_file_name
+            )
 
     def read(self, samples: int) -> np.ndarray:
         """
@@ -96,13 +201,14 @@ class Signal_File:
         """
         Reset the reader to the start of the first file.
         """
-        self.start_sample = 0
-        self.file_index = 0
         self.finished_reading = True
         del self.sample_buffer
-        self.sample_buffer = self.load_func(self.signal_directory + self.files[0])
+        self.curr_file_name = self.signal_directory + self.files[0]
+        self.sample_buffer = self.load_func(self.curr_file_name)
+        self.start_sample = 0
+        self.file_index = 0
 
-    def sync(self, other_sf: "Signal_File"):
+    def sync(self, other_sf):
         """
         Synchronize this file reader with another, matching the current file and sample index.
 
@@ -110,7 +216,62 @@ class Signal_File:
         """
         self.file_index = other_sf.file_index
         self.start_sample = other_sf.start_sample
+        self.curr_file_name = self.signal_directory + self.files[self.file_index]
         del self.sample_buffer
         self.sample_buffer = self.load_func(
-            self.signal_directory + self.files[self.file_index]
+            self.curr_file_name
         )
+
+class Signal_Buffer(Signal_File_Interface):
+    def __init__(self, buf: np.ndarray, id: str = ""):
+        """
+        Initialize a buffer to manage signal data with optional noise addition.
+
+        :param buf: Array containing the signal data.
+        """
+        self.signal_buffer = buf
+        self.index = 0
+        self.finished_reading = False
+        self.id = id
+
+    def read(self, samples_to_read: int) -> np.ndarray:
+        """
+        Read a specific number of samples from the buffer, adding noise if specified.
+
+        :param samples_to_read: The number of samples to read from the buffer.
+        :return: An array of the read samples, possibly with noise added.
+        """
+        samples = samples_to_read
+        
+
+        output = np.array([])
+        while samples_to_read != 0 and not self.get_finished_reading():
+            samples_can_read = len(self.signal_buffer) - self.index
+            if samples_can_read <= samples_to_read:
+                buf = self.signal_buffer[self.index : self.index + samples_can_read]
+                output = np.append(output, buf)
+                samples_to_read = samples_to_read - samples_can_read
+                self.finished_reading = True
+            else:
+                buf = self.signal_buffer[self.index : self.index + samples_to_read]
+                output = np.append(output, buf)
+                self.index = self.index + samples_to_read
+                samples_to_read = 0
+        return output
+
+    def get_finished_reading(self):
+        return self.finished_reading
+
+    def get_id(self):
+        return self.id
+
+    def sync(self, other_signal_buff: "Signal_Buffer"):
+        """
+        Synchronize this buffer's index with another signal buffer's index.
+
+        :param other_signal_buff: Another Signal_Buffer instance to synchronize with.
+        """
+        self.index = other_signal_buff.index
+
+    def reset(self):
+        self.index = 0

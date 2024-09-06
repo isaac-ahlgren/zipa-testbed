@@ -9,7 +9,7 @@ from eval_tools import (
     events_cmp_bits,
     gen_id,
 )
-from signal_file import Signal_File
+from signal_file_interface import Signal_File_Interface
 
 
 class Evaluator:
@@ -53,8 +53,8 @@ class Evaluator:
             adv_bits = self.bit_gen_algo_wrapper(adv_signal, *argv)
             self.adv_bits.append(adv_bits)
 
-            if isinstance(legit_signal1, Signal_Buffer) or isinstance(
-                legit_signal1, Signal_File
+            if isinstance(legit_signal1, Signal_File_Interface) or isinstance(
+                legit_signal1, Signal_File_Interface
             ):
                 legit_signal1.sync(legit_signal2)
 
@@ -88,10 +88,10 @@ class Evaluator:
         self.legit_bits2 = []
         self.adv_bits = []
 
-    def evaluate_device_non_ed(self, signal: Signal_File, params: Tuple):
+    def evaluate_device_non_ed(self, signal: Signal_File_Interface, params: Tuple):
         return calc_all_bits(signal, self.bit_gen_algo_wrapper, *params)
 
-    def evaluate_device_ed(self, signal: Signal_File, params: Tuple):
+    def evaluate_device_ed(self, signal: Signal_File_Interface, params: Tuple):
         return calc_all_events(signal, self.bit_gen_algo_wrapper, *params)
 
     def fuzzing_func(self, signal, choice_id, params):

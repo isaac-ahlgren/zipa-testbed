@@ -11,9 +11,9 @@ from fastzip_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_controlled_signal_buffers  # noqa: E402
+from eval_tools import load_controlled_signal_files  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
-from signal_buffer import Signal_Buffer  # noqa: E402
+from signal_file import Signal_Buffer  # noqa: E402
 
 WINDOW_SIZE_DEFAULT = 200
 OVERLAP_SIZE_DEFAULT = 100
@@ -54,7 +54,7 @@ def main(
     trials=TRIALS_DEFAULT,
 ):
 
-    signals = load_controlled_signal_buffers(target_snr=target_snr)
+    signals = load_controlled_signal_files(noise=True, target_snr=target_snr, wrap_around=True)
 
     def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
         """

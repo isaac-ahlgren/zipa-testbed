@@ -6,9 +6,9 @@ import numpy as np
 from iotcupid_tools import gen_min_events, generate_bits, get_command_line_args
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_controlled_signal_buffers  # noqa: E402
+from eval_tools import load_controlled_signal_files  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
-from signal_buffer import Signal_Buffer  # noqa: E402
+from signal_file import Signal_Buffer  # noqa: E402
 
 TOP_TH_DEFAULT = 1500
 BOTTOM_TH_DEFAULT = 750
@@ -54,7 +54,7 @@ def main(
 ):
     mem_th = 0.8
 
-    signals = load_controlled_signal_buffers(target_snr=target_snr)
+    signals = load_controlled_signal_files(noise=True, target_snr=target_snr, wrap_around=True)
 
     # Defining the bit generation algorithm
     def bit_gen_algo(signal: Signal_Buffer) -> List[int]:

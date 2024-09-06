@@ -10,9 +10,9 @@ from perceptio_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_controlled_signal_buffers  # noqa: E402
+from eval_tools import load_controlled_signal_files  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
-from signal_buffer import Signal_Buffer  # noqa: E402
+from signal_file import Signal_Buffer  # noqa: E402
 
 TOP_TH_DEFAULT = 3000
 BOTTOM_TH_DEFAULT = 1500
@@ -45,7 +45,7 @@ def main(
     trials=TRIALS_DEFAULT,
 ):
 
-    signals = load_controlled_signal_buffers(target_snr=target_snr)
+    signals = load_controlled_signal_files(noise=True, target_snr=target_snr, wrap_around=True)
 
     # Defining the bit generation algorithm
     def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
