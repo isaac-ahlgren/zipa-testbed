@@ -14,7 +14,7 @@ class Noisy_File(Signal_File_Interface):
         self.sf = sf
         self.target_snr = target_snr
 
-    def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
+    def calc_snr_dist_params(self, signal: np.ndarray, target_snr: float) -> float:
         """
         Calculate the noise standard deviation for a given signal and target SNR.
 
@@ -37,7 +37,7 @@ class Noisy_File(Signal_File_Interface):
         :return: The signal with added Gaussian noise.
         """
 
-        noise_std = calc_snr_dist_params(signal, target_snr)
+        noise_std = self.calc_snr_dist_params(signal, target_snr)
         noise = np.random.normal(0, noise_std, len(signal))
         return signal + noise
 
@@ -55,9 +55,9 @@ class Noisy_File(Signal_File_Interface):
         self.sf.reset()
 
     def sync(self, other_sf):
-        self.sf.sync(self.other_sf.sf)
+        self.sf.sync(other_sf.sf)
 
-class Wrap_Arround_File(Signal_File_Interface):
+class Wrap_Around_File(Signal_File_Interface):
     def __init__(
         self,
         sf: Signal_File_Interface,
@@ -70,16 +70,15 @@ class Wrap_Arround_File(Signal_File_Interface):
 
     def read(self, samples: int) -> np.ndarray:
         output = np.array([])
-        done = False
 
-        while not self.finished_reading:
+        while not self.finished_reading and samples != 0:
             buf = self.sf.read(samples)
             samples -= len(buf)
-            np.append(output, buf)
+            output = np.append(output, buf)
 
             if self.sf.get_finished_reading():
                 if self.wrap_around_limit is None or self.num_of_resets < self.wrap_around_limit:
-                    self.reset()
+                    self.sf.reset()
                 else:
                     self.finished_reading = True
                 self.num_of_resets += 1
@@ -138,6 +137,7 @@ class Signal_File(Signal_File_Interface):
         self.start_sample = 0
         self.file_index += 1
         del self.sample_buffer
+        self.sample_buffer = None
         if (
             len(self.files) == self.file_index
         ):  # If no more to read, set the finished reading flag
@@ -188,8 +188,9 @@ class Signal_File(Signal_File_Interface):
         """
         Reset the reader to the start of the first file.
         """
-        self.finished_reading = True
-        del self.sample_buffer
+        self.finished_reading = False
+        if self.sample_buffer is not None:
+            del self.sample_buffer
         self.curr_file_name = self.signal_directory + self.files[0]
         self.sample_buffer = self.load_func(self.curr_file_name)
         self.start_sample = 0

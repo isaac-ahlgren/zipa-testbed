@@ -6,7 +6,7 @@ import numpy as np
 
 sys.path.insert(1, os.getcwd() + "/eval/")
 
-from signal_file import Signal_File, Signal_Buffer, Wrap_Arround_File, Noisy_File
+from signal_file import Signal_File, Signal_Buffer, Wrap_Around_File, Noisy_File
 from eval_tools import load_controlled_signal
 
 def test_signal_file():
@@ -93,7 +93,7 @@ def test_signal_buffer():
     assert sb.get_finished_reading() is True
 
 def test_wrap_around():
-    sf = Wrap_Arround_File(Signal_File(
+    sf = Wrap_Around_File(Signal_File(
         "./data/",
         "controlled_signal.wav",
         load_func=load_controlled_signal,
@@ -104,9 +104,9 @@ def test_wrap_around():
     received_samples = sf.read(read_length)
     assert read_length == len(received_samples)
     assert sf.get_finished_reading() is False
-    assert sf.start_sample == 100
+    assert sf.sf.start_sample == 100
 
-    received_samples = sf.read(read_length)
+    received_samples = sf.read(2*read_length)
     assert read_length != len(received_samples)
     assert sf.get_finished_reading() is True
 

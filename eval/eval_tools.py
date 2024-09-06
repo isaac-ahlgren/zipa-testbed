@@ -4,7 +4,7 @@ from typing import List, Tuple
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
-from signal_file import Signal_File, Signal_Buffer, Noisy_File, Wrap_Arround_File
+from signal_file import Signal_File, Signal_Buffer, Noisy_File, Wrap_Around_File
 
 def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
     """
@@ -82,9 +82,9 @@ def load_controlled_signal_files(noise=False, target_snr=None, wrap_around=False
     )
 
     if wrap_around:
-        legit_signal_file1 = Wrap_Arround_File(legit_signal_file1, wrap_around_limit=wrap_around_limit)
-        legit_signal_file2 = Wrap_Arround_File(legit_signal_file2, wrap_around_limit=wrap_around_limit)
-        adv_signal_file = Wrap_Arround_File(adv_signal_file, wrap_around_limit=wrap_around_limit)
+        legit_signal_file1 = Wrap_Around_File(legit_signal_file1, wrap_around_limit=wrap_around_limit)
+        legit_signal_file2 = Wrap_Around_File(legit_signal_file2, wrap_around_limit=wrap_around_limit)
+        adv_signal_file = Wrap_Around_File(adv_signal_file, wrap_around_limit=wrap_around_limit)
 
     if noise:
         legit_signal_file1 = Noisy_File(legit_signal_file1, target_snr)
