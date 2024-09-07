@@ -14,7 +14,7 @@ from schurmann_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")
-from eval_tools import load_controlled_signal_buffers
+from eval_tools import load_controlled_signal_buffers  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 WINDOW_LENGTH_DEFAULT = 16537
@@ -75,7 +75,7 @@ def main(
         band_length,
         MICROPHONE_SAMPLING_RATE,
         ANTIALIASING_FILTER,
-        sample_num
+        sample_num,
     )
     # Comparing the bit errors for legitimate adversary signals
     legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)

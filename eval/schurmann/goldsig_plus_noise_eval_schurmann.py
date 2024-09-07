@@ -44,7 +44,9 @@ def main(
     signal1 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
     signal2 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
     adv_signal = adversary_signal(sample_num, MICROPHONE_SAMPLING_RATE)
-    signals = load_controlled_signal_buffers([signal1, signal2, adv_signal], target_snr=target_snr, noise=True)
+    signals = load_controlled_signal_buffers(
+        [signal1, signal2, adv_signal], target_snr=target_snr, noise=True
+    )
 
     # Defining the bit generation algorithm
     def bit_gen_algo(signal: np.ndarray, *argv: List) -> np.ndarray:

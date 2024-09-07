@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Signal_File_Interface:
 
     def read(self, samples: int) -> np.ndarray:

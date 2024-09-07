@@ -13,8 +13,8 @@ from fastzip_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import load_controlled_signal_buffers  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
-from eval_tools import load_controlled_signal_buffers # noqa: E402
 from signal_file import Signal_Buffer  # noqa: E402
 
 WINDOW_SIZE_DEFAULT = 200

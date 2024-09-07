@@ -37,7 +37,9 @@ def main(
     if not os.path.isdir(DATA_DIRECTORY):
         os.mkdir(DATA_DIRECTORY)
 
-    signals = load_controlled_signal_files(noise=True, target_snr=target_snr, wrap_around=True)
+    signals = load_controlled_signal_files(
+        noise=True, target_snr=target_snr, wrap_around=True
+    )
 
     def get_random_parameters():
         window_length = random.randint(

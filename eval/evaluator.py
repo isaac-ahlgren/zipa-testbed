@@ -2,7 +2,6 @@ from multiprocessing import Process
 from typing import Any, Callable, List, Tuple
 
 from eval_tools import (
-    Signal_Buffer,
     calc_all_bits,
     calc_all_events,
     cmp_bits,
