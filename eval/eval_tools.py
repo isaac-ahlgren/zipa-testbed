@@ -248,6 +248,7 @@ def flatten_fingerprints(fps: List[List[bytes]]) -> List[bytes]:
 def log_bytes(file_name_stub, byte_list, key_length):
     iteration = 0
     for b in byte_list:
+        print(b)
         file_name = file_name_stub + "_" + str(iteration) + ".txt"
         bit_string = bytes_to_bitstring(b, key_length)
         with open(file_name, "w") as file:

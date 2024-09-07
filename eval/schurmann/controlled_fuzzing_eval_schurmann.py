@@ -23,23 +23,29 @@ from signal_file import Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
+TARGET_SNR_DEFAULT = 10
 NUMBER_OF_CHOICES_DEFAULT = 100
+WRAP_AROUND_LIMIT_DEFAULT = 10
 
 # Random Parameter Ranges
 WINDOW_LENGTH_RANGE = (5000, 2 * 48000)
 MIN_BAND_LENGTH = 1
 
+SCHURMANN_CONTROLLED_FUZZING = "/schurmann_controlled_fuzz"
 
 def main(
     key_length=KEY_LENGTH_DEFAULT,
+    target_snr = TARGET_SNR_DEFAULT,
     number_of_choices=NUMBER_OF_CHOICES_DEFAULT,
+    wrap_around_limit=WRAP_AROUND_LIMIT_DEFAULT
 ):
     if not os.path.isdir(DATA_DIRECTORY):
         os.mkdir(DATA_DIRECTORY)
 
-    signals = load_controlled_signal_files(
-        noise=True, target_snr=target_snr, wrap_around=True
-    )
+    if not os.path.isdir(DATA_DIRECTORY + SCHURMANN_CONTROLLED_FUZZING):
+        os.mkdir(DATA_DIRECTORY + SCHURMANN_CONTROLLED_FUZZING)
+
+    signals = load_controlled_signal_files(target_snr, wrap_around=True, wrap_around_limit=wrap_around_limit)
 
     def get_random_parameters():
         window_length = random.randint(
@@ -65,9 +71,9 @@ def main(
         )
 
     def log(byte_list, choice_id, signal_id, *params):
-        if not os.path.isdir(f"./{DATA_DIRECTORY}/schurmann_id{choice_id}"):
-            os.mkdir(f"./{DATA_DIRECTORY}/schurmann_id{choice_id}")
-        file_stub = f"{DATA_DIRECTORY}/schurmann_id{choice_id}/schurmann_id{choice_id}_{signal_id}"
+        if not os.path.isdir(f"./{DATA_DIRECTORY + SCHURMANN_CONTROLLED_FUZZING}/controlled_schurmann_id{choice_id}"):
+            os.mkdir(f"./{DATA_DIRECTORY + SCHURMANN_CONTROLLED_FUZZING}/controlled_schurmann_id{choice_id}")
+        file_stub = f"{DATA_DIRECTORY + SCHURMANN_CONTROLLED_FUZZING}/schurmann_id{choice_id}/schurmann_id{choice_id}_{signal_id}"
         names = ["window_length", "band_length", "sample_num"]
         param_list = [params[0], params[1], params[4]]
         log_parameters(file_stub, names, param_list)
