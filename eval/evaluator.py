@@ -1,5 +1,6 @@
 from multiprocessing import Process
 from typing import Any, Callable, List, Tuple
+import os
 
 from eval_tools import (
     calc_all_bits,
@@ -7,6 +8,7 @@ from eval_tools import (
     cmp_bits,
     events_cmp_bits,
     gen_id,
+    log_bytes,
 )
 from signal_file_interface import Signal_File_Interface
 
@@ -16,7 +18,7 @@ class Evaluator:
         self,
         bit_gen_algo_wrapper: Callable[[Any], List[bytes]],
         random_parameter_func=None,
-        logging_func=None,
+        parameter_log_func=None,
         event_driven=False,
     ):
         """
@@ -26,7 +28,7 @@ class Evaluator:
         """
         self.bit_gen_algo_wrapper = bit_gen_algo_wrapper
         self.random_parameter_func = random_parameter_func
-        self.logging_func = logging_func
+        self.parameter_log_func = parameter_log_func
         self.event_driven = event_driven
         self.legit_bits1 = []
         self.legit_bits2 = []
@@ -93,21 +95,24 @@ class Evaluator:
     def evaluate_device_ed(self, signal: Signal_File_Interface, params: Tuple):
         return calc_all_events(signal, self.bit_gen_algo_wrapper, *params)
 
-    def fuzzing_func(self, signal, choice_id, params):
+    def fuzzing_func(self, signal, key_length, file_stub, params):
         if self.event_driven:
             outcome = self.evaluate_device_ed(signal, params)
         else:
             outcome = self.evaluate_device_non_ed(signal, params)
-        self.logging_func(outcome, choice_id, signal.get_id(), *params)
+        
+        file_stub = file_stub + "_" + signal.get_id()
+        log_bytes(file_stub, outcome, key_length)
+        signal.reset()
 
-    def fuzzing_single_threaded(self, signals, choice_id, params):
+    def fuzzing_single_threaded(self, signals, key_length, file_stub, params):
         for signal in signals:
-            self.fuzzing_func(signal, choice_id, params)
+            self.fuzzing_func(signal, key_length, file_stub, params)
 
-    def fuzzing_multithreaded(self, signals, choice_id, params):
+    def fuzzing_multithreaded(self, signals, key_length, file_stub, params):
         threads = []
         for signal in signals:
-            p = Process(target=self.fuzzing_func, args=(signal, choice_id, params))
+            p = Process(target=self.fuzzing_func, args=(signal, key_length, file_stub, params))
             p.start()
             threads.append(p)
 
@@ -115,12 +120,20 @@ class Evaluator:
             thread.join()
 
     def fuzzing_evaluation(
-        self, signals, number_of_choices, multithreaded=True
+        self, signals, number_of_choices, key_length, fuzzing_dir, fuzzing_file_stub, multithreaded=True
     ) -> None:
         for i in range(number_of_choices):
             params = self.random_parameter_func()
             choice_id = gen_id()
+            choice_file_stub = f"{fuzzing_file_stub}_id{choice_id}"
+            file_dir = f"{fuzzing_dir}/{choice_file_stub}"
+            if not os.path.isdir(file_dir):
+                os.mkdir(file_dir)
+            file_stub = file_dir + "/" + choice_file_stub
+            self.parameter_log_func(params, file_stub)
+            
+            print
             if multithreaded:
-                self.fuzzing_multithreaded(signals, choice_id, params)
+                self.fuzzing_multithreaded(signals, key_length, file_stub, params)
             else:
-                self.fuzzing_single_threaded(signals, choice_id, params)
+                self.fuzzing_single_threaded(signals, key_length, file_stub, params)

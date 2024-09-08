@@ -32,6 +32,7 @@ WINDOW_LENGTH_RANGE = (5000, 2 * 48000)
 MIN_BAND_LENGTH = 1
 
 SCHURMANN_CONTROLLED_FUZZING = "/schurmann_controlled_fuzz"
+SCHURMANN_CONTROLLED_FUZZING_STUB = "schurmann_controlled_fuzz"
 
 def main(
     key_length=KEY_LENGTH_DEFAULT,
@@ -70,14 +71,10 @@ def main(
             sample_num,
         )
 
-    def log(byte_list, choice_id, signal_id, *params):
-        if not os.path.isdir(f"./{DATA_DIRECTORY + SCHURMANN_CONTROLLED_FUZZING}/controlled_schurmann_id{choice_id}"):
-            os.mkdir(f"./{DATA_DIRECTORY + SCHURMANN_CONTROLLED_FUZZING}/controlled_schurmann_id{choice_id}")
-        file_stub = f"{DATA_DIRECTORY + SCHURMANN_CONTROLLED_FUZZING}/schurmann_id{choice_id}/schurmann_id{choice_id}_{signal_id}"
+    def log(params, file_name_stub):
         names = ["window_length", "band_length", "sample_num"]
         param_list = [params[0], params[1], params[4]]
-        log_parameters(file_stub, names, param_list)
-        log_bytes(file_stub, byte_list, key_length)
+        log_parameters(file_name_stub, names, param_list)
 
     def bit_gen_algo(signal: Signal_File, *argv: List) -> np.ndarray:
         """
@@ -102,10 +99,10 @@ def main(
     evaluator = Evaluator(
         bit_gen_algo,
         random_parameter_func=get_random_parameters,
-        logging_func=log,
+        parameter_log_func=log,
         event_driven=False,
     )
-    evaluator.fuzzing_evaluation(signals, number_of_choices, multithreaded=False)
+    evaluator.fuzzing_evaluation(signals, number_of_choices, key_length, DATA_DIRECTORY + SCHURMANN_CONTROLLED_FUZZING, SCHURMANN_CONTROLLED_FUZZING_STUB, multithreaded=False)
 
 
 if __name__ == "__main__":
