@@ -26,6 +26,7 @@ def load_parameters(param_file):
 
 def parse_eval_directory(data_dir, file_stub):
     output = []
+    print(f"{data_dir}/{file_stub}/{file_stub}*")
     files = glob.glob(f"{file_stub}*", root_dir=f"{data_dir}/{file_stub}")
     for dir_name in files:
         dir_content = dict()
@@ -64,10 +65,20 @@ def cmp_byte_list(byte_list1, byte_list2, block_size):
         block_err_list.append(err_rate)
     return block_err_list
 
-def get_avg_ber(byte_list1, byte_list2):
-    ber_list = cmp_byte_list(byte_list1, byte_list2, 1)
-    return np.mean(ber_list)
+def get_avg_ber_list(byte_list1, byte_list2):
+    avg_ber_list = []
+    for contents1, contents2 in zip(byte_list1, byte_list2):
+        ber_list = cmp_byte_list(contents1, contents2, 1)
+        avg_ber = np.mean(ber_list)
+        avg_ber_list.append(avg_ber)
+    return avg_ber_list
     
+def extract_from_contents(contents, key_word):
+    extracted_content = []
+    for content in contents:
+        extracted_content.append(content[key_word])
+    return extracted_content
+
 def get_min_entropy(bits, key_length: int, symbol_size: int) -> float:
     """
     Calculate the minimum entropy of a list of bitstrings based on symbol size.

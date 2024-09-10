@@ -24,7 +24,7 @@ from signal_file import Signal_File  # noqa: E402
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
 TARGET_SNR_DEFAULT = 10
-NUMBER_OF_CHOICES_DEFAULT = 100
+NUMBER_OF_CHOICES_DEFAULT = 500
 WRAP_AROUND_LIMIT_DEFAULT = 10
 
 # Random Parameter Ranges
@@ -74,7 +74,7 @@ def main(
     if not os.path.isdir(DATA_DIRECTORY):
         os.mkdir(DATA_DIRECTORY)
 
-    if not os.path.isdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}_snr{target_snr}"):
+    if not os.path.isdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}"):
         os.mkdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}")
 
     if not os.path.isdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}/{SCHURMANN_CONTROLLED_FUZZING}_snr{target_snr}"):
@@ -138,7 +138,7 @@ def main(
         parameter_log_func=log,
         event_driven=False,
     )
-    evaluator.fuzzing_evaluation(signals, number_of_choices, key_length, fuzzing_dir, f"{SCHURMANN_CONTROLLED_FUZZING_STUB}_snr{target_snr}", multithreaded=False)
+    evaluator.fuzzing_evaluation(signals, number_of_choices, key_length, fuzzing_dir, f"{SCHURMANN_CONTROLLED_FUZZING_STUB}_snr{target_snr}", multithreaded=True)
 
 
 if __name__ == "__main__":
