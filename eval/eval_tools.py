@@ -260,25 +260,3 @@ def log_parameters(file_name_stub, name_list, parameter_list):
     file_name = file_name_stub + "_params.csv"
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name)
-
-
-def get_min_entropy(bits: List[bytes], key_length: int, symbol_size: int) -> float:
-    """
-    Calculate the minimum entropy of a list of bitstrings based on symbol size.
-
-    :param bits: List of bitstrings.
-    :param key_length: The total length of each bitstring.
-    :param symbol_size: The size of each symbol in bits.
-    :return: The minimum entropy observed across all symbols.
-    """
-    arr = []
-    for b in bits:
-        bs = bytes_to_bitstring(b, key_length)
-        for i in range(0, key_length // symbol_size, symbol_size):
-            symbol = bs[i * symbol_size : (i + 1) * symbol_size]
-            arr.append(int(symbol, 2))
-
-    hist, bin_edges = np.histogram(arr, bins=2**symbol_size)
-    pdf = hist / sum(hist)
-    max_prob = np.max(pdf)
-    return -np.log2(max_prob)
