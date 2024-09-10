@@ -92,6 +92,7 @@ class PartitionedGPAKE:
         return encrypted_keys
     
     #Step 6
+    #Times broadcast is used 1
     def broadcast_encrypted_keys(self, conn, encrypted_keys):
         for event_type, (nonce, encrypted_key) in encrypted_keys.items():
             send_gpake_msg(conn, [nonce, encrypted_key])
@@ -227,6 +228,7 @@ class PartitionedGPAKE:
         return encrypted_values
     
     #Step 12
+    #Times broadcast is used 2
     def broadcast_encrypted_values(self, conn, local_id, session_ids, encrypted_values):
         for event_type, (nonce, encrypted_value) in encrypted_values.items():
             session_id = session_ids[event_type]
@@ -238,6 +240,7 @@ class PartitionedGPAKE:
         return local_id in session_id
     
     #Step 14
+    #Going to need to use hkdf again probably
     def decrypt_random_value(self, encrypted_value, nonce, intermediate_key):
         cipher = ChaCha20Poly1305(intermediate_key)
         random_value = cipher.decrypt(nonce, encrypted_value, None)
