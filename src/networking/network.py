@@ -261,7 +261,7 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
     return nonce
 
 
-def send_fpake_msg(connection, msg):
+def send_pake_msg(connection, msg):
     length_payload = 0
     for m in msg:
         length_payload += len(m) + 4
@@ -274,7 +274,7 @@ def send_fpake_msg(connection, msg):
     connection.send(outgoing)
 
 
-def fpake_msg_standby(connection: socket.socket, timeout: int) -> bool:
+def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
     msg = None
     reference = time.time()
     timestamp = reference

@@ -10,8 +10,8 @@ from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
 from networking.network import (
-    gpake_msg_standby,
-    send_gpake_msg,
+    pake_msg_standby,
+    send_pake_msg,
     send_status,
     status_standby,
 )
@@ -95,7 +95,7 @@ class PartitionedGPAKE:
     #Times broadcast is used 1
     def broadcast_encrypted_keys(self, conn, encrypted_keys):
         for event_type, (nonce, encrypted_key) in encrypted_keys.items():
-            send_gpake_msg(conn, [nonce, encrypted_key])
+            send_pake_msg(conn, [nonce, encrypted_key])
 
     #Step 7 and 8
     def receive_and_decrypt_keys(self, conn, passwords, grouped_events):
@@ -107,7 +107,7 @@ class PartitionedGPAKE:
 
         while len(valid_keys) < len(passwords):
             print("Device: Waiting for data...", flush=True)
-            received_data = gpake_msg_standby(conn, self.timeout)
+            received_data = pake_msg_standby(conn, self.timeout)
             if received_data is None:
                 print("Device: No more data to receive or timed out", flush=True)
                 break
@@ -141,9 +141,64 @@ class PartitionedGPAKE:
                         break
 
                 except Exception as e:
-                    print(f"Decryption failed for event type {event_type}", flush=True)
+                    print(f"Device: Decryption failed for event type {event_type}", flush=True)
                     continue
     
+        return valid_keys
+    
+    def receive_and_decrypt_keys_for_host(self, conn, passwords, grouped_events):
+        valid_keys = {}
+        used_passwords = set()
+
+        # Create a mapping from event type to passwords
+        event_type_password_map = {i: passwords[i] for i in range(len(grouped_events))}
+
+        while len(valid_keys) < len(passwords):
+            print("Host: Waiting for data...", flush=True)
+            received_data = pake_msg_standby(conn, self.timeout)
+            if received_data is None:
+                print("Host: No more data to receive or timed out", flush=True)
+                break
+
+            local_id_received, session_id_received, nonce, encrypted_pub_key = received_data  # Four values to unpack
+        
+            # Log the received values
+            print(f"Host: Received data - local_id: {local_id_received}, session_id: {session_id_received}, nonce: {nonce.hex()}, encrypted_pub_key: {encrypted_pub_key.hex()}", flush=True)
+
+            for event_type, password in event_type_password_map.items():
+                if password in used_passwords:
+                    print(f"Host: Skipping used password for event type {event_type}", flush=True)
+                    continue
+
+                try:
+                    # Derive key from password
+                    hkdf = HKDF(
+                        algorithm=hashes.SHA256(),
+                        length=32,
+                        salt=None,
+                        info=b'GPAKE encryption',
+                    )
+                    derived_key = hkdf.derive(password)
+                    print(f"Host: Derived key for event type {event_type}: {derived_key.hex()}", flush=True)
+
+                    # Decrypt the public key
+                    cipher = ChaCha20Poly1305(derived_key)
+                    pub_key_bytes = cipher.decrypt(nonce, encrypted_pub_key, None)
+                    print(f"Host: Decrypted public key bytes for event type {event_type}: {pub_key_bytes.hex()}", flush=True)
+
+                    # Deserialize the public key
+                    pub_key = ec.EllipticCurvePublicKey.from_encoded_point(self.curve, pub_key_bytes)
+
+                    if isinstance(pub_key, ec.EllipticCurvePublicKey):
+                        valid_keys[event_type] = pub_key
+                        used_passwords.add(password)
+                        print(f"Host: Valid public key found for event type {event_type}", flush=True)
+                        break
+
+                except Exception as e:
+                    print(f"Host: Decryption failed for event type {event_type}, Error: {str(e)}", flush=True)
+                    continue
+
         return valid_keys
 
 
@@ -155,6 +210,7 @@ class PartitionedGPAKE:
             for remote_id in remote_ids:
                 session_id = f"{local_id}-{remote_id}-event{event_type}"
                 session_ids[event_type] = session_id
+                print(f"Session ID for event type {event_type}: {session_id}", flush=True)
     
         return session_ids
 
@@ -185,6 +241,7 @@ class PartitionedGPAKE:
                 ) +                                               # Remote public key
                 shared_key                                        # ECDH shared secret
             )
+            print(f"Hash input for event type {event_type}: {hash_input.hex()}", flush=True)
 
             # Derive a 32-byte key using HKDF
             derived_key = HKDF(
@@ -222,6 +279,7 @@ class PartitionedGPAKE:
             key = ecdh_keys[event_type]
             cipher = ChaCha20Poly1305(key)
             nonce = secrets.token_bytes(12)  # ChaCha20-Poly1305 requires a 12-byte nonce
+            print(f"Device: Encrypting with nonce {nonce.hex()}, derived_key: {key.hex()} for event type {event_type}", flush=True)
             encrypted_value = cipher.encrypt(nonce, random_value, None)
             encrypted_values[event_type] = (nonce, encrypted_value)
             print(f"Encrypted random value for event type {event_type}: {encrypted_value.hex()}", flush=True)
@@ -233,7 +291,7 @@ class PartitionedGPAKE:
         for event_type, (nonce, encrypted_value) in encrypted_values.items():
             session_id = session_ids[event_type]
             message = [local_id.encode('utf-8'), session_id.encode('utf-8'), nonce, encrypted_value]
-            send_gpake_msg(conn, message)
+            send_pake_msg(conn, message)
 
     #Step 13
     def check_session_id(self, session_id, local_id):
@@ -251,7 +309,7 @@ class PartitionedGPAKE:
         derived_random_values = {}
     
         while True:
-            received_data = gpake_msg_standby(conn, self.timeout)
+            received_data = pake_msg_standby(conn, self.timeout)
             if received_data is None:
                 break  # No more data to receive or timed out
         
@@ -312,14 +370,16 @@ class PartitionedGPAKE:
         self.broadcast_encrypted_keys(conn, encrypted_keys)
         print("Host: Broadcasted encrypted public keys")
         # Step 4: Receive and decrypt public keys from other devices
-        valid_keys = self.receive_and_decrypt_keys(conn, passwords, grouped_events)
+        valid_keys = self.receive_and_decrypt_keys_for_host(conn, passwords, grouped_events)
         print("Host: Received and decrypted public keys")
         # Step 5: Generate session IDs using valid public keys
         session_ids = self.generate_session_ids("host", ["device"], valid_keys)
+        print("Host session IDs: ", session_ids, flush=True)
         
         # Step 6: Derive intermediate ECDH keys
         #private_key = self.private_key  # Host uses its existing private key
         ecdh_keys = self.derive_ecdh_keys(private_keys, valid_keys, session_ids)
+        print("Host derived ECDH keys: ", {k: v.hex() for k, v in ecdh_keys.items()}, flush=True)
         print("Host: Derived intermediate ECDH keys")
         
         # Step 7: Generate random values for each event group
@@ -354,11 +414,13 @@ class PartitionedGPAKE:
     
         # Step 2: Generate session IDs for the valid keys
         session_ids = self.generate_session_ids(local_id, remote_ids, valid_keys)
+        print("Device session IDs: ", session_ids, flush=True)
         print("Device: Generated session IDs")
     
         # Step 3: Derive the intermediate ECDH keys using the private key and the valid public keys
         private_keys = self.generate_private_keys_for_events(grouped_events)
         ecdh_keys = self.derive_ecdh_keys(private_keys, valid_keys, session_ids)
+        print("Device derived ECDH keys: ", {k: v.hex() for k, v in ecdh_keys.items()}, flush=True)
         print("Device: Derived intermediate ECDH keys")
     
         # Step 4: Generate random values for each grouped event

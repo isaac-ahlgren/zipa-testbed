@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 sys.path.insert(1, os.getcwd() + "/src")
 
 from error_correction.GPAKE import PartitionedGPAKE  # Import your GPAKE implementation
-from networking.network import gpake_msg_standby, send_gpake_msg, send_status  # Import network functions
+from networking.network import pake_msg_standby, send_pake_msg, send_status  # Import network functions
 
 @pytest.fixture
 def setup_keys():
@@ -34,7 +34,7 @@ def test_network_communication():
         device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         device_socket.connect(("127.0.0.1", 2000))
-        send_gpake_msg(device_socket, [d1, d2, d3])
+        send_pake_msg(device_socket, [d1, d2, d3])
 
     device_process = Process(target=device, name="[CLIENT]")
     device_process.start()
@@ -47,7 +47,7 @@ def test_network_communication():
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
 
-    msg = gpake_msg_standby(connection, 10)
+    msg = pake_msg_standby(connection, 10)
 
     recv_d1 = msg[0]
     recv_d2 = msg[1]
