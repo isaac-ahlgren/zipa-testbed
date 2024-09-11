@@ -301,4 +301,4 @@ def make_dirs(data_dir, fuzzing_dir, fuzzing_stub_dir):
         os.mkdir(f"{data_dir}/{fuzzing_dir}")
 
     if not os.path.isdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}"):
-        os.mkdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_dir}")
+        os.mkdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}")

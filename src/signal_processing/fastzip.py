@@ -6,7 +6,6 @@ from scipy.ndimage import gaussian_filter
 from scipy.signal import find_peaks, savgol_filter
 
 
-# WIP
 class FastZIPProcessing:
     def fastzip_algo(
         sensor_data_list: List[np.ndarray],
