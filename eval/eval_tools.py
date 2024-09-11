@@ -1,5 +1,7 @@
 import random
 from typing import List, Tuple
+import argparse
+import os
 
 import numpy as np
 import pandas as pd
@@ -260,3 +262,43 @@ def log_parameters(file_name_stub, name_list, parameter_list):
     file_name = file_name_stub + "_params.csv"
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name)
+
+def get_fuzzing_command_line_args(
+    key_length_default: int = None,
+    target_snr_default: int = None,
+    number_of_choices_default: int = None,
+    wrap_around_limit_default: float = None,
+):
+    """
+    Parse command-line arguments for the script.
+
+    :return: Tuple containing window length, band length, key length, SNR level, and number of trials.
+    """
+    parser = argparse.ArgumentParser()
+
+    # Add arguments without descriptions
+    parser.add_argument("-kl", "--key_length", type=int, default=key_length_default)
+    parser.add_argument("-snr", "--snr_level", type=int, default=target_snr_default)
+    parser.add_argument("-c", "--choices", type=int, default=number_of_choices_default)
+    parser.add_argument("-wwl", "--wrap_around_limit", type=int, default=wrap_around_limit_default)
+
+    # Parsing command-line arguments
+    args = parser.parse_args()
+
+    # Extracting arguments
+    key_length = getattr(args, "key_length")
+    target_snr = getattr(args, "snr_level")
+    number_of_choices = getattr(args, "choices")
+    wrap_around_limit = getattr(args, "wrap_around_limit")
+
+    return key_length, target_snr, number_of_choices, wrap_around_limit
+
+def make_dirs(data_dir, fuzzing_dir, fuzzing_stub_dir):
+    if not os.path.isdir(data_dir):
+        os.mkdir(data_dir)
+
+    if not os.path.isdir(f"{data_dir}/{fuzzing_dir}"):
+        os.mkdir(f"{data_dir}/{fuzzing_dir}")
+
+    if not os.path.isdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}"):
+        os.mkdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_dir}")
