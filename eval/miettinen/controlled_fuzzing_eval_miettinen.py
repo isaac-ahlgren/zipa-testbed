@@ -1,13 +1,11 @@
 import os
 import random
 import sys
-import argparse
 from typing import List
 
 import numpy as np
 from miettinen_tools import (
     DATA_DIRECTORY,
-    MICROPHONE_SAMPLING_RATE,
     miettinen_calc_sample_num,
     miettinen_wrapper_func,
 )
