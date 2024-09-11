@@ -1,4 +1,5 @@
 import glob
+import os
 from typing import Callable
 
 import numpy as np
@@ -9,6 +10,9 @@ class Noisy_File(Signal_File_Interface):
     def __init__(self, sf: Signal_File_Interface, target_snr: float):
         self.sf = sf
         self.target_snr = target_snr
+
+        seed = int.from_bytes(os.urandom(8), "big")
+        self.rng = np.random.default_rng(seed)
 
     def calc_snr_dist_params(self, signal: np.ndarray, target_snr: float) -> float:
         """
@@ -34,7 +38,7 @@ class Noisy_File(Signal_File_Interface):
         """
 
         noise_std = self.calc_snr_dist_params(signal, target_snr)
-        noise = np.random.normal(0, noise_std, len(signal))
+        noise = self.rng.normal(0, noise_std, len(signal))
         return signal + noise
 
     def read(self, samples: int) -> np.ndarray:

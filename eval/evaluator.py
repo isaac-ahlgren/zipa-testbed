@@ -132,7 +132,6 @@ class Evaluator:
             file_stub = file_dir + "/" + choice_file_stub
             self.parameter_log_func(params, file_stub)
             
-            print
             if multithreaded:
                 self.fuzzing_multithreaded(signals, key_length, file_stub, params)
             else:
