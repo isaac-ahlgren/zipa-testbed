@@ -65,5 +65,5 @@ class MiettinenProcessing:
 
         signal = MiettinenProcessing.signal_preprocessing(x, f, w)
         key = MiettinenProcessing.gen_key(signal, rel_thresh, abs_thresh)
-        
+
         return bitstring_to_bytes(key)
