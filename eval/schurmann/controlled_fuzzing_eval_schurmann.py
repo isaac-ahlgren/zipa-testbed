@@ -23,7 +23,7 @@ from signal_file import Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
-TARGET_SNR_DEFAULT = 10
+TARGET_SNR_DEFAULT = 40
 NUMBER_OF_CHOICES_DEFAULT = 500
 WRAP_AROUND_LIMIT_DEFAULT = 10
 

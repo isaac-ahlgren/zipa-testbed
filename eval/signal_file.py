@@ -23,10 +23,14 @@ class Noisy_File(Signal_File_Interface):
         :return: The calculated noise standard deviation.
         """
         sig_sqr_sum = np.mean(signal**2)
-        sig_db = 10 * np.log10(sig_sqr_sum)
-        noise_db = sig_db - target_snr
-        noise_avg_sqr = 10 ** (noise_db / 10)
-        return np.sqrt(noise_avg_sqr)
+        if sig_sqr_sum != 0:
+            sig_db = 10 * np.log10(sig_sqr_sum)
+            noise_db = sig_db - target_snr
+            noise_avg_sqr = 10 ** (noise_db / 10)
+            output = np.sqrt(noise_avg_sqr)
+        else:
+            output = 0
+        return output
 
     def add_gauss_noise(self, signal: np.ndarray, target_snr: float) -> np.ndarray:
         """
