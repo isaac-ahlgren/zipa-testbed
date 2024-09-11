@@ -1,8 +1,9 @@
 from typing import List
 
+
 import numpy as np
 from scipy.fft import rfft
-
+import scipy
 
 class SchurmannProcessing:
     def sigs_algo(x1: List[float], window_len: int = 10000, bands: int = 1000) -> bytes:
@@ -87,13 +88,13 @@ class SchurmannProcessing:
         antialias_bin = int(antialias_freq / freq_bin_len)
 
         x = np.array(x1.copy())
-        # wind = scipy.signal.windows.hann(window_len)
+        wind = scipy.signal.windows.hann(window_len)
         for i in range(0, len(x), window_len):
             if len(x[i : i + window_len]) < window_len:
-                # wind = scipy.signal.windows.hann(len(x[i:i+window_len]))
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
+                wind = scipy.signal.windows.hann(len(x[i:i+window_len]))
+                x[i : i + window_len] = x[i : i + window_len]  * wind
             else:
-                x[i : i + window_len] = x[i : i + window_len]  # * wind
+                x[i : i + window_len] = x[i : i + window_len]  * wind
 
             fft_row = abs(rfft(x[i : i + window_len]))
             FFTs.append(fft_row[:antialias_bin])

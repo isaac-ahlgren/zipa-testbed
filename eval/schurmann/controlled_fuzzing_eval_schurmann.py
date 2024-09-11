@@ -32,7 +32,7 @@ WINDOW_LENGTH_RANGE = (5000, 2 * 48000)
 MIN_BAND_LENGTH = 1
 
 SCHURMANN_CONTROLLED_FUZZING = "schurmann_controlled_fuzz"
-SCHURMANN_CONTROLLED_FUZZING_STUB = "schurmann_controlled_fuzz"
+SCHURMANN_CONTROLLED_FUZZING_STUB = "schurmann_controlled_fuzz_w_hann"
 
 def get_command_line_args(
     key_length_default: int = KEY_LENGTH_DEFAULT,
@@ -49,7 +49,7 @@ def get_command_line_args(
 
     # Add arguments without descriptions
     parser.add_argument("-kl", "--key_length", type=int, default=key_length_default)
-    parser.add_argument("-snr", "--snr_level", type=float, default=target_snr_default)
+    parser.add_argument("-snr", "--snr_level", type=int, default=target_snr_default)
     parser.add_argument("-c", "--choices", type=int, default=number_of_choices_default)
     parser.add_argument("-wwl", "--wrap_around_limit", type=int, default=wrap_around_limit_default)
 
@@ -77,10 +77,10 @@ def main(
     if not os.path.isdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}"):
         os.mkdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}")
 
-    if not os.path.isdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}/{SCHURMANN_CONTROLLED_FUZZING}_snr{target_snr}"):
-        os.mkdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}/{SCHURMANN_CONTROLLED_FUZZING}_snr{target_snr}")
+    if not os.path.isdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}/{SCHURMANN_CONTROLLED_FUZZING_STUB}_snr{target_snr}"):
+        os.mkdir(f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}/{SCHURMANN_CONTROLLED_FUZZING_STUB}_snr{target_snr}")
 
-    fuzzing_dir = f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}/{SCHURMANN_CONTROLLED_FUZZING}_snr{target_snr}"
+    fuzzing_dir = f"{DATA_DIRECTORY}/{SCHURMANN_CONTROLLED_FUZZING}/{SCHURMANN_CONTROLLED_FUZZING_STUB}_snr{target_snr}"
 
     signals = load_controlled_signal_files(target_snr, wrap_around=True, wrap_around_limit=wrap_around_limit)
 

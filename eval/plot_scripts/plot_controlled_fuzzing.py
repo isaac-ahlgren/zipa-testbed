@@ -16,9 +16,9 @@ def bit_err_vs_parameter_plot(ber_list, param_list, parameter_name):
 
 def plot_schurmann():
     SCHURMANN_DATA_DIRECTORY = "../schurmann/schurmann_data/schurmann_controlled_fuzz"
-    SCHURMANN_CONTROLLED_FUZZING_STUB = "schurmann_controlled_fuzz"
+    SCHURMANN_CONTROLLED_FUZZING_STUB = "schurmann_controlled_fuzz_w_hann"
 
-    for snr in [10]:
+    for snr in [20.0, 40]:
         contents = parse_eval_directory(f"{SCHURMANN_DATA_DIRECTORY}", f"{SCHURMANN_CONTROLLED_FUZZING_STUB}_snr{snr}")
 
         byte_list1 = extract_from_contents(contents, "legit_signal1_bits")
