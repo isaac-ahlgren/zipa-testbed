@@ -1,27 +1,26 @@
 import os
 import sys
+from typing import List
 
 import numpy as np
 from schurmann_tools import (
     ANTIALIASING_FILTER,
+    MICROPHONE_SAMPLING_RATE,
     get_command_line_args,
     schurmann_calc_sample_num,
     schurmann_wrapper_func,
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import (  # noqa: E402
-    Signal_Buffer,
-    cmp_bits,
-    load_controlled_signal,
-)
+from eval_tools import load_controlled_signal_files  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
+from signal_file import Signal_Buffer  # noqa: E402
 
 WINDOW_LENGTH_DEFAULT = 16537
 BAND_LENGTH_DEFAULT = 500
 KEY_LENGTH_DEFAULT = 128
 TARGET_SNR_DEFAULT = 20
-TRIALS_DEFAULT = 1000
+TRIALS_DEFAULT = 100
 
 
 def main(
@@ -32,28 +31,19 @@ def main(
     trials=TRIALS_DEFAULT,
 ):
     # Loading the controlled signals
-    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal(
-        "../../data/adversary_controlled_signal.wav"
-    )
-    legit_signal_buffer1 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
-    )
-    legit_signal_buffer2 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
-    )
-    adv_signal_buffer = Signal_Buffer(adv_signal)
-
-    # Grouping the signal buffers into a tuple
-    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+    signals = load_controlled_signal_files(target_snr, wrap_around=True)
 
     # Calculating the number of samples needed
     sample_num = schurmann_calc_sample_num(
-        key_length, window_length, band_length, sr, ANTIALIASING_FILTER
+        key_length,
+        window_length,
+        band_length,
+        MICROPHONE_SAMPLING_RATE,
+        ANTIALIASING_FILTER,
     )
 
-    # Defining the bit generation algorithm
-    def bit_gen_algo(signal: Signal_Buffer) -> np.ndarray:
+    # Defining thcontrolled_signal_fuzzinge bit generation algorithm
+    def bit_gen_algo(signal: Signal_Buffer, *argv: List) -> np.ndarray:
         """
         Processes the signal using the Schurmann wrapper function to generate cryptographic bits.
 
@@ -62,17 +52,23 @@ def main(
         :return: The processed signal data after applying the Schurmann algorithm.
         :rtype: np.ndarray
         """
-        signal_chunk = signal.read(sample_num)  # Reading a chunk of the signal
-        return schurmann_wrapper_func(
-            signal_chunk, window_length, band_length, sr, ANTIALIASING_FILTER
-        )
+        signal_chunk = signal.read(argv[4])  # Reading a chunk of the signal
+        return schurmann_wrapper_func(signal_chunk, argv[0], argv[1], argv[2], argv[3])
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials)
+    evaluator.evaluate_controlled_signals(
+        signals,
+        trials,
+        window_length,
+        band_length,
+        MICROPHONE_SAMPLING_RATE,
+        ANTIALIASING_FILTER,
+        sample_num,
+    )
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)
 
     le_avg_be = np.mean(legit_bit_errs)
     adv_avg_be = np.mean(adv_bit_errs)

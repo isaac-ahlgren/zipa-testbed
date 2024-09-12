@@ -6,7 +6,6 @@ from scipy.ndimage import gaussian_filter
 from scipy.signal import find_peaks, savgol_filter
 
 
-# WIP
 class FastZIPProcessing:
     def fastzip_algo(
         sensor_data_list: List[np.ndarray],
@@ -22,6 +21,7 @@ class FastZIPProcessing:
         alpha_list: Optional[List[float]] = None,
         remove_noise_list: Optional[List[bool]] = None,
         normalize_list: Optional[List[bool]] = None,
+        return_bitstring=False,
     ) -> bytes:
         """
         Main algorithm for processing sensor data and generating a cryptographic key.
@@ -102,7 +102,10 @@ class FastZIPProcessing:
 
             if bits is not None:
                 key += bits
-        return bitstring_to_bytes(key)
+        if return_bitstring is True:
+            return key
+        else:
+            return bitstring_to_bytes(key)
 
     def normalize_signal(sig: np.ndarray) -> Optional[np.ndarray]:
         """
@@ -157,7 +160,11 @@ class FastZIPProcessing:
         if len(sig) == 0:
             print("compute_sig_power: signal must have non-zero length!")
             return
-        return 10 * np.log10(np.sum(sig**2) / len(sig))
+        rms_sqr = np.mean(sig**2)
+        if rms_sqr == 0:
+            return 0
+        else:
+            return 10 * np.log10(rms_sqr)
 
     def compute_snr(sig: np.ndarray) -> Optional[float]:
         """
@@ -169,7 +176,11 @@ class FastZIPProcessing:
         if len(sig) == 0:
             print("compute_snr: signal must have non-zero length!")
             return
-        return np.mean(abs(sig)) / np.std(abs(sig))
+        std = np.std(abs(sig))
+        if std == 0:
+            return 0
+        else:
+            return np.mean(abs(sig)) / np.std(abs(sig))
 
     def get_peaks(sig: np.ndarray, sample_rate: int) -> int:
         """
@@ -209,16 +220,12 @@ class FastZIPProcessing:
         power, snr, peaks = 0, 0, 0
 
         power = FastZIPProcessing.compute_sig_power(signal)
-        print("Power threshold: ", power_thresh)
-        print("Actual power: ", power)
 
         if peak_status:
             signal = FastZIPProcessing.ewma_filter(abs(signal), alpha)
             peaks = FastZIPProcessing.get_peaks(signal, sample_rate)
 
         snr = FastZIPProcessing.compute_snr(signal)
-        print("Snr threshold: ", snr_thresh)
-        print("Actual snr: ", snr)
 
         activity_detected = False
         if power > power_thresh and snr > snr_thresh and peaks >= peak_thresh:

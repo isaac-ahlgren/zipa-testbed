@@ -10,11 +10,16 @@ sys.path.insert(
 )  # Gives us path to Fastzip algorithm in /src
 from signal_processing.fastzip import FastZIPProcessing  # noqa: E402
 
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import bitstring_to_bytes  # noqa: E402
+
 SAMPLING_RATE = 50
+MICROPHONE_SAMPLING_RATE = 44100
+DATA_DIRECTORY = "./fastzip_data"
 
 
 def manage_overlapping_chunks(
-    signal_buffer: np.ndarray, chunk_size: int, overlap_size: int
+    new_chunk, previous_chunk
 ) -> Generator[np.ndarray, None, None]:
     """
     Generate overlapping chunks from a signal buffer.
@@ -24,76 +29,62 @@ def manage_overlapping_chunks(
     :param overlap_size: Number of overlapping samples between consecutive chunks.
     :return: Yields successive overlapping chunks from the signal buffer.
     """
-    previous_chunk = np.array([])
 
-    while True:
-        if len(previous_chunk) < overlap_size:
-            new_data = signal_buffer.read(chunk_size)
-            if new_data is None:
-                break
-        else:
-            new_data = signal_buffer.read(chunk_size - overlap_size)
-
-        if new_data is None:
-            break
-
-        if len(previous_chunk) >= overlap_size:
-            current_chunk = np.concatenate((previous_chunk[-overlap_size:], new_data))
-        else:
-            current_chunk = new_data
-
-        yield current_chunk
-        previous_chunk = current_chunk
+    overlap_size = len(new_chunk)
+    return np.concatenate((previous_chunk[-overlap_size:], new_chunk))
 
 
 def fastzip_wrapper_function(
-    sensor_arr: np.ndarray,
-    bits: int,
+    sensor,
+    n_bits: int,
+    chunk_size: int,
+    overlap_size: int,
     power_thr: float,
     snr_thr: float,
     peak_thr: int,
     bias: int,
-    sample_rate: int,
     eqd_delta: int,
+    sampling_rate: int,
+    key_length: int,
     peak_status: Optional[bool] = None,
     ewma_filter: Optional[float] = None,
     alpha: Optional[float] = None,
     remove_noise: Optional[bool] = None,
     normalize: Optional[bool] = None,
 ) -> List[int]:
-    """
-    Wrapper function to call the FastZIP processing algorithm.
 
-    :param sensor_arr: Array of sensor data.
-    :param bits: Number of bits to process.
-    :param power_thr: Power threshold.
-    :param snr_thr: Signal-to-noise ratio threshold.
-    :param peak_thr: Peak threshold.
-    :param bias: Bias adjustment for processing.
-    :param sample_rate: Sampling rate of the signal.
-    :param eqd_delta: Equalization delta for signal processing.
-    :param peak_status: Peak status for processing (optional).
-    :param ewma_filter: EWMA filter value (optional).
-    :param alpha: Alpha value for processing (optional).
-    :param remove_noise: Flag to indicate noise removal (optional).
-    :param normalize: Flag to indicate whether to normalize the signal (optional).
-    :return: Processed result as a list of integers.
-    """
-    return FastZIPProcessing.fastzip_algo(
-        [sensor_arr],
-        [bits],
-        [power_thr],
-        [snr_thr],
-        [peak_thr],
-        [bias],
-        [sample_rate],
-        [eqd_delta],
-        [peak_status],
-        [ewma_filter],
-        [alpha],
-        [remove_noise],
-        [normalize],
-    )
+    accumulated_bits = ""
+    number_of_bits = 0
+    samples_read = chunk_size
+    chunk = sensor.read(chunk_size)
+    while not sensor.get_finished_reading() and number_of_bits < key_length:
+        bits = FastZIPProcessing.fastzip_algo(
+            [chunk],
+            [n_bits],
+            [power_thr],
+            [snr_thr],
+            [peak_thr],
+            [bias],
+            [sampling_rate],
+            [eqd_delta],
+            [peak_status],
+            [ewma_filter],
+            [alpha],
+            [remove_noise],
+            [normalize],
+            return_bitstring=True,
+        )
+
+        if bits:
+            accumulated_bits += bits
+            number_of_bits += n_bits
+
+        new_overlap_chunk = sensor.read(chunk_size - overlap_size)
+        chunk = manage_overlapping_chunks(new_overlap_chunk, chunk)
+        samples_read += overlap_size
+    if len(accumulated_bits) >= key_length:
+        accumulated_bits = accumulated_bits[:key_length]
+    return bitstring_to_bytes(accumulated_bits), samples_read
 
 
 def golden_signal(sample_num: int) -> np.ndarray:

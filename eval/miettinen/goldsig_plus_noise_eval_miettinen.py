@@ -12,7 +12,7 @@ from miettinen_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import add_gauss_noise, cmp_bits  # noqa: E402
+from eval_tools import load_controlled_signal_buffers  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 SNAP_SHOT_WIDTH_DEFAULT = 0.1
@@ -44,27 +44,29 @@ def main(
     signal1 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
     signal2 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
     adv_signal = adversary_signal(sample_num, MICROPHONE_SAMPLING_RATE)
-    signals = (signal1, signal2, adv_signal)
+    signals = load_controlled_signal_buffers(
+        [signal1, signal2, adv_signal], target_snr=target_snr, noise=True
+    )
 
     # Defining the bit generation algorithm
-    def bit_gen_algo(signal: np.ndarray) -> np.ndarray:
+    def bit_gen_algo(signal: np.ndarray, *argv) -> np.ndarray:
         """
         Wrapper function to process an array using the Miettinen algorithm.
 
         :param signal: Input signal array.
         :return: Processed signal array.
         """
-        noisy_signal = add_gauss_noise(signal, target_snr)  # Adding Gaussian noise
-        return miettinen_wrapper_func(
-            noisy_signal, f_in_samples, w_in_samples, rel_thresh, abs_thresh
-        )
+        samples = signal.read(argv[4])
+        return miettinen_wrapper_func(samples, argv[0], argv[1], argv[2], argv[3])
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials)
+    evaluator.evaluate_controlled_signals(
+        signals, trials, f_in_samples, w_in_samples, rel_thresh, abs_thresh, sample_num
+    )
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)
 
     le_avg_be = np.mean(legit_bit_errs)
     adv_avg_be = np.mean(adv_bit_errs)
