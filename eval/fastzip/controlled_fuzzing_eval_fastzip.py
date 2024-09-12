@@ -24,22 +24,20 @@ from signal_file import Signal_File  # noqa: E402
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
 TARGET_SNR_DEFAULT = 40
-NUMBER_OF_CHOICES_DEFAULT = 500
+NUMBER_OF_CHOICES_DEFAULT = 1000
 WRAP_AROUND_LIMIT_DEFAULT = 10
 
 # Random Parameter Ranges
 WINDOW_SIZE_RANGE = (50, 10000)
 
 MIN_OVERLAP_DEFAULT = 0
-OVERLAP_SIZE_DEFAULT = () # max val half of the chosen window size
 
 MIN_N_BITS_DEFAULT = 10
-N_BITS_DEFAULT = 18 # max half of chosen window size 
 
 BIAS_DEFAULT = 0 # no need to worry
 
-EQD_DELTA_DEFAULT = 1 # dependent of window_size /  n_bits (smaller)
-PEAK_STATUS_DEFAULT = None
+MIN_EQD_DELTA_DEFAULT = 1 # dependent of window_size /  n_bits (smaller)
+
 EWMA_FILTER_DEFAULT = None
 ALPHA_DEFAULT = None # between 0 and 1
 REMOVE_NOISE_DEFAULT = None
@@ -70,45 +68,44 @@ def main(
     signals = load_controlled_signal_files(target_snr, wrap_around=True, wrap_around_limit=wrap_around_limit)
 
     def get_random_parameters():
-        window_size = random.randint(
+        window_size = [random.randint(
             WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]
-        )  # nosec
-        overlap_size = random.randint(
+        )]  # nosec
+        overlap_size = [random.randint(
             MIN_OVERLAP_DEFAULT, window_size // 2
-        )  # nosec
-        rel_thr = random.uniform(REL_THR_RANGE[0], REL_THR_RANGE[1]
-        )  # nosec
-        abs_thr = random.uniform(ABS_THR_RANGE[0], ABS_THR_RANGE[1]
-        )  # nosec
+        )]  # nosec
+        n_bits = [random.randint(MIN_N_BITS_DEFAULT, window_size // 2)] # nosec
+        max_eqd_delta = ceil(window_size / n_bits)
+        eqd_delta = [random.randint(MIN_EQD_DELTA_DEFAULT, max_eqd_delta)] # nosec
+        ewma = [random.choice([True, False])] # nosec
+        alpha = [random.uniform(0,1)] # nosec
+        remove_noise = [random.choice([True, False])] # nosec
+        normalize = [random.choice([True, False])] # nosec
+        power_th = [random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])] # nosec
+        snr_th = [random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])] # nosec
         return (
-            f_length,
-            w_length,
-            rel_thr,
-            abs_thr,
-            sample_num,
+            window_size, overlap_size, n_bits, eqd_delta, ewma, alpha, remove_noise, normalize, power_th, snr_th
         )
 
     def log(params, file_name_stub):
-        names = ["f_samples", "w_samples", "rel_thr", "abs_thr", "sample_num"]
-        param_list = [params[0], params[1], params[2], params[3], params[4]]
+        names = ["window_size", "overlap_size", "n_bits", "eqd_delta", "ewma", "alpha", "remove_noise", "normalize", "power_th", "snr_th"]
+        param_list = [params[0], params[1], params[2], params[3], params[4]] # ADD ALL THE PARAMETERS TO THIS
         log_parameters(file_name_stub, names, param_list)
 
     def bit_gen_algo(signal: Signal_File, *argv: List) -> np.ndarray:
         """
-        Processes the signal using the Schurmann wrapper function to generate cryptographic bits.
+        Generates bits based on the analysis of overlapping chunks from a signal.
 
-        :param signal: The signal data to be processed.
+        :param signal: The signal buffer to process.
         :type signal: Signal_Buffer
-        :return: The processed signal data after applying the Schurmann algorithm.
-        :rtype: np.ndarray
+        :return: A byte string of the generated bits up to the specified key length.
+        :rtype: ByteString
         """
-        read_length = argv[4]
-        signal_chunk = signal.read(argv[4])  # Reading a chunk of the signal
-        if len(signal_chunk) == read_length:
-            output = miettinen_wrapper_func(
-                signal_chunk, argv[0], argv[1], argv[2], argv[3]
+
+        output = fastzip_wrapper_function( # FIX THIS
+                signal, argv[2], argv[0], argv[1], 
             )
-        else:
+        
             output = None
         return output
 

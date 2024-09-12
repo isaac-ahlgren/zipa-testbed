@@ -78,14 +78,6 @@ def main(
         log_parameters(file_name_stub, names, param_list)
 
     def bit_gen_algo(signal: Signal_File, *argv: List) -> np.ndarray:
-        """
-        Processes the signal using the Schurmann wrapper function to generate cryptographic bits.
-
-        :param signal: The signal data to be processed.
-        :type signal: Signal_Buffer
-        :return: The processed signal data after applying the Schurmann algorithm.
-        :rtype: np.ndarray
-        """
         read_length = argv[4]
         signal_chunk = signal.read(argv[4])  # Reading a chunk of the signal
         if len(signal_chunk) == read_length:
