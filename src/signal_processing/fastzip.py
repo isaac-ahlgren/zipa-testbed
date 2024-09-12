@@ -21,6 +21,7 @@ class FastZIPProcessing:
         alpha_list: Optional[List[float]] = None,
         remove_noise_list: Optional[List[bool]] = None,
         normalize_list: Optional[List[bool]] = None,
+        return_bitstring = False,
     ) -> bytes:
         """
         Main algorithm for processing sensor data and generating a cryptographic key.
@@ -101,7 +102,10 @@ class FastZIPProcessing:
 
             if bits is not None:
                 key += bits
-        return bitstring_to_bytes(key)
+        if return_bitstring is True:
+            return key
+        else:
+            return bitstring_to_bytes(key)
 
     def normalize_signal(sig: np.ndarray) -> Optional[np.ndarray]:
         """

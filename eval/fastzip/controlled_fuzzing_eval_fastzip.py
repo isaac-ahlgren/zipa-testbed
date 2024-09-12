@@ -89,7 +89,7 @@ def main(
 
     def log(params, file_name_stub):
         names = ["window_size", "overlap_size", "n_bits", "eqd_delta", "ewma", "alpha", "remove_noise", "normalize", "power_th", "snr_th"]
-        param_list = [params[0], params[1], params[2], params[3], params[4]] # ADD ALL THE PARAMETERS TO THIS
+        param_list = [params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8], params[9]]
         log_parameters(file_name_stub, names, param_list)
 
     def bit_gen_algo(signal: Signal_File, *argv: List) -> np.ndarray:
@@ -103,7 +103,7 @@ def main(
         """
 
         output = fastzip_wrapper_function( # FIX THIS
-                signal, argv[2], argv[0], argv[1], 
+                signal, argv[2], argv[0], argv[1], params[8], params[9], NUM_PEAKS_DEFAULT, BIAS_DEFAULT, params[3], MICROPHONE_SAMPLING_RATE,  
             )
         
             output = None

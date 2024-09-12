@@ -40,7 +40,6 @@ def fastzip_wrapper_function(
     snr_thr: float,
     peak_thr: int,
     bias: int,
-    sample_rate: int,
     eqd_delta: int,
     sampling_rate: int,
     key_length: int,
@@ -51,9 +50,11 @@ def fastzip_wrapper_function(
     normalize: Optional[bool] = None,
 ) -> List[int]:
 
-    accumulated_bits = b""
+    accumulated_bits = ""
+    number_of_bits = 0
+    samples_read = chunk_size
     chunk = sensor.read(chunk_size)
-    while not sensor.get_finished_reading() and len(accumulated_bits) < key_length:
+    while not sensor.get_finished_reading() and number_of_bits < key_length:
         bits = FastZIPProcessing.fastzip_algo(
             [chunk],
             [n_bits],
@@ -68,16 +69,19 @@ def fastzip_wrapper_function(
             [alpha],
             [remove_noise],
             [normalize],
+            return_bitstring=True
         )
 
         if bits:
             accumulated_bits += bits
+            number_of_bits += n_bits
 
         new_overlap_chunk = sensor.read(chunk_size - overlap_size)
         chunk = manage_overlapping_chunks(new_overlap_chunk, chunk)
+        samples_read += overlap_size
     if len(accumulated_bits) >= key_length:
         accumulated_bits = accumulated_bits[:key_length]
-    return accumulated_bits
+    return accumulated_bits, samples_read
 
 def golden_signal(sample_num: int) -> np.ndarray:
     """
