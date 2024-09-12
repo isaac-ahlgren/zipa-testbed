@@ -21,7 +21,7 @@ class FastZIPProcessing:
         alpha_list: Optional[List[float]] = None,
         remove_noise_list: Optional[List[bool]] = None,
         normalize_list: Optional[List[bool]] = None,
-        return_bitstring = False,
+        return_bitstring=False,
     ) -> bytes:
         """
         Main algorithm for processing sensor data and generating a cryptographic key.
@@ -160,7 +160,11 @@ class FastZIPProcessing:
         if len(sig) == 0:
             print("compute_sig_power: signal must have non-zero length!")
             return
-        return 10 * np.log10(np.sum(sig**2) / len(sig))
+        rms_sqr = np.mean(sig**2)
+        if rms_sqr == 0:
+            return 0
+        else:
+            return 10 * np.log10(rms_sqr)
 
     def compute_snr(sig: np.ndarray) -> Optional[float]:
         """
@@ -172,7 +176,11 @@ class FastZIPProcessing:
         if len(sig) == 0:
             print("compute_snr: signal must have non-zero length!")
             return
-        return np.mean(abs(sig)) / np.std(abs(sig))
+        std = np.std(abs(sig))
+        if std == 0:
+            return 0
+        else:
+            return np.mean(abs(sig)) / np.std(abs(sig))
 
     def get_peaks(sig: np.ndarray, sample_rate: int) -> int:
         """

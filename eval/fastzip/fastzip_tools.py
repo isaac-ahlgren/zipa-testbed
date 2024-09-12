@@ -10,6 +10,9 @@ sys.path.insert(
 )  # Gives us path to Fastzip algorithm in /src
 from signal_processing.fastzip import FastZIPProcessing  # noqa: E402
 
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import bitstring_to_bytes  # noqa: E402
+
 SAMPLING_RATE = 50
 MICROPHONE_SAMPLING_RATE = 44100
 DATA_DIRECTORY = "./fastzip_data"
@@ -26,7 +29,7 @@ def manage_overlapping_chunks(
     :param overlap_size: Number of overlapping samples between consecutive chunks.
     :return: Yields successive overlapping chunks from the signal buffer.
     """
-    
+
     overlap_size = len(new_chunk)
     return np.concatenate((previous_chunk[-overlap_size:], new_chunk))
 
@@ -69,7 +72,7 @@ def fastzip_wrapper_function(
             [alpha],
             [remove_noise],
             [normalize],
-            return_bitstring=True
+            return_bitstring=True,
         )
 
         if bits:
@@ -81,7 +84,8 @@ def fastzip_wrapper_function(
         samples_read += overlap_size
     if len(accumulated_bits) >= key_length:
         accumulated_bits = accumulated_bits[:key_length]
-    return accumulated_bits, samples_read
+    return bitstring_to_bytes(accumulated_bits), samples_read
+
 
 def golden_signal(sample_num: int) -> np.ndarray:
     """

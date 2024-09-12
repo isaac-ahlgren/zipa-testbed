@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from utils import extract_from_contents, get_avg_ber_list, parse_eval_directory
 
-from utils import parse_eval_directory, get_avg_ber_list, extract_from_contents
 
 def bit_err_vs_parameter_plot(ber_list, param_list, parameter_name):
     ziped_list = list(zip(ber_list, param_list))
@@ -12,14 +12,17 @@ def bit_err_vs_parameter_plot(ber_list, param_list, parameter_name):
 
     plt.plot(ord_param_list, ord_ber_list)
     plt.show()
-    
+
 
 def plot_schurmann():
     SCHURMANN_DATA_DIRECTORY = "../schurmann/schurmann_data/schurmann_controlled_fuzz"
     SCHURMANN_CONTROLLED_FUZZING_STUB = "schurmann_controlled_fuzz"
 
     for snr in [20.0, 40]:
-        contents = parse_eval_directory(f"{SCHURMANN_DATA_DIRECTORY}", f"{SCHURMANN_CONTROLLED_FUZZING_STUB}_snr{snr}")
+        contents = parse_eval_directory(
+            f"{SCHURMANN_DATA_DIRECTORY}",
+            f"{SCHURMANN_CONTROLLED_FUZZING_STUB}_snr{snr}",
+        )
 
         byte_list1 = extract_from_contents(contents, "legit_signal1_bits")
         byte_list2 = extract_from_contents(contents, "legit_signal2_bits")
@@ -32,7 +35,6 @@ def plot_schurmann():
         window_lengths = extract_from_contents(params, "window_length")
         band_lengths = extract_from_contents(params, "band_length")
         band_portions = np.divide(band_lengths, window_lengths)
-
 
         bit_err_vs_parameter_plot(legit_ber, window_lengths, "Window Length")
         bit_err_vs_parameter_plot(adv_ber, window_lengths, "Window Length")
@@ -51,6 +53,7 @@ def plot_schurmann():
 
 def main():
     plot_schurmann()
+
 
 if __name__ == "__main__":
     main()

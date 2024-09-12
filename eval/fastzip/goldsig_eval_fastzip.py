@@ -72,7 +72,7 @@ def main(
         """
         accumulated_bits = b""
         for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
-            bits = fastzip_wrapper_function(
+            bits, number_of_samples = fastzip_wrapper_function(
                 chunk,
                 n_bits,
                 power_threshold,
@@ -94,7 +94,7 @@ def main(
                     break
         if len(accumulated_bits) > key_length:
             return accumulated_bits[:key_length]
-        return accumulated_bits
+        return accumulated_bits, number_of_samples
 
     evaluator = Evaluator(bit_gen_algo)
     evaluator.evaluate_controlled_signals(signals, trials)

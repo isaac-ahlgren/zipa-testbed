@@ -1,7 +1,7 @@
-import random
-from typing import List, Tuple
 import argparse
 import os
+import random
+from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -49,11 +49,13 @@ def gen_id():
 
 def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
     bits = []
+    extras = []
     while not signal.get_finished_reading():
-        b = bit_gen_algo_wrapper(signal, *argv)
+        b, *extra = bit_gen_algo_wrapper(signal, *argv)
         if b is not None:
             bits.append(b)
-    return bits
+            extras.append(extra)
+    return bits, extras
 
 
 def calc_all_events(signal: Signal_File, event_gen_algo_wrapper):
@@ -176,6 +178,8 @@ def bytes_to_bitstring(b: bytes, length: int) -> str:
 
 
 def bitstring_to_bytes(s: str) -> bytes:
+    if s == "":
+        return b""
     return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
 
@@ -248,11 +252,23 @@ def flatten_fingerprints(fps: List[List[bytes]]) -> List[bytes]:
 
 
 def log_bytes(file_name_stub, byte_list, key_length):
-    file_name = file_name_stub + "_bits.txt"
-    with open(file_name, "w") as file:
+    byte_file_name = file_name_stub + "_bits.txt"
+    with open(byte_file_name, "w") as file:
         for b in byte_list:
             bit_string = bytes_to_bitstring(b, key_length)
             file.write(bit_string + "\n")
+
+
+def log_extras(file_name_stub, extras_list):
+    extra_file_name = file_name_stub + "_extras.txt"
+    df = pd.DataFrame(extras_list)
+    df.to_csv(extra_file_name)
+
+
+def log_outcomes(file_name_stub, byte_list, extra_list, key_length):
+    log_bytes(file_name_stub, byte_list, key_length)
+    log_extras(file_name_stub, extra_list)
+
 
 def log_parameters(file_name_stub, name_list, parameter_list):
     csv_file = dict()
@@ -262,6 +278,7 @@ def log_parameters(file_name_stub, name_list, parameter_list):
     file_name = file_name_stub + "_params.csv"
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name)
+
 
 def get_fuzzing_command_line_args(
     key_length_default: int = None,
@@ -280,7 +297,9 @@ def get_fuzzing_command_line_args(
     parser.add_argument("-kl", "--key_length", type=int, default=key_length_default)
     parser.add_argument("-snr", "--snr_level", type=int, default=target_snr_default)
     parser.add_argument("-c", "--choices", type=int, default=number_of_choices_default)
-    parser.add_argument("-wwl", "--wrap_around_limit", type=int, default=wrap_around_limit_default)
+    parser.add_argument(
+        "-wwl", "--wrap_around_limit", type=int, default=wrap_around_limit_default
+    )
 
     # Parsing command-line arguments
     args = parser.parse_args()
@@ -292,6 +311,7 @@ def get_fuzzing_command_line_args(
     wrap_around_limit = getattr(args, "wrap_around_limit")
 
     return key_length, target_snr, number_of_choices, wrap_around_limit
+
 
 def make_dirs(data_dir, fuzzing_dir, fuzzing_stub_dir):
     if not os.path.isdir(data_dir):

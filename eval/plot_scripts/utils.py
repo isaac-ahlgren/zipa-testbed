@@ -1,12 +1,15 @@
-import pandas as pd
-import numpy as np
 import glob
+
+import numpy as np
+import pandas as pd
+
 
 def load_bytes(byte_file):
     with open(byte_file, "r") as file:
         output = file.readlines()
     output = [bits.strip() for bits in output]
     return output
+
 
 def fix_dict(d):
     new_d = dict()
@@ -18,11 +21,13 @@ def fix_dict(d):
         new_d[k] = ext_val
     return new_d
 
+
 def load_parameters(param_file):
     df = pd.read_csv(param_file)
     df_dict = df.to_dict()
     params = fix_dict(df_dict)
     return params
+
 
 def parse_eval_directory(data_dir, file_stub):
     output = []
@@ -35,7 +40,9 @@ def parse_eval_directory(data_dir, file_stub):
         params = load_parameters(param_file)
         dir_content["params"] = params
 
-        data_files = glob.glob(f"{dir_name}*.txt", root_dir=f"{data_dir}/{file_stub}/{dir_name}")
+        data_files = glob.glob(
+            f"{dir_name}*.txt", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
+        )
         for df in data_files:
             data = load_bytes(f"{data_dir}/{file_stub}/{dir_name}/{df}")
 
@@ -48,15 +55,17 @@ def parse_eval_directory(data_dir, file_stub):
         output.append(dir_content)
     return output
 
+
 def get_block_err(bits1, bits2, block_size):
     total = 0
     num_of_blocks = len(bits1) // block_size
     for i in range(0, len(bits1), block_size):
-        sym1 = bits1[i*block_size:(i+1)*block_size]
-        sym2 = bits2[i*block_size:(i+1)*block_size]
+        sym1 = bits1[i * block_size : (i + 1) * block_size]
+        sym2 = bits2[i * block_size : (i + 1) * block_size]
         if sym1 != sym2:
             total += 1
     return (total / num_of_blocks) * 100
+
 
 def cmp_byte_list(byte_list1, byte_list2, block_size):
     block_err_list = []
@@ -65,6 +74,7 @@ def cmp_byte_list(byte_list1, byte_list2, block_size):
         block_err_list.append(err_rate)
     return block_err_list
 
+
 def get_avg_ber_list(byte_list1, byte_list2):
     avg_ber_list = []
     for contents1, contents2 in zip(byte_list1, byte_list2):
@@ -72,12 +82,14 @@ def get_avg_ber_list(byte_list1, byte_list2):
         avg_ber = np.mean(ber_list)
         avg_ber_list.append(avg_ber)
     return avg_ber_list
-    
+
+
 def extract_from_contents(contents, key_word):
     extracted_content = []
     for content in contents:
         extracted_content.append(content[key_word])
     return extracted_content
+
 
 def get_min_entropy(bits, key_length: int, symbol_size: int) -> float:
     """

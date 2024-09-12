@@ -1,6 +1,6 @@
+import os
 from multiprocessing import Process
 from typing import Any, Callable, List, Tuple
-import os
 
 from eval_tools import (
     calc_all_bits,
@@ -8,7 +8,7 @@ from eval_tools import (
     cmp_bits,
     events_cmp_bits,
     gen_id,
-    log_bytes,
+    log_outcomes,
 )
 from signal_file_interface import Signal_File_Interface
 
@@ -97,12 +97,12 @@ class Evaluator:
 
     def fuzzing_func(self, signal, key_length, file_stub, params):
         if self.event_driven:
-            outcome = self.evaluate_device_ed(signal, params)
+            outcome, extras = self.evaluate_device_ed(signal, params)
         else:
-            outcome = self.evaluate_device_non_ed(signal, params)
-        
+            outcome, extras = self.evaluate_device_non_ed(signal, params)
+
         file_stub = file_stub + "_" + signal.get_id()
-        log_bytes(file_stub, outcome, key_length)
+        log_outcomes(file_stub, outcome, extras, key_length)
         signal.reset()
 
     def fuzzing_single_threaded(self, signals, key_length, file_stub, params):
@@ -112,7 +112,9 @@ class Evaluator:
     def fuzzing_multithreaded(self, signals, key_length, file_stub, params):
         threads = []
         for signal in signals:
-            p = Process(target=self.fuzzing_func, args=(signal, key_length, file_stub, params))
+            p = Process(
+                target=self.fuzzing_func, args=(signal, key_length, file_stub, params)
+            )
             p.start()
             threads.append(p)
 
@@ -120,7 +122,13 @@ class Evaluator:
             thread.join()
 
     def fuzzing_evaluation(
-        self, signals, number_of_choices, key_length, fuzzing_dir, fuzzing_file_stub, multithreaded=True
+        self,
+        signals,
+        number_of_choices,
+        key_length,
+        fuzzing_dir,
+        fuzzing_file_stub,
+        multithreaded=True,
     ) -> None:
         for i in range(number_of_choices):
             params = self.random_parameter_func()
@@ -131,7 +139,7 @@ class Evaluator:
                 os.mkdir(file_dir)
             file_stub = file_dir + "/" + choice_file_stub
             self.parameter_log_func(params, file_stub)
-            
+
             if multithreaded:
                 self.fuzzing_multithreaded(signals, key_length, file_stub, params)
             else:
