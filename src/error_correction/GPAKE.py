@@ -115,11 +115,14 @@ class PartitionedGPAKE:
             nonce, encrypted_pub_key = received_data
 
             for event_type, password in event_type_password_map.items():
+
                 if password in used_passwords:
                     print(f"Skipping used password for event type {event_type}", flush=True)
                     continue
 
                 try:
+                    print(f"Device: Password for event type {event_type}: {password}", flush=True)
+                    print(f"Device: Nonce for event type {event_type}: {nonce.hex()}", flush=True)
                     hkdf = HKDF(
                         algorithm=hashes.SHA256(),
                         length=32,
@@ -146,7 +149,7 @@ class PartitionedGPAKE:
     
         return valid_keys
     
-    def receive_and_decrypt_keys_for_host(self, conn, passwords, grouped_events):
+    def receive_and_decrypt_keys_for_hostb(self, conn, passwords, grouped_events):
         valid_keys = {}
         used_passwords = set()
 
@@ -171,6 +174,8 @@ class PartitionedGPAKE:
                     continue
 
                 try:
+                    print(f"Host: Password for event type {event_type}: {password}", flush=True)
+                    print(f"Host: Nonce for event type {event_type}: {nonce.hex()}", flush=True)
                     # Derive key from password
                     hkdf = HKDF(
                         algorithm=hashes.SHA256(),
@@ -182,11 +187,13 @@ class PartitionedGPAKE:
                     print(f"Host: Derived key for event type {event_type}: {derived_key.hex()}", flush=True)
 
                     # Decrypt the public key
+                    print(f"Host: Attempting to decrypt public key for event type {event_type} using nonce: {nonce.hex()}", flush=True)
                     cipher = ChaCha20Poly1305(derived_key)
                     pub_key_bytes = cipher.decrypt(nonce, encrypted_pub_key, None)
                     print(f"Host: Decrypted public key bytes for event type {event_type}: {pub_key_bytes.hex()}", flush=True)
 
                     # Deserialize the public key
+                    print(f"Host: Deserializing public key for event type {event_type}", flush=True)
                     pub_key = ec.EllipticCurvePublicKey.from_encoded_point(self.curve, pub_key_bytes)
 
                     if isinstance(pub_key, ec.EllipticCurvePublicKey):
@@ -197,9 +204,91 @@ class PartitionedGPAKE:
 
                 except Exception as e:
                     print(f"Host: Decryption failed for event type {event_type}, Error: {str(e)}", flush=True)
+                    print(f"Host: Failed at event type {event_type} with nonce: {nonce.hex()} and encrypted public key: {encrypted_pub_key.hex()}", flush=True)
                     continue
 
         return valid_keys
+    
+    def receive_and_decrypt_keys_for_host(self, conn, passwords, grouped_events):
+        valid_keys = {}
+        used_passwords = set()
+        event_nonces = {}  # Store nonces for each event type
+
+        # Create a mapping from event type to passwords
+        event_type_password_map = {i: passwords[i] for i in range(len(grouped_events))}
+
+        while len(valid_keys) < len(passwords):
+            print("Host: Waiting for data...", flush=True)
+            received_data = pake_msg_standby(conn, self.timeout)
+            if received_data is None:
+                print("Host: No more data to receive or timed out", flush=True)
+                break
+
+            local_id_received, session_id_received, nonce, encrypted_pub_key = received_data  # Four values to unpack
+
+            # Log the received values
+            print(f"Host: Received data - local_id: {local_id_received}, session_id: {session_id_received}, nonce: {nonce.hex()}, encrypted_pub_key: {encrypted_pub_key.hex()}", flush=True)
+
+            # Identify the event type based on the session ID
+            event_type = None
+            for et in event_type_password_map:
+                expected_session_id = self.generate_session_ids("host", ["device"], {et: valid_keys})
+                print(f"Host: Expected session ID for event type {et}: {expected_session_id[et]}", flush=True)
+
+                if session_id_received.decode() == expected_session_id[et]:
+                    event_type = et
+                    print(f"Host: Session ID match for event type {event_type}", flush=True)
+                    break
+            else:
+                print(f"Host: No matching session ID found for received session ID: {session_id_received.decode()}", flush=True)
+                continue  # Skip if no match found
+
+            # Store nonce for the matched event type
+            event_nonces[event_type] = nonce
+
+            # If password has already been used, skip the event
+            if event_type_password_map[event_type] in used_passwords:
+                print(f"Host: Skipping used password for event type {event_type}", flush=True)
+                continue
+
+            try:
+                # Log the relevant password and nonce for this event type
+                password = event_type_password_map[event_type]
+                print(f"Host: Password for event type {event_type}: {password}", flush=True)
+                print(f"Host: Nonce for event type {event_type}: {nonce.hex()}", flush=True)
+
+                # Derive key from password
+                hkdf = HKDF(
+                    algorithm=hashes.SHA256(),
+                    length=32,
+                    salt=None,
+                    info=b'GPAKE encryption',
+                )
+                derived_key = hkdf.derive(password)
+                print(f"Host: Derived key for event type {event_type}: {derived_key.hex()}", flush=True)
+
+                # Decrypt the public key using the specific nonce for this event
+                cipher = ChaCha20Poly1305(derived_key)
+                pub_key_bytes = cipher.decrypt(nonce, encrypted_pub_key, None)
+                print(f"Host: Decrypted public key bytes for event type {event_type}: {pub_key_bytes.hex()}", flush=True)
+
+                # Deserialize the public key
+                print(f"Host: Deserializing public key for event type {event_type}", flush=True)
+                pub_key = ec.EllipticCurvePublicKey.from_encoded_point(self.curve, pub_key_bytes)
+
+                if isinstance(pub_key, ec.EllipticCurvePublicKey):
+                    valid_keys[event_type] = pub_key
+                    used_passwords.add(password)
+                    print(f"Host: Valid public key found for event type {event_type}", flush=True)
+
+            except Exception as e:
+                print(f"Host: Decryption failed for event type {event_type}, Error: {str(e)}", flush=True)
+                print(f"Host: Failed at event type {event_type} with nonce: {nonce.hex()} and encrypted public key: {encrypted_pub_key.hex()}", flush=True)
+                continue
+
+        return valid_keys
+
+
 
 
     #Step 9
@@ -229,19 +318,33 @@ class PartitionedGPAKE:
             session_id = session_ids[event_type]  # Session ID already includes local and remote IDs
 
             # Combine session ID, public/private keys, and shared key into hash input
-            hash_input = (
-                session_id.encode('utf-8') +                      # Session ID
-                private_key.public_key().public_bytes(
-                    encoding=serialization.Encoding.X962,
-                    format=serialization.PublicFormat.CompressedPoint
-                ) +                                               # Local public key
-                pub_key.public_bytes(
-                    encoding=serialization.Encoding.X962,
-                    format=serialization.PublicFormat.CompressedPoint
-                ) +                                               # Remote public key
-                shared_key                                        # ECDH shared secret
+            # Extract public key bytes for local and remote keys
+            local_pub_key_bytes = private_key.public_key().public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.CompressedPoint
             )
+            remote_pub_key_bytes = pub_key.public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.CompressedPoint
+            )
+
+            # Print out the components for debugging purposes
+            print(f"Event type {event_type}:")
+            print(f"Session ID: {session_id}")
+            print(f"Local public key: {local_pub_key_bytes.hex()}")
+            print(f"Remote public key: {remote_pub_key_bytes.hex()}")
+            print(f"Shared secret: {shared_key.hex()}", flush=True)
+
+            # Combine session ID, public/private keys, and shared key into hash input
+            hash_input = (
+                session_id.encode('utf-8') +  # Session ID
+                local_pub_key_bytes +          # Local public key
+                remote_pub_key_bytes +         # Remote public key
+                shared_key                     # ECDH shared secret
+            )
+        
             print(f"Hash input for event type {event_type}: {hash_input.hex()}", flush=True)
+
 
             # Derive a 32-byte key using HKDF
             derived_key = HKDF(
@@ -254,6 +357,98 @@ class PartitionedGPAKE:
             ecdh_keys[event_type] = derived_key
 
             print(f"Derived ECDH key for event type {event_type}: {derived_key.hex()}", flush=True)
+
+        return ecdh_keys
+    
+    def derive_ecdh_keys_host(self, private_keys, valid_keys, session_ids):
+        ecdh_keys = {}
+
+        for event_type, pub_key in valid_keys.items():
+            private_key = private_keys[event_type]  # Use event-specific private key
+    
+            # Perform ECDH key exchange
+            shared_key = private_key.exchange(ec.ECDH(), pub_key)
+
+            # Derive session ID for this event type
+            session_id = session_ids[event_type]
+
+            # Extract public key bytes for local and remote keys
+            local_pub_key_bytes = private_key.public_key().public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.CompressedPoint
+            )
+            remote_pub_key_bytes = pub_key.public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.CompressedPoint
+            )
+
+            # Print session ID, public keys, and shared secret for debugging
+            print(f"Host Session ID: {session_id}")
+            print(f"Host Local public key for event type {event_type}: {local_pub_key_bytes.hex()}")
+            print(f"Host Remote public key for event type {event_type}: {remote_pub_key_bytes.hex()}")
+            print(f"Host Shared secret for event type {event_type}: {shared_key.hex()}", flush=True)
+
+            # Combine session ID, public/private keys, and shared key into hash input
+            hash_input = session_id.encode('utf-8') + local_pub_key_bytes + remote_pub_key_bytes + shared_key
+            print(f"Host Hash input for event type {event_type}: {hash_input.hex()}", flush=True)
+
+            # Derive a 32-byte key using HKDF
+            derived_key = HKDF(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=None,
+                info=b'GPAKE ECDH key derivation',
+            ).derive(hash_input)
+
+            ecdh_keys[event_type] = derived_key
+
+            print(f"Host Derived ECDH key for event type {event_type}: {derived_key.hex()}", flush=True)
+
+        return ecdh_keys
+    
+    def derive_ecdh_keys_device(self, private_keys, valid_keys, session_ids):
+        ecdh_keys = {}
+
+        for event_type, pub_key in valid_keys.items():
+            private_key = private_keys[event_type]  # Use event-specific private key
+    
+            # Perform ECDH key exchange
+            shared_key = private_key.exchange(ec.ECDH(), pub_key)
+
+            # Derive session ID for this event type
+            session_id = session_ids[event_type]
+
+            # Extract public key bytes for local and remote keys
+            local_pub_key_bytes = private_key.public_key().public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.CompressedPoint
+            )
+            remote_pub_key_bytes = pub_key.public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.CompressedPoint
+            )
+
+            # Print session ID, public keys, and shared secret for debugging
+            print(f"Device Session ID: {session_id}")
+            print(f"Device Local public key for event type {event_type}: {local_pub_key_bytes.hex()}")
+            print(f"Device Remote public key for event type {event_type}: {remote_pub_key_bytes.hex()}")
+            print(f"Device Shared secret for event type {event_type}: {shared_key.hex()}", flush=True)
+
+            # Combine session ID, public/private keys, and shared key into hash input
+            hash_input = session_id.encode('utf-8') + local_pub_key_bytes + remote_pub_key_bytes + shared_key
+            print(f"Device Hash input for event type {event_type}: {hash_input.hex()}", flush=True)
+
+            # Derive a 32-byte key using HKDF
+            derived_key = HKDF(
+                algorithm=hashes.SHA256(),
+                length=32,
+                salt=None,
+                info=b'GPAKE ECDH key derivation',
+            ).derive(hash_input)
+
+            ecdh_keys[event_type] = derived_key
+
+            print(f"Device Derived ECDH key for event type {event_type}: {derived_key.hex()}", flush=True)
 
         return ecdh_keys
 
@@ -378,7 +573,7 @@ class PartitionedGPAKE:
         
         # Step 6: Derive intermediate ECDH keys
         #private_key = self.private_key  # Host uses its existing private key
-        ecdh_keys = self.derive_ecdh_keys(private_keys, valid_keys, session_ids)
+        ecdh_keys = self.derive_ecdh_keys_host(private_keys, valid_keys, session_ids)
         print("Host derived ECDH keys: ", {k: v.hex() for k, v in ecdh_keys.items()}, flush=True)
         print("Host: Derived intermediate ECDH keys")
         
@@ -413,13 +608,16 @@ class PartitionedGPAKE:
         print("Device: Received and decrypted public keys")
     
         # Step 2: Generate session IDs for the valid keys
-        session_ids = self.generate_session_ids(local_id, remote_ids, valid_keys)
+        #session_ids = self.generate_session_ids(local_id, remote_ids, valid_keys)
+        # Reverse the local_id and remote_ids to match the host's session ID format
+        session_ids = self.generate_session_ids("host", ["device"], valid_keys)
+
         print("Device session IDs: ", session_ids, flush=True)
         print("Device: Generated session IDs")
     
         # Step 3: Derive the intermediate ECDH keys using the private key and the valid public keys
         private_keys = self.generate_private_keys_for_events(grouped_events)
-        ecdh_keys = self.derive_ecdh_keys(private_keys, valid_keys, session_ids)
+        ecdh_keys = self.derive_ecdh_keys_device(private_keys, valid_keys, session_ids)
         print("Device derived ECDH keys: ", {k: v.hex() for k, v in ecdh_keys.items()}, flush=True)
         print("Device: Derived intermediate ECDH keys")
     
