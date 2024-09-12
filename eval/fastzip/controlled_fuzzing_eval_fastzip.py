@@ -70,7 +70,9 @@ def main(
     )
 
     def get_random_parameters():
-        window_size = random.randint(WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]) # nosec
+        window_size = random.randint(
+            WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]
+        )  # nosec
         overlap_size = random.randint(MIN_OVERLAP_DEFAULT, window_size // 2)  # nosec
         max_bits = key_length if window_size // 2 > key_length else window_size // 2
         n_bits = random.randint(MIN_N_BITS_DEFAULT, max_bits)  # nosec
