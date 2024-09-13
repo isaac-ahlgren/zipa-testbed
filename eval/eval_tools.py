@@ -131,7 +131,7 @@ def load_signal_buffers(
 def load_real_signal_files(data_dir, dev_ids, sensor_type, times):
     file_stubs = []
     for id in dev_ids:
-        stubs = f"{sensor_type}_id_{id}_data_{times}.csv"
+        stubs = f"{sensor_type}_id_{id}_date_{times}.csv"
         file_stubs.append(stubs)
     return load_signal_files(data_dir, file_stubs, dev_ids, noise=False, wrap_around=False)
 
