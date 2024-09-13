@@ -128,6 +128,11 @@ def load_signal_buffers(
         sbs.append(sb)
     return sbs
 
+def load_real_signal_files(data_dir, dev_ids, sensor_type, times):
+    file_stubs = []
+    for id in dev_ids:
+        stubs = f"{sensor_type}_id_{id}_data_{times}.csv"
+    return load_signal_files(data_dir, stubs, noise=False, wrap_around=False)
 
 def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limit=None):
     return load_signal_files(
