@@ -13,6 +13,7 @@ from networking.network import (  # noqa
     NONC,
     SUCC,
     ack,
+    FPFM,
     ack_standby,
     commit_standby,
     dh_exchange,
@@ -23,6 +24,8 @@ from networking.network import (  # noqa
     send_nonce_msg,
     send_status,
     status_standby,
+    send_fpake_msg,
+    fpake_msg_standby,
     
 )
 
@@ -452,3 +455,141 @@ def test_get_nonce_msg_standby():
 
     assert host_process.exitcode == 0
     assert device_process.exitcode == 0
+
+def test_ack_standby():
+    def host():
+        host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        host_socket.bind(("127.0.0.1", 2000))
+        host_socket.listen()
+        connection, _ = host_socket.accept()
+        time.sleep(1)  # Simulate delay before sending ACK
+        connection.send(ACKN.encode())  # Send the acknowledgment
+
+    def device():
+        device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        device_socket.connect(("127.0.0.1", 2000))
+
+        acknowledged = ack_standby(device_socket, 5)  # Wait for ACK with a 5-second timeout
+        print(f"Client received acknowledgment: {acknowledged}")
+        assert acknowledged is True  # Ensure we received an acknowledgment
+
+    print("Testing ack_standby function.\nCreating processes.")
+    host_process = Process(target=host, args=[], name="[HOST]")
+    client_process = Process(target=device, args=[], name="[DEVICE]")
+
+    print("Starting processes.")
+    host_process.start()
+    client_process.start()
+
+    print("Joining processes.")
+    host_process.join()
+    client_process.join()
+
+    assert host_process.exitcode == 0  # nosec
+    assert client_process.exitcode == 0  # nosec
+
+
+
+
+def test_send_fpake_msg():
+    def host():
+        host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        host_socket.bind(("127.0.0.1", 2001))
+        host_socket.listen()
+        connection, _ = host_socket.accept()
+        
+        # Receive the sent message
+        sent_data = connection.recv(1024)
+        
+        # Expected payload
+        msg = [b"hello", b"world"]
+        length_payload = (len(b"hello") + 4 + len(b"world") + 4).to_bytes(4, byteorder="big")
+        expected_payload = FPFM.encode() + length_payload + len(b"hello").to_bytes(4, byteorder="big") \
+            + b"hello" + len(b"world").to_bytes(4, byteorder="big") + b"world"
+        
+        # Assert the received data matches the expected payload
+        assert sent_data == expected_payload
+        print("Host received correct data.")
+
+    def device():
+        time.sleep(1)  # Simulate delay to ensure host is ready
+        device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        device_socket.connect(("127.0.0.1", 2001))
+        
+        # Define the message
+        msg = [b"hello", b"world"]
+        
+        # Send the message
+        send_fpake_msg(device_socket, msg)
+        print("Device sent the message.")
+
+    # Creating processes for host and device
+    host_process = Process(target=host, args=[], name="[HOST]")
+    device_process = Process(target=device, args=[], name="[DEVICE]")
+
+    # Starting processes
+    host_process.start()
+    device_process.start()
+
+    # Joining processes
+    host_process.join()
+    device_process.join()
+
+    # Check exit codes of both processes
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
+
+def test_fpake_msg_standby():
+    def host():
+        host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        host_socket.bind(("127.0.0.1", 2001))
+        host_socket.listen()
+        connection, _ = host_socket.accept()
+        
+        # Send a message
+        msg = [b"hello", b"world"]
+        send_fpake_msg(connection, msg)
+        print("Host sent the message.")
+    
+    def device():
+        time.sleep(1)  # Simulate delay to ensure host is ready
+        device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        device_socket.connect(("127.0.0.1", 2001))
+        
+        # Wait for the message using fpake_msg_standby
+        received_msg = fpake_msg_standby(device_socket, timeout=5)
+        
+        # Expected message
+        expected_msg = [b"hello", b"world"]
+        
+        # Assert the received message matches the expected message
+        assert received_msg == expected_msg
+        print("Device received the correct message.")
+
+    # Creating processes for host and device
+    host_process = Process(target=host, args=[], name="[HOST]")
+    device_process = Process(target=device, args=[], name="[DEVICE]")
+
+    # Starting processes
+    host_process.start()
+    device_process.start()
+
+    # Joining processes
+    host_process.join()
+    device_process.join()
+
+    # Check exit codes of both processes
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
