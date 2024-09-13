@@ -37,4 +37,5 @@ jobs:
         mkdir local_data
     - name: Test with pytest
       run: |
-        pytest -n 4 tests/
+        pytest tests/*protocol.py
+        pytest $(find tests -name "*py" | grep -v "protocol")

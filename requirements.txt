@@ -9,7 +9,6 @@ numpy
 pandas
 poetry
 pytest
-pytest-xdist
 pyyaml
 scikit-fuzzy
 scikit-learn
