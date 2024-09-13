@@ -4,18 +4,15 @@ from typing import ByteString
 
 import numpy as np
 from fastzip_tools import (
+    MICROPHONE_SAMPLING_RATE,
     fastzip_wrapper_function,
-    manage_overlapping_chunks,
     parse_command_line_args,
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import (  # noqa: E402
-    Signal_Buffer,
-    cmp_bits,
-    load_controlled_signal,
-)
+from eval_tools import load_controlled_signal_files  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
+from signal_file import Signal_Buffer  # noqa: E402
 
 WINDOW_SIZE_DEFAULT = 200
 OVERLAP_SIZE_DEFAULT = 100
@@ -56,20 +53,7 @@ def main(
     trials=TRIALS_DEFAULT,
 ):
 
-    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal(
-        "../../data/adversary_controlled_signal.wav"
-    )
-
-    legit_signal_buffer1 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
-    )
-    legit_signal_buffer2 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
-    )
-    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
-
-    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+    signals = load_controlled_signal_files(target_snr, wrap_around=True)
 
     def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
         """
@@ -80,36 +64,30 @@ def main(
         :return: A byte string of the generated bits up to the specified key length.
         :rtype: ByteString
         """
-        accumulated_bits = b""
-        for chunk in manage_overlapping_chunks(signal, window_size, overlap_size):
-            bits = fastzip_wrapper_function(
-                chunk,
-                n_bits,
-                power_threshold,
-                snr_threshold,
-                number_peaks,
-                bias,
-                sr,
-                eqd_delta,
-                peak_status,
-                ewma_filter,
-                alpha,
-                remove_noise,
-                normalize,
-            )
-
-            if bits:
-                accumulated_bits += bits
-                if len(accumulated_bits) >= key_length:
-                    break
-        if len(accumulated_bits) > key_length:
-            return accumulated_bits[:key_length]
-        return accumulated_bits
+        output, samples_read = fastzip_wrapper_function(
+            signal,
+            n_bits,
+            window_size,
+            overlap_size,
+            power_threshold,
+            snr_threshold,
+            number_peaks,
+            bias,
+            eqd_delta,
+            MICROPHONE_SAMPLING_RATE,
+            key_length,
+            peak_status=peak_status,
+            ewma_filter=ewma_filter,
+            alpha=alpha,
+            remove_noise=remove_noise,
+            normalize=normalize,
+        )
+        return output
 
     evaluator = Evaluator(bit_gen_algo)
-    evaluator.evaluate(signals, trials)
+    evaluator.evaluate_controlled_signals(signals, trials)
 
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)
 
     le_avg_be = np.mean(legit_bit_errs)
     adv_avg_be = np.mean(adv_bit_errs)

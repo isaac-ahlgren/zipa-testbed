@@ -37,7 +37,7 @@ DUMMY_LOGGER = NFSLogger(
     host="SERVER IP",
     database="file_log",
     nfs_server_dir="./local_data",  # Make sure this directory exists and is writable
-    local_dir="./local_data/",
+    local_dir="./local_data",
     identifier="DEVICE IDENTIFIER",  # Could be IP address or any unique identifier
     use_local_dir=True,
 )  # nosec
@@ -72,7 +72,7 @@ def host(protocol):
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2000))
+    host_socket.bind(("127.0.0.1", 2001))
     host_socket.listen()
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
@@ -83,7 +83,7 @@ def device(protocol):
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    device_socket.connect(("127.0.0.1", 2000))
+    device_socket.connect(("127.0.0.1", 2001))
     protocol.device_protocol(device_socket)
 
 

@@ -44,7 +44,7 @@ DUMMY_LOGGER = NFSLogger(  # nosec
     host="SERVER IP",
     database="file_log",
     nfs_server_dir="./local_data",  # Make sure this directory exists and is writable
-    local_dir="./local_data/",
+    local_dir="./local_data",
     identifier="DEVICE IDENTIFIER",  # Could be IP address or any unique identifier
     use_local_dir=True,
 )
