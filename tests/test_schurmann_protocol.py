@@ -37,12 +37,15 @@ DUMMY_LOGGER = NFSLogger(
     use_local_dir=True,
 )  # nosec
 
+
 def test_protocol_interaction():
     print("In test")
     test_sensor = TestSensor(SENSOR_DUMMY_PARAMETERS, signal_type="random")
     test_sensor.antialias_sample_rate = test_sensor.sample_rate // 2
     test_reader = SensorReader(test_sensor)
-    test_protocol = Shurmann_Siggs_Protocol(PROTOCOL_DUMMY_PARAMETERS, test_reader, DUMMY_LOGGER)
+    test_protocol = Shurmann_Siggs_Protocol(
+        PROTOCOL_DUMMY_PARAMETERS, test_reader, DUMMY_LOGGER
+    )
 
     print("Creating processes")
     host_process = Process(target=host, args=[test_protocol], name="[HOST]")
@@ -60,11 +63,12 @@ def test_protocol_interaction():
     assert host_process.exitcode == 0  # nosec
     assert device_process.exitcode == 0  # nosec
 
+
 def host(protocol):
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     host_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    host_socket.bind(("127.0.0.1", 2000))
+    host_socket.bind(("127.0.0.1", 2003))
     host_socket.listen()
     connection, _ = host_socket.accept()
     host_socket.setblocking(0)
@@ -75,7 +79,7 @@ def device(protocol):
     device_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    device_socket.connect(("127.0.0.1", 2000))
+    device_socket.connect(("127.0.0.1", 2003))
     protocol.device_protocol(device_socket)
 
 

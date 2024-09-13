@@ -5,7 +5,7 @@ name: Python application
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "fixing_tests" ]
   pull_request:
     branches: [ "main" ]
 
@@ -37,5 +37,4 @@ jobs:
         mkdir local_data
     - name: Test with pytest
       run: |
-        pytest tests/*protocol.py
-        pytest $(find tests -name "*py" | grep -v "protocol")
+        pytest -n 4 tests/

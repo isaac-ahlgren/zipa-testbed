@@ -152,7 +152,6 @@ class ProtocolInterface:
             continue
 
         ticket = self.shm_active.value = self.shm_active.value + 1
-
         # First process to grab the flag populates the list
         if self.processing_flag.value == READY and ticket == 1:
             with self.mutex:
@@ -160,17 +159,19 @@ class ProtocolInterface:
                 print("\n\nProcessing context\n\n")
                 results = self.process_context()
                 self.write_shm(results)
-                ProtocolInterface.reset_flag(self.processing_flag)
+                ProtocolInterface.release_flag(self.processing_flag)
 
         # Other processes wait for first process to finish
         else:
             print("\n\nWaiting for processing.\n\n")
-            while self.processing_flag.value == PROCESSING:
+            while self.processing_flag.value != COMPLETE:
                 continue
             results = self.read_shm()
 
         # Process no longer is using the shared list
         self.shm_active.value -= 1
+        if self.shm_active.value == 0:
+            ProtocolInterface.reset_flag(self.processing_flag)
         print(f"Using results: {results}")
         return results
 
