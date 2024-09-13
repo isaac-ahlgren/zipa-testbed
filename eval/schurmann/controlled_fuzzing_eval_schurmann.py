@@ -94,7 +94,7 @@ def main(
                 signal_chunk, argv[0], argv[1], argv[2], argv[3]
             )
         else:
-            output = None, None
+            output = None
         return output, None
 
     # Creating an evaluator object with the bit generation algorithm
