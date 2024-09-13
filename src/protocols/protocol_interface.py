@@ -121,6 +121,7 @@ class ProtocolInterface:
         try:
             shared_list = list(ShareableList(name=self.name + "_Bytes"))
         except FileNotFoundError:
+            print("HERERERE BITCH")
             print("File doesn't exist.")
 
         return shared_list
