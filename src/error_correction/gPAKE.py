@@ -139,6 +139,9 @@ class GPAKE:
             iv_random = os.urandom(16)  # Generate IV for random value encryption
             print(f"Host: Generated random IV (length {len(iv_random)}): {iv_random.hex()}")
             encrypted_random_value = self.encode(shared_key, random_value, iv_random)
+            print(f"Host: Encrypted random value (length {len(encrypted_random_value)}): {encrypted_random_value.hex()}")
+            assert len(encrypted_random_value) % 16 == 0, "Encrypted data is not a multiple of the block size"
+
             session_id_bytes = json.dumps(session_id_received).encode() 
             dummy_value = b''
 
@@ -146,7 +149,11 @@ class GPAKE:
             
 
             # Step 6: Send the encrypted random value along with the session ID and IV
-            send_pake_msg(conn, [session_id_bytes, encrypted_random_value, dummy_value, iv_random])
+            #send_pake_msg(conn, [session_id_bytes, encrypted_random_value, dummy_value, iv_random])
+            print(f"Host: session_id_bytes length: {len(session_id_bytes)}, encrypted_random_value length: {len(encrypted_random_value)}, iv_random length: {len(iv_random)}")
+
+            print(f"Host: Sending message - Session ID: {session_id_bytes}, Encrypted Random Value: {encrypted_random_value.hex()}, IV: {iv_random.hex()}, Dummy Value: {dummy_value}")
+            send_pake_msg(conn, [session_id_bytes, encrypted_random_value, iv_random, dummy_value])
             print(f"Host: Sent random IV (length {len(iv_random)}): {iv_random.hex()}")
 
             # Store own random value for summing later
@@ -155,9 +162,13 @@ class GPAKE:
         # Step 7: Receive and decrypt the device's random value
         for i in range(len(grouped_events)):
             msg = pake_msg_standby(conn, self.timeout)
+            print(f"Host: Message received (length {len(msg)}): {[item.hex() if isinstance(item, bytes) else item for item in msg]}")
             session_id_ver = msg[0]  # Receive the session ID for verification purposes
             enc_random_value_received = msg[1]
             iv_received = msg[2]
+
+            if len(msg) == 4:
+                dummy_value_received = msg[3]
 
             print(f"Host: Received random IV (length {len(iv_received)}): {iv_received.hex()}")
 
@@ -230,17 +241,28 @@ class GPAKE:
         
             # Step 5: Receive and decrypt the host's random value
             msg = pake_msg_standby(conn, self.timeout)
+            
+            print(f"Device: Message received (length {len(msg)}): {[item.hex() if isinstance(item, bytes) else item for item in msg]}")
+
             session_id_ver = msg[0]
             enc_random_value_received = msg[1]
-            iv_received = msg[3]
+            iv_received = msg[2]
 
             if len(msg) == 4:
-                dummy_value_received = msg[2] 
+                dummy_value_received = msg[3]
+                print(f"Device: Received dummy value (length {len(dummy_value_received)}): {dummy_value_received.hex()}") 
+
+            print(f"Device: session_id_ver length: {len(session_id_ver)}, enc_random_value_received length: {len(enc_random_value_received)}, iv_received length: {len(iv_received)}")
+            
+            print(f"Device: Encrypted random value received (length {len(enc_random_value_received)}): {enc_random_value_received.hex()}")
+            assert len(enc_random_value_received) % 16 == 0, "Encrypted data received is not a multiple of the block size"
+
 
             print(f"Device: Received random IV (length {len(iv_received)}): {iv_received.hex()}")
             assert len(iv_received) == 16, f"IV is not 16 bytes after receiving, got {len(iv_received)} bytes"
 
             decrypted_random_value = self.decode(shared_key, enc_random_value_received, iv_received)  # Decrypt random value
+            print(f"Device: Decrypted random value (length {len(decrypted_random_value)}): {decrypted_random_value.hex()}")
 
             # Store decrypted random value for summing
             final_random_values.append(decrypted_random_value)
@@ -251,11 +273,13 @@ class GPAKE:
             print(f"Device: Generated random IV before sending (length {len(iv_random)}): {iv_random.hex()}")
             
             encrypted_random_value = self.encode(shared_key, random_value, iv_random)  # Encrypt random value
+            dummy_value = b''
 
             assert len(iv) == 16, "IV is not 16 bytes before sending"
 
             # Step 7: Send the encrypted random value along with the session ID and IV
-            send_pake_msg(conn, [session_id_bytes, encrypted_random_value, iv_random])
+            print(f"Device: Sending message - Session ID: {session_id_bytes}, Encrypted Random Value: {encrypted_random_value.hex()}, IV: {iv_random.hex()}, Dummy Value: {dummy_value}")
+            send_pake_msg(conn, [session_id_bytes, encrypted_random_value, iv_random, dummy_value])
             print(f"Device: Sent random IV (length {len(iv_random)}): {iv_random.hex()}")
 
             # Store own random value for summing later

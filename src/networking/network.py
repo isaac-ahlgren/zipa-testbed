@@ -288,8 +288,10 @@ def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
             continue
         elif message[:8] == FPFM.encode():
             msg_size = int.from_bytes(message[8:], "big")
+            print(f"pake_msg_standby: message size is {msg_size}, raw message: {message.hex()}")
 
             payload = connection.recv(msg_size)
+            print(f"pake_msg_standby: raw payload received: {payload.hex()}")
 
             msg = []
             index = 0
@@ -298,6 +300,8 @@ def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
                 item = payload[index + 4 : index + 4 + item_length]
                 index += 4 + item_length
                 msg.append(item)
+            
+            print(f"pake_msg_standby: unpacked message: {msg}")
             break
 
     return msg
