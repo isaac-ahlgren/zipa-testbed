@@ -40,33 +40,16 @@ class FastZIPProtocol(ProtocolInterface):
             timeout=self.timeout,
         )
 
-    def manage_overlapping_chunks(self, window_size, overlap_size):
-        previous_chunk = np.array([])
-        while True:
-            print(
-                f"Previous chunk size: {len(previous_chunk)}, expected overlap: {overlap_size}"
-            )
-            required_samples = (
-                window_size
-                if len(previous_chunk) < overlap_size
-                else (window_size - overlap_size)
-            )
-            new_data = self.read_samples(required_samples)
+    def manage_overlapping_chunks(new_chunk, previous_chunk) -> np.ndarray:
+        """
+        Generate overlapping chunks from a signal buffer.
 
-            if new_data.size == 0:
-                print("No more data available to process, breaking loop.")
-                break
-
-            if len(previous_chunk) >= overlap_size:
-                current_chunk = np.concatenate(
-                    (previous_chunk[-overlap_size:], new_data)
-                )
-            else:
-                current_chunk = new_data
-
-            print(f"Yielding chunk of size: {current_chunk.size}")
-            yield current_chunk
-            previous_chunk = current_chunk
+        :param new_chunk: The new chunk of signal data.
+        :param previous_chunk: The previous chunk of signal data for overlapping.
+        :return: A concatenated array of the previous overlap and the new chunk.
+        """
+        overlap_size = len(new_chunk)
+        return np.concatenate((previous_chunk[-overlap_size:], new_chunk))
 
     def process_context(self) -> Any:
         """
@@ -77,38 +60,37 @@ class FastZIPProtocol(ProtocolInterface):
         """
         print("Processing context...")
         accumulated_bits = b""
-        window_size = (
-            self.chunk_size
-        )  # You can adjust this according to the actual needs
-        print("Window size: ", window_size)
-        overlap_size = window_size // 2  # Example overlap of 50%
-        print("Overlap size: ", overlap_size)
+        window_size = self.chunk_size
+        overlap_size = window_size // 2
 
-        chunk_generator = self.manage_overlapping_chunks(window_size, overlap_size)
+        chunk = self.read_samples(window_size)
+        previous_chunk = np.array([])
+
         while len(accumulated_bits) < self.commitment_length:
-            try:
-                chunk = next(chunk_generator)
-                print(f"Processing chunk of size: {chunk.size}")
-                if not chunk.size:
-                    print("No more data to process...")
-                    break
-            except StopIteration:
-                print("All chunks have been processed.")
+            if chunk.size == 0:
+                print("No more data to process...")
                 break
+
             processed_bits = self.process_chunk(chunk)
             if processed_bits:
                 accumulated_bits += processed_bits
-                print(f"Accumulated bits length: {len(accumulated_bits)}")
                 if len(accumulated_bits) >= self.commitment_length:
                     print(
                         "Reached the required length of bits, stopping further processing."
                     )
                     break
-            else:
-                print("No processed bits from the current chunk...")
 
-        accumulated_bits = accumulated_bits[: self.commitment_length]
-        # Reset and clear operations after processing is complete
+            new_overlap_chunk = self.read_samples(window_size - overlap_size)
+            if new_overlap_chunk.size == 0:
+                print("No more data available to process.")
+                break
+
+            chunk = self.manage_overlapping_chunks(new_overlap_chunk, previous_chunk)
+            previous_chunk = chunk
+
+        if len(accumulated_bits) >= self.key_length:
+            accumulated_bits = accumulated_bits[: self.commitment_length]
+
         ProtocolInterface.reset_flag(self.queue_flag)
         self.clear_queue()
 
