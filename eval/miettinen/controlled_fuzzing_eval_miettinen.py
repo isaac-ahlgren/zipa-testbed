@@ -29,8 +29,8 @@ WRAP_AROUND_LIMIT_DEFAULT = 10
 # Random Parameter Ranges
 W_LENGTH_RANGE = (5000, 2 * 48000)
 F_LENGTH_RANGE = (5000, 2 * 48000)
-REL_THR_RANGE = (-1, 10000)
-ABS_THR_RANGE = (0, 10000)
+REL_THR_RANGE = (-1, 100)
+ABS_THR_RANGE = (0, 100)
 
 FUZZING_DIR = "miettinen_controlled_fuzz"
 FUZZING_STUB = "miettinen_controlled_fuzz"
