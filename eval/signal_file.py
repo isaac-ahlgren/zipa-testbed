@@ -133,10 +133,9 @@ class Signal_File(Signal_File_Interface):
         self.file_index = 0
         self.start_sample = 0
         self.load_func = load_func
-        print(self.signal_directory + self.files[0])
         self.curr_file_name = self.signal_directory + self.files[0]
-        self.sample_buffer = self.load_func(self.curr_file_name)
-        self.dtype = self.sample_buffer.dtype
+        self.sample_buffer = None
+        self.dtype = None
         self.finished_reading = False
         self.id = id
 
@@ -164,6 +163,10 @@ class Signal_File(Signal_File_Interface):
         :return: Array containing the read samples.
         """
         output = np.array([], dtype=self.dtype)
+
+        if self.sample_buffer is None: # Loading files into ram only when necessary
+            self.sample_buffer = self.load_func(self.curr_file_name)
+            self.dtype = self.sample_buffer.dtype
 
         while samples != 0 and not self.finished_reading:
             samples_can_read = len(self.sample_buffer) - self.start_sample
