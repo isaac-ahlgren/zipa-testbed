@@ -163,5 +163,3 @@ cython_debug/
 
 local_dir/
 zipa-testbed-venv/
-*.csv
-*.txt
