@@ -133,6 +133,7 @@ class Signal_File(Signal_File_Interface):
         self.file_index = 0
         self.start_sample = 0
         self.load_func = load_func
+        print(self.signal_directory + self.files[0])
         self.curr_file_name = self.signal_directory + self.files[0]
         self.sample_buffer = self.load_func(self.curr_file_name)
         self.dtype = self.sample_buffer.dtype
