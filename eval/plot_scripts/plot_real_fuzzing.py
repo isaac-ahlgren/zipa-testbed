@@ -53,8 +53,6 @@ def plot_schurmann():
 
     bit_err_device_pairs(DEVICE_PAIRS, contents, "window_length")
 
-
-
         # Regenerate 500 examples for SNR 40, 30, 20, 10, 5
 
         # Plot bit err vs parameter pick for window length

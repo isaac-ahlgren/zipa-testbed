@@ -126,10 +126,4 @@ def main(
 
 
 if __name__ == "__main__":
-    #args = get_fuzzing_command_line_args(
-    #    key_length_default=KEY_LENGTH_DEFAULT,
-    #    target_snr_default=TARGET_SNR_DEFAULT,
-    #    number_of_choices_default=NUMBER_OF_CHOICES_DEFAULT,
-    #    wrap_around_limit_default=WRAP_AROUND_LIMIT_DEFAULT,
-    #)
     main()

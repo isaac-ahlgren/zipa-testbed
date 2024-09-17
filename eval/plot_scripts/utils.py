@@ -33,6 +33,7 @@ def parse_eval_directory(data_dir, file_stub):
     output = []
     print(f"{data_dir}/{file_stub}/{file_stub}*")
     files = glob.glob(f"{file_stub}*", root_dir=f"{data_dir}/{file_stub}")
+    max_key_length = 0
     for dir_name in files:
         dir_content = dict()
 
@@ -52,7 +53,15 @@ def parse_eval_directory(data_dir, file_stub):
             signal_id = df[i1:i2]
             dir_content[signal_id] = data
         output.append(dir_content)
-    return output
+        if len(dir_content.keys()) > max_key_length: 
+            max_key_length = len(dir_content.keys())
+    
+    filtered_output = []
+    for content in output:
+        if len(content.keys()) == max_key_length:
+            filtered_output.append(content)
+
+    return filtered_output
 
 
 def get_block_err(bits1, bits2, block_size):
@@ -86,7 +95,6 @@ def get_avg_ber_list(byte_list1, byte_list2):
 def extract_from_contents(contents, key_word):
     extracted_content = []
     for content in contents:
-        print(content)
         extracted_content.append(content[key_word])
     return extracted_content
 

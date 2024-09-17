@@ -59,6 +59,32 @@ class Evaluator:
             ):
                 legit_signal1.sync(legit_signal2)
 
+    def evaluate_real_signals(
+        self, signals: Tuple[Any, Any, Any], *argv: Any
+    ) -> None:
+        """
+        Evaluate the signals over a specified number of trials to generate cryptographic bits.
+
+        :param signals: A tuple containing three signal sources (legit_signal1, legit_signal2, adv_signal).
+        :param trials: The number of trials to perform bit generation.
+        """
+        legit_signal1, legit_signal2, adv_signal = signals
+        while not legit_signal1.get_finished_reading() and not legit_signal2.get_finished_reading() and not adv_signal.get_finished_reading():
+            bits1 = self.bit_gen_algo_wrapper(legit_signal1, *argv)
+
+            if bits1 is not None:
+                self.legit_bits1.append(bits1)
+
+            bits2 = self.bit_gen_algo_wrapper(legit_signal2, *argv)
+
+            if bits2 is not None:
+                self.legit_bits2.append(bits2)
+
+            adv_bits = self.bit_gen_algo_wrapper(adv_signal, *argv)
+
+            if adv_bits is not None:
+                self.adv_bits.append(adv_bits)
+
     def cmp_collected_bits(self, key_length: int) -> Tuple[List[float], List[float]]:
         """
         Compare bit errors using a specified comparison function and key length.
