@@ -41,7 +41,7 @@ def parse_eval_directory(data_dir, file_stub):
         dir_content["params"] = params
 
         data_files = glob.glob(
-            f"{dir_name}*.txt", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
+            f"{dir_name}*_bits.txt", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
         )
         for df in data_files:
             data = load_bytes(f"{data_dir}/{file_stub}/{dir_name}/{df}")
@@ -50,7 +50,6 @@ def parse_eval_directory(data_dir, file_stub):
             i1 = df.find("_", idi, len(df)) + 1
             i2 = df.find(".txt")
             signal_id = df[i1:i2]
-
             dir_content[signal_id] = data
         output.append(dir_content)
     return output
@@ -87,6 +86,7 @@ def get_avg_ber_list(byte_list1, byte_list2):
 def extract_from_contents(contents, key_word):
     extracted_content = []
     for content in contents:
+        print(content)
         extracted_content.append(content[key_word])
     return extracted_content
 
