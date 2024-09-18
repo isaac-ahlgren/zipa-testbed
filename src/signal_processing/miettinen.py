@@ -40,6 +40,7 @@ class MiettinenProcessing:
         for i in range(len(c) - 1):
             feature1 = np.abs((c[i] / c[i - 1]) - 1)
             feature2 = np.abs(c[i] - c[i - 1])
+            print(f"{feature1} > {rel_thresh} and {feature2} > {abs_thresh}")
             if feature1 > rel_thresh and feature2 > abs_thresh:
                 bits += "1"
             else:
