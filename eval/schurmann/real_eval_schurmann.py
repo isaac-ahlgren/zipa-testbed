@@ -16,8 +16,8 @@ from eval_tools import load_real_signal_files  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 from signal_file import Signal_Buffer  # noqa: E402
 
-WINDOW_LENGTH_DEFAULT = 16537
-BAND_LENGTH_DEFAULT = 500
+WINDOW_LENGTH_DEFAULT = 461598
+BAND_LENGTH_DEFAULT = 21460
 KEY_LENGTH_DEFAULT = 128
 
 LEGIT1_DEFAULT = "10.0.0.238"

@@ -126,6 +126,7 @@ class Signal_File(Signal_File_Interface):
         """
         self.signal_directory = signal_directory
         self.files = glob.glob(file_names, root_dir=signal_directory)
+        #print(f"{signal_directory}/{file_names}")
         if len(self.files) == 0:
             print("No files found")
         else:
