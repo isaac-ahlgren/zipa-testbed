@@ -103,6 +103,9 @@ class GPAKE:
             'host_enc_pub_key': enc_pub_key_b64
         }
         session_id_bytes = json.dumps(session_id).encode()
+        print(f"Sending IV in send_encrypted_public_key (expected 16 bytes): {len(iv)} bytes, IV: {iv.hex()}")
+        print(f"Sending encrypted public key: {len(enc_pub_key)} bytes, Encrypted Public Key: {enc_pub_key.hex()}")
+
         send_pake_msg(conn, [device_id.encode(), session_id_bytes, enc_pub_key, iv])
 
     def handle_device_public_key_exchange(self, conn, priv_key, password, device_id):
@@ -128,6 +131,8 @@ class GPAKE:
 
         # Send the encrypted random value along with session ID and IV
         session_id_bytes = json.dumps({'session_idx': session_idx}).encode()
+        print(f"Sending IV_random in generate_and_send_random_value (expected 16 bytes): {len(iv_random)} bytes, IV: {iv_random.hex()}")
+        print(f"Sending encrypted random value in generate_and_send_random_value: {len(encrypted_random_value)} bytes, Encrypted Random Value: {encrypted_random_value.hex}")
         send_pake_msg(conn, [session_id_bytes, encrypted_random_value, iv_random, b''])
 
         return random_value
@@ -137,6 +142,8 @@ class GPAKE:
         msg = pake_msg_standby(conn, self.timeout)
         enc_random_value_received = msg[1]
         iv_received = msg[2]
+        print(f"Received IV (expected 16 bytes): {len(iv_received)} bytes, IV: {iv_received.hex()}")
+        assert len(iv_received) == 16, f"Received IV is not 16 bytes, instead {len(iv_received)} bytes"
 
         return self.decode(shared_key, enc_random_value_received, iv_received)
     
