@@ -5,7 +5,7 @@ from multiprocessing import Process, Queue
 
 sys.path.insert(1, os.getcwd() + "/src")
 
-from error_correction.gPAKE import GPAKE  # Assuming GPAKE is your GPAKE implementation
+from error_correction.part_gPAKE import GPAKE  # Assuming GPAKE is your GPAKE implementation
 from networking.network import pake_msg_standby, send_pake_msg  # Networking methods
 
 

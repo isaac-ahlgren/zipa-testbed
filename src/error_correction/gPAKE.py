@@ -86,7 +86,7 @@ class GPAKE:
     def host_protocol(self, grouped_events, passwords, conn):
         """The host protocol with device identifiers and session identifiers."""
     
-        device_id = "host_device"  # Unique identifier for the host device (static)
+        device_id = "host_device" 
     
         # Step 1: Generate private/public key pairs for each event type (grouped event)
         priv_keys = [self.generate_priv_key() for _ in grouped_events]
@@ -94,67 +94,52 @@ class GPAKE:
     
         # Step 2: Encrypt each public key with its corresponding password and send it along with device identifier
         for i, (pub_key, pw) in enumerate(zip(pub_keys, passwords)):
-            iv = os.urandom(16)  # Generate random IV for encryption
+            iv = os.urandom(16)
             assert len(iv) == 16, "IV is not 16 bytes before sending"
-            print(f"Host: IV before sending (length {len(iv)}): {iv.hex()}")
 
-            symm_key = self.hash_function(pw)  # Derive symmetric key from password
-            enc_pub_key = self.encode(symm_key, pub_key, iv)  # Encrypt public key
+            symm_key = self.hash_function(pw)
+            enc_pub_key = self.encode(symm_key, pub_key, iv)
 
             enc_pub_key_b64 = base64.b64encode(enc_pub_key).decode()
         
-            # Construct session identifier (initially just with host's info, will be completed with device's info later)
             session_id = {'session_idx': i, 'host_device_id': device_id, 'host_enc_pub_key': enc_pub_key_b64}
 
-            device_id_bytes = device_id.encode()  # Convert string to bytes
-            session_id_bytes = json.dumps(session_id).encode()  # Serialize session_id to bytes
+            device_id_bytes = device_id.encode()
+            session_id_bytes = json.dumps(session_id).encode()
         
-            # Send device identifier, encrypted public key, and IV to the device
             send_pake_msg(conn, [device_id_bytes, session_id_bytes, enc_pub_key, iv])
-            print(f"Host: Sent IV (length {len(iv)}): {iv.hex()}")
     
         # Step 3: Receive device's encrypted public keys, session IDs, and decrypt them
         final_random_values = []
 
         for i in range(len(grouped_events)):
             msg = pake_msg_standby(conn, self.timeout)
-            device_id_received = msg[0].decode()  # Receive the device identifier
-            session_id_received = json.loads(msg[1].decode())  # Receive the session identifier with both device's and host's public keys
+            device_id_received = msg[0].decode()
+            session_id_received = json.loads(msg[1].decode())
             enc_device_pub_key = msg[2]
             iv_received = msg[3]
-
-            print(f"Host: Received IV (length {len(iv_received)}): {iv_received.hex()}")
 
             assert len(iv_received) == 16, f"IV is not 16 bytes after receiving, got {len(iv_received)} bytes"
 
         
-            symm_key = self.hash_function(passwords[i])  # Derive decryption key from password
-            device_pub_key_bytes = self.decode(symm_key, enc_device_pub_key, iv_received)  # Decrypt device's public key
+            symm_key = self.hash_function(passwords[i])
+            device_pub_key_bytes = self.decode(symm_key, enc_device_pub_key, iv_received)
         
             # Step 4: Generate shared key using ECDH
             shared_key = self.generate_shared_key(priv_keys[i], device_pub_key_bytes, device_id, device_id_received)
         
             # Step 5: Generate random value and encrypt it with the shared key
-            random_value = os.urandom(16)  # Generate a 16-byte random value
-            iv_random = os.urandom(16)  # Generate IV for random value encryption
-            print(f"Host: Generated random IV (length {len(iv_random)}): {iv_random.hex()}")
+            random_value = os.urandom(16)
+            iv_random = os.urandom(16)
             encrypted_random_value = self.encode(shared_key, random_value, iv_random)
-            print(f"Host: Encrypted random value (length {len(encrypted_random_value)}): {encrypted_random_value.hex()}")
-            assert len(encrypted_random_value) % 16 == 0, "Encrypted data is not a multiple of the block size"
 
             session_id_bytes = json.dumps(session_id_received).encode() 
             dummy_value = b''
 
-            assert len(iv_random) == 16, "Random IV is not 16 bytes before sending"
-            
-
             # Step 6: Send the encrypted random value along with the session ID and IV
             #send_pake_msg(conn, [session_id_bytes, encrypted_random_value, dummy_value, iv_random])
-            print(f"Host: session_id_bytes length: {len(session_id_bytes)}, encrypted_random_value length: {len(encrypted_random_value)}, iv_random length: {len(iv_random)}")
 
-            print(f"Host: Sending message - Session ID: {session_id_bytes}, Encrypted Random Value: {encrypted_random_value.hex()}, IV: {iv_random.hex()}, Dummy Value: {dummy_value}")
             send_pake_msg(conn, [session_id_bytes, encrypted_random_value, iv_random, dummy_value])
-            print(f"Host: Sent random IV (length {len(iv_random)}): {iv_random.hex()}")
 
             # Store own random value for summing later
             final_random_values.append(random_value)
@@ -162,22 +147,15 @@ class GPAKE:
         # Step 7: Receive and decrypt the device's random value
         for i in range(len(grouped_events)):
             msg = pake_msg_standby(conn, self.timeout)
-            print(f"Host: Message received (length {len(msg)}): {[item.hex() if isinstance(item, bytes) else item for item in msg]}")
-            session_id_ver = msg[0]  # Receive the session ID for verification purposes
+            session_id_ver = msg[0]
             enc_random_value_received = msg[1]
             iv_received = msg[2]
 
             if len(msg) == 4:
                 dummy_value_received = msg[3]
 
-            print(f"Host: Received random IV (length {len(iv_received)}): {iv_received.hex()}")
-
-            assert len(iv_received) == 16, "IV is not 16 bytes after receiving in step 7"
-
-            # Decrypt the received random value
             decrypted_random_value = self.decode(shared_key, enc_random_value_received, iv_received)
 
-            # Store decrypted random value for summing
             final_random_values.append(decrypted_random_value)
 
         # Step 8: Sum all the random values to derive the final group key
@@ -201,25 +179,18 @@ class GPAKE:
 
         for i in range(len(grouped_events)):
             msg = pake_msg_standby(conn, self.timeout)
-            host_device_id = msg[0].decode()  # Receive the host's device identifier
-            session_id_received = json.loads(msg[1].decode())  # Receive session identifier (contains host's public key and ID)
+            host_device_id = msg[0].decode()
+            session_id_received = json.loads(msg[1].decode())
             enc_host_pub_key = msg[2]
             iv_received = msg[3]
-
-            print(f"Device: IV after receiving (length {len(iv_received)}): {iv_received.hex()}")
-
-            assert len(iv_received) == 16, f"IV is not 16 bytes after receiving, got {len(iv_received)} bytes"
         
-            symm_key = self.hash_function(passwords[i])  # Derive decryption key from password
-            host_pub_key_bytes = self.decode(symm_key, enc_host_pub_key, iv_received)  # Decrypt host's public key
+            symm_key = self.hash_function(passwords[i])
+            host_pub_key_bytes = self.decode(symm_key, enc_host_pub_key, iv_received)
         
             # Step 3: Encrypt device's public key and send to the host
-            iv = os.urandom(16)  # Generate random IV for encryption
-            print(f"Device: Generated IV before sending (length {len(iv)}): {iv.hex()}")
-            assert len(iv) == 16, "IV is not 16 bytes before sending"
-            enc_device_pub_key = self.encode(symm_key, pub_keys[i], iv)  # Encrypt device's public key
+            iv = os.urandom(16)
+            enc_device_pub_key = self.encode(symm_key, pub_keys[i], iv)
         
-            # Construct session identifier with device's info and complete it with the host's info
             session_id = {
                 'session_idx': i,
                 'device_id': device_id,
@@ -229,20 +200,17 @@ class GPAKE:
             }
 
             # Convert device_id and session_id to bytes
-            device_id_bytes = device_id.encode()  # Convert string to bytes
-            session_id_bytes = json.dumps(session_id).encode()  # Serialize session_id to bytes
+            device_id_bytes = device_id.encode()
+            session_id_bytes = json.dumps(session_id).encode()
         
-            # Send device identifier, session identifier, encrypted public key, and IV to the host
             send_pake_msg(conn, [device_id_bytes, session_id_bytes, enc_device_pub_key, iv])
-            print(f"Device: Sent IV (length {len(iv)}): {iv.hex()}")
         
             # Step 4: Generate shared key using ECDH
+            #intermediate
             shared_key = self.generate_shared_key(priv_keys[i], host_pub_key_bytes, device_id, host_device_id)
         
             # Step 5: Receive and decrypt the host's random value
             msg = pake_msg_standby(conn, self.timeout)
-            
-            print(f"Device: Message received (length {len(msg)}): {[item.hex() if isinstance(item, bytes) else item for item in msg]}")
 
             session_id_ver = msg[0]
             enc_random_value_received = msg[1]
@@ -250,39 +218,22 @@ class GPAKE:
 
             if len(msg) == 4:
                 dummy_value_received = msg[3]
-                print(f"Device: Received dummy value (length {len(dummy_value_received)}): {dummy_value_received.hex()}") 
 
-            print(f"Device: session_id_ver length: {len(session_id_ver)}, enc_random_value_received length: {len(enc_random_value_received)}, iv_received length: {len(iv_received)}")
-            
-            print(f"Device: Encrypted random value received (length {len(enc_random_value_received)}): {enc_random_value_received.hex()}")
-            assert len(enc_random_value_received) % 16 == 0, "Encrypted data received is not a multiple of the block size"
-
-
-            print(f"Device: Received random IV (length {len(iv_received)}): {iv_received.hex()}")
-            assert len(iv_received) == 16, f"IV is not 16 bytes after receiving, got {len(iv_received)} bytes"
-
-            decrypted_random_value = self.decode(shared_key, enc_random_value_received, iv_received)  # Decrypt random value
-            print(f"Device: Decrypted random value (length {len(decrypted_random_value)}): {decrypted_random_value.hex()}")
+            decrypted_random_value = self.decode(shared_key, enc_random_value_received, iv_received)
 
             # Store decrypted random value for summing
             final_random_values.append(decrypted_random_value)
 
             # Step 6: Generate random value and encrypt it with the shared key
-            random_value = os.urandom(16)  # Generate a 16-byte random value
-            iv_random = os.urandom(16)  # Generate IV for random value encryption
-            print(f"Device: Generated random IV before sending (length {len(iv_random)}): {iv_random.hex()}")
+            random_value = os.urandom(16)
+            iv_random = os.urandom(16)
             
-            encrypted_random_value = self.encode(shared_key, random_value, iv_random)  # Encrypt random value
+            encrypted_random_value = self.encode(shared_key, random_value, iv_random)
             dummy_value = b''
 
-            assert len(iv) == 16, "IV is not 16 bytes before sending"
-
             # Step 7: Send the encrypted random value along with the session ID and IV
-            print(f"Device: Sending message - Session ID: {session_id_bytes}, Encrypted Random Value: {encrypted_random_value.hex()}, IV: {iv_random.hex()}, Dummy Value: {dummy_value}")
             send_pake_msg(conn, [session_id_bytes, encrypted_random_value, iv_random, dummy_value])
-            print(f"Device: Sent random IV (length {len(iv_random)}): {iv_random.hex()}")
 
-            # Store own random value for summing later
             final_random_values.append(random_value)
 
         # Step 8: Sum all the random values to derive the final group key
