@@ -6,7 +6,6 @@ from typing import List
 import numpy as np
 from miettinen_tools import (
     DATA_DIRECTORY,
-    MICROPHONE_SAMPLING_RATE,
     miettinen_calc_sample_num,
     miettinen_wrapper_func,
 )
@@ -82,8 +81,8 @@ def main(
         )
 
     def log(params, file_name_stub):
-        names = ["window_length", "band_length", "sample_num"]
-        param_list = [params[0], params[1], params[4]]
+        names = ["f_samples", "w_samples", "rel_thr", "abs_thr", "sample_num"]
+        param_list = [params[0], params[1], params[2], params[3], params[4]]
         log_parameters(file_name_stub, names, param_list)
 
     def bit_gen_algo(signal: Signal_File, *argv: List) -> np.ndarray:
@@ -98,7 +97,7 @@ def main(
         read_length = argv[4]
         signal_chunk = signal.read(argv[4])  # Reading a chunk of the signal
         if len(signal_chunk) == read_length:
-            output = schurmann_wrapper_func(
+            output = miettinen_wrapper_func(
                 signal_chunk, argv[0], argv[1], argv[2], argv[3]
             )
         else:
