@@ -1,4 +1,3 @@
-# import json
 import socket
 import time
 from typing import List, Optional, Tuple  # Union
@@ -40,22 +39,28 @@ def status_standby(connection: socket.socket, timeout: int) -> Optional[bool]:
     """
     status = None
     reference = time.time()
-    timestamp = reference
 
-    # While process hasn't timed out
-    while (timestamp - reference) < timeout:
-        # Check for acknowledgement
-        timestamp = time.time()
-        command = connection.recv(8)
+    # Set the socket timeout
+    connection.settimeout(timeout)
 
-        if command is None:
-            continue
-        elif command == SUCC.encode():
-            status = True
-            break
-        elif command == FAIL.encode():
-            status = False
-            break
+    try:
+        # While process hasn't timed out
+        while (time.time() - reference) < timeout:
+            # Attempt to receive the command
+            command = connection.recv(8)
+
+            if not command:  # Handle empty or closed connection
+                continue
+
+            if command == SUCC.encode():  # Check if the command is a success message
+                status = True
+                break
+            elif command == FAIL.encode():  # Check if the command is a failure message
+                status = False
+                break
+    except socket.timeout:
+        print("status not received within the timeout period.")
+        return None
 
     return status
 
@@ -143,38 +148,60 @@ def commit_standby(
     commitments = None
     hashes = None
 
-    while (timestamp - reference) < timeout:
-        timestamp = time.time()
-        message = connection.recv(8)
+    # Set the socket timeout to ensure recv() does not block indefinitely
+    connection.settimeout(timeout)
 
-        if message[:8] == COMM.encode():
-            # Recieve and unpack the hash
-            message = connection.recv(12)
+    try:
+        while (timestamp - reference) < timeout:
+            timestamp = time.time()
+            message = connection.recv(8)
 
-            # Unpack all variable lengths
-            number_of_commits = int.from_bytes(message[0:4], byteorder="big")
-            hash_length = int.from_bytes(message[4:8], byteorder="big")
-            com_length = int.from_bytes(message[8:12], byteorder="big")
+            if message[:8] == COMM.encode():
+                # Receive and unpack the lengths for number_of_commits, hash_length, and com_length
+                message = connection.recv(12)
 
-            commits = connection.recv(number_of_commits * (hash_length + com_length))
-            commitments = []
-            hashes = []
+                if len(message) != 12:  # Ensure the message is complete
+                    print("Incomplete header message received.")
+                    continue
 
-            # Extract commitments and hashes, appending to their respective lists
-            for i in range(number_of_commits):
-                commitments.append(
-                    commits[
-                        i * (hash_length + com_length) : i * (hash_length + com_length)
-                        + com_length
-                    ]
+                number_of_commits = int.from_bytes(message[0:4], byteorder="big")
+                hash_length = int.from_bytes(message[4:8], byteorder="big")
+                com_length = int.from_bytes(message[8:12], byteorder="big")
+
+                # Receive the total data based on the calculated size
+                commits = connection.recv(
+                    number_of_commits * (hash_length + com_length)
                 )
-                hashes.append(
-                    commits[
-                        i * (hash_length + com_length)
-                        + com_length : (i + 1) * (hash_length + com_length)
-                    ]
-                )
-            break
+
+                if len(commits) != number_of_commits * (hash_length + com_length):
+                    print("Incomplete commit data received.")
+                    continue
+
+                # Initialize lists for commitments and hashes
+                commitments = []
+                hashes = []
+
+                # Extract commitments and hashes from the received data
+                for i in range(number_of_commits):
+                    commitments.append(
+                        commits[
+                            i
+                            * (hash_length + com_length) : i
+                            * (hash_length + com_length)
+                            + com_length
+                        ]
+                    )
+                    hashes.append(
+                        commits[
+                            i * (hash_length + com_length)
+                            + com_length : (i + 1) * (hash_length + com_length)
+                        ]
+                    )
+                break  # Exit the loop after successfully receiving the data
+
+    except socket.timeout:
+        print("commit not received within the timeout period.")
+        return None, None
 
     return commitments, hashes
 
@@ -200,22 +227,31 @@ def dh_exchange_standby(connection: socket.socket, timeout: int) -> Optional[byt
     :returns: The received key if successful, None otherwise.
     """
     reference = time.time()
-    timestamp = reference
     key = None
 
-    # While process hasn't timed out
-    while (timestamp - reference) < timeout:
-        timestamp = time.time()
-        message = connection.recv(12)
+    # Set the socket timeout
+    connection.settimeout(timeout)
 
-        if message is None:
-            continue
-        else:
+    try:
+        # While process hasn't timed out
+        while (time.time() - reference) < timeout:
+            # Try to receive the initial message of 12 bytes
+            message = connection.recv(12)
+
+            if not message:  # If the connection is closed or no data received
+                continue
+
+            # Check if the command matches the expected "DHKY" (assumed to be predefined)
             command = message[:8]
-            if command == DHKY.encode():
+            if command == DHKY.encode():  # Assuming DHKY is a predefined string
                 key_size = int.from_bytes(message[8:], "big")
+
+                # Receive the key based on the extracted size
                 key = connection.recv(key_size)
                 break
+    except socket.timeout:
+        print("dh not received within the timeout period.")
+        return None  # Return None if timeout occurs
 
     return key
 
@@ -270,21 +306,36 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
     :returns: The received nonce if successful, None otherwise.
     """
     nonce = None
-    message = None
+
+    # Set the socket timeout
+    connection.settimeout(timeout)
 
     try:
+        # Attempt to receive the initial message of 12 bytes
         message = connection.recv(12)
-    except TimeoutError:
+    except socket.timeout:
         print("Nonce timeout reached.")
+        return None  # Return None if timeout occurs
+    except TimeoutError:
+        print("Unexpected error: TimeoutError occurred.")
+        return None
 
-    # While process hasn't timed out
-    if message is not None:
+    # If the message is received
+    if message:
         command = message[:8]
-        if command == NONC.encode():
+        if command == NONC.encode():  # Assuming NONC is predefined
+            # Extract the size of the nonce from the last 4 bytes
             nonce_size = int.from_bytes(message[8:], "big")
-            nonce = connection.recv(nonce_size)
+
+            try:
+                # Receive the nonce based on the extracted size
+                nonce = connection.recv(nonce_size)
+            except socket.timeout:
+                print("getnonce not received within the timeout period.")
+                return None
 
     return nonce
+
 
 def ack_standby(connection: socket.socket, timeout: int) -> bool:
     """
@@ -295,15 +346,17 @@ def ack_standby(connection: socket.socket, timeout: int) -> bool:
     :returns: True if acknowledged, False if timeout occurred.
     """
     acknowledged = False
+    connection.settimeout(timeout)
 
     try:
         command = connection.recv(8)
-    except TimeoutError:
-        print("Ack not received.")
+    except socket.timeout:
+        print("Ack not received within the timeout period.")
+        command = None
 
     if command == ACKN.encode():
         acknowledged = True
-    
+
     return acknowledged
 
 
@@ -320,30 +373,43 @@ def send_fpake_msg(connection, msg):
     connection.send(outgoing)
 
 
-def fpake_msg_standby(connection: socket.socket, timeout: int) -> bool:
+def fpake_msg_standby(connection: socket.socket, timeout: int) -> list:
+    """
+    Waits for a FPFM message within the specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for a message.
+    :returns: The decoded message as a list, or None if no valid message is received.
+    """
     msg = None
     reference = time.time()
-    timestamp = reference
+    connection.settimeout(timeout)  # Set socket timeout
 
-    # While process hasn't timed out
-    while (timestamp - reference) < timeout:
-        timestamp = time.time()
-        message = connection.recv(12)
+    try:
+        # While process hasn't timed out
+        while (time.time() - reference) < timeout:
+            message = connection.recv(12)
 
-        if message is None:
-            continue
-        elif message[:8] == FPFM.encode():
-            msg_size = int.from_bytes(message[8:], "big")
+            if not message:  # Check for empty or closed connection
+                continue
 
-            payload = connection.recv(msg_size)
+            # Check if message starts with the expected prefix
+            if message[:8] == FPFM.encode():
+                msg_size = int.from_bytes(message[8:], "big")
 
-            msg = []
-            index = 0
-            while index < msg_size:
-                item_length = int.from_bytes(payload[index : index + 4], "big")
-                item = payload[index + 4 : index + 4 + item_length]
-                index += 4 + item_length
-                msg.append(item)
-            break
+                # Receive the payload based on msg_size
+                payload = connection.recv(msg_size)
+
+                msg = []
+                index = 0
+                # Decode the payload by extracting items
+                while index < msg_size:
+                    item_length = int.from_bytes(payload[index : index + 4], "big")
+                    item = payload[index + 4 : index + 4 + item_length]
+                    index += 4 + item_length
+                    msg.append(item)
+                break
+    except socket.timeout:
+        print("fpake not received within the timeout period.")
 
     return msg
