@@ -1,8 +1,12 @@
 import glob
+import os
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
+
+PLOTTING_DIR = "./plot_data"
 
 def load_bytes(byte_file):
     with open(byte_file, "r") as file:
@@ -31,7 +35,6 @@ def load_parameters(param_file):
 
 def parse_eval_directory(data_dir, file_stub):
     output = []
-    print(f"{data_dir}/{file_stub}/{file_stub}*")
     files = glob.glob(f"{file_stub}*", root_dir=f"{data_dir}/{file_stub}")
     max_key_length = 0
     for dir_name in files:
@@ -118,3 +121,29 @@ def get_min_entropy(bits, key_length: int, symbol_size: int) -> float:
     pdf = hist / sum(hist)
     max_prob = np.max(pdf)
     return -np.log2(max_prob)
+
+def bit_err_vs_parameter_plot(ber_list, param_list, plot_name, param_label, savefig=False, file_name=None, fig_dir=None):
+    ziped_list = list(zip(ber_list, param_list))
+    ziped_list.sort(key=lambda x: x[1])
+
+    ord_ber_list = [x[0] for x in ziped_list]
+    ord_param_list = [x[1] for x in ziped_list]
+
+    plt.plot(ord_param_list, ord_ber_list)
+    plt.title(plot_name)
+    plt.xlabel(param_label)
+    plt.ylabel("Bit Error")
+    if savefig:
+        plt.savefig(fig_dir + "/" + file_name + ".pdf")
+        fig_data_name = fig_dir + "/" + file_name + ".csv"
+        df = pd.DataFrame({"x_axis": ord_param_list, "y_axis": ord_ber_list})
+        df.to_csv(fig_data_name)
+    else:
+       plt.show()
+
+def make_plot_dir(dir_name):
+    dir = PLOTTING_DIR + "/" + dir_name
+    if not os.path.isdir(dir):
+        os.mkdir(dir)
+    return dir
+
