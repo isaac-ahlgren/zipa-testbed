@@ -1,26 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import extract_from_contents, get_avg_ber_list, parse_eval_directory
+from utils import extract_from_contents, get_avg_ber_list, parse_eval_directory, bit_err_vs_parameter_plot, make_plot_dir
 
-
-
-def bit_err_vs_parameter_plot(ber_list, param_list, plot_name, param_label):
-    ziped_list = list(zip(ber_list, param_list))
-    ziped_list.sort(key=lambda x: x[1])
-
-    ord_ber_list = [x[0] for x in ziped_list]
-    ord_param_list = [x[1] for x in ziped_list]
-
-    plt.plot(ord_param_list, ord_ber_list)
-    plt.title(plot_name)
-    plt.xlabel(param_label)
-    plt.show()
-
-def bit_err_device_pairs(device_pairs, contents, param_label):
+def bit_err_device_pairs(device_pairs, contents, param_label, file_name_stub, fig_dir, savefig=True):
     for pairs in device_pairs:
-        legit1 = pairs[0]
-        legit2 = pairs[1]
-        adv = pairs[2]
+        legit1 = pairs[0] + "_bits"
+        legit2 = pairs[1] + "_bits"
+        adv = pairs[2] + "_bits"
+
+        legit_pair_file_stub = f"{file_name_stub}_{pairs[0]}_{pairs[1]}_{param_label}"
+        adv_pair_file_stub = f"{file_name_stub}_{pairs[0]}_{pairs[2]}_{param_label}"
 
         legit1_byte_list = extract_from_contents(contents, legit1)
         legit2_byte_list = extract_from_contents(contents, legit2)
@@ -32,34 +21,33 @@ def bit_err_device_pairs(device_pairs, contents, param_label):
         legit_ber = get_avg_ber_list(legit1_byte_list, legit2_byte_list)
         adv_ber = get_avg_ber_list(legit1_byte_list, adv_byte_list)
 
-        bit_err_vs_parameter_plot(legit_ber, param_list, f"Legitimate {legit1} vs {legit2} Using {param_label}", param_label)
-        bit_err_vs_parameter_plot(adv_ber, param_list, f"Adversary {legit1} vs {adv} Using {param_label}", param_label)
+        bit_err_vs_parameter_plot(legit_ber, param_list, f"Legitimate {pairs[0]} vs {pairs[1]} Using {param_label}", param_label, savefig=savefig, file_name=f"{legit_pair_file_stub}", fig_dir=fig_dir)
+        bit_err_vs_parameter_plot(adv_ber, param_list, f"Adversary {pairs[0]} vs {pairs[2]} Using {param_label}", param_label, savefig=savefig, file_name=f"{adv_pair_file_stub}", fig_dir=fig_dir)
 
-def plot_schurmann():
-    SCHURMANN_DATA_DIRECTORY = "../schurmann/schurmann_data/schurmann_real_fuzz/"
-    SCHURMANN_CONTROLLED_FUZZING_STUB = "schurmann_real_fuzz_day1"
+def plot_schurmann(savefigs=True):
+    SCHURMANN_DATA_DIRECTORY = "../schurmann/schurmann_data/schurmann_real_fuzz"
+    SCHURMANN_REAL_FUZZING_STUB = "schurmann_real_fuzz_day1"
+    FIG_DIR_NAME_STUB = "schurmann_real_fuzz"
     
-    DEVICE_PAIRS = [("10.0.0.238_bits","10.0.0.228_bits","10.0.0.239_bits"),
-                    ("10.0.0.231_bits","10.0.0.232_bits","10.0.0.239_bits"),
-                    ("10.0.0.233_bits","10.0.0.236_bits","10.0.0.239_bits"),
-                    ("10.0.0.227_bits","10.0.0.229_bits","10.0.0.237_bits"),
-                    ("10.0.0.235_bits","10.0.0.237_bits","10.0.0.239_bits"),
-                    ("10.0.0.234_bits","10.0.0.239_bits","10.0.0.237_bits")]
+    DEVICE_PAIRS = [("10.0.0.238", "10.0.0.228", "10.0.0.239"),
+                    ("10.0.0.231", "10.0.0.232", "10.0.0.239"),
+                    ("10.0.0.233", "10.0.0.236", "10.0.0.239"),
+                    ("10.0.0.227", "10.0.0.229", "10.0.0.237"),
+                    ("10.0.0.235", "10.0.0.237", "10.0.0.239"),
+                    ("10.0.0.234", "10.0.0.239", "10.0.0.237")]
 
     contents = parse_eval_directory(
         f"{SCHURMANN_DATA_DIRECTORY}",
-        f"{SCHURMANN_CONTROLLED_FUZZING_STUB}",
+        f"{SCHURMANN_REAL_FUZZING_STUB}",
     )
 
-    bit_err_device_pairs(DEVICE_PAIRS, contents, "window_length")
+    if savefigs:
+        fig_dir = make_plot_dir(FIG_DIR_NAME_STUB)
+    else:
+        fig_dir = None
 
-        # Regenerate 500 examples for SNR 40, 30, 20, 10, 5
-
-        # Plot bit err vs parameter pick for window length
-
-        # Plot bit err vs parameter pick for band length
-
-        # Plot bar graph of correlation between bit err and window length and bit err and band length
+    bit_err_device_pairs(DEVICE_PAIRS, contents, "window_length", SCHURMANN_REAL_FUZZING_STUB, fig_dir, savefig=savefigs)
+    bit_err_device_pairs(DEVICE_PAIRS, contents, "band_length", SCHURMANN_REAL_FUZZING_STUB, fig_dir, savefig=savefigs)
 
 
 def main():
