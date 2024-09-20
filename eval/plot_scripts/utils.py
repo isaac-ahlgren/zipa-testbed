@@ -122,8 +122,12 @@ def get_min_entropy(bits, key_length: int, symbol_size: int) -> float:
     max_prob = np.max(pdf)
     return -np.log2(max_prob)
 
-def bit_err_vs_parameter_plot(ber_list, param_list, plot_name, param_label, savefig=False, file_name=None, fig_dir=None):
+def bit_err_vs_parameter_plot(ber_list, param_list, plot_name, param_label, savefig=False, file_name=None, fig_dir=None, range=None):
     ziped_list = list(zip(ber_list, param_list))
+
+    if range is not None:
+        ziped_list = [x for x in ziped_list if range[0] <= x[1] <= range[1]]
+
     ziped_list.sort(key=lambda x: x[1])
 
     ord_ber_list = [x[0] for x in ziped_list]
@@ -135,6 +139,7 @@ def bit_err_vs_parameter_plot(ber_list, param_list, plot_name, param_label, save
     plt.ylabel("Bit Error")
     if savefig:
         plt.savefig(fig_dir + "/" + file_name + ".pdf")
+        plt.clf()
         fig_data_name = fig_dir + "/" + file_name + ".csv"
         df = pd.DataFrame({"x_axis": ord_param_list, "y_axis": ord_ber_list})
         df.to_csv(fig_data_name)

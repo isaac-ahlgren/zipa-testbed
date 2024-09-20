@@ -72,19 +72,20 @@ def plot_miettinen(savefigs=True):
                                   savefig=savefigs, file_name=f"{file_name_stub}_wsamp_adv", fig_dir=fig_dir)
         
         bit_err_vs_parameter_plot(legit_ber, rel_thr, "Relative Threshold Parameter Sweep Bit Error Plot for Legit", "Relative Threshold",
-                                  savefig=savefigs, file_name=f"{file_name_stub}_relthr_legit", fig_dir=fig_dir)
+                                  savefig=savefigs, file_name=f"{file_name_stub}_relthr_legit", fig_dir=fig_dir, range=(0,100))
         bit_err_vs_parameter_plot(adv_ber, rel_thr, "Relative Threshold Parameter Sweep Bit Error Plot for Adversary", "Relative Threshold",
-                                  savefig=savefigs, file_name=f"{file_name_stub}_relthr_adv", fig_dir=fig_dir)
+                                  savefig=savefigs, file_name=f"{file_name_stub}_relthr_adv", fig_dir=fig_dir, range=(0,100))
         
         bit_err_vs_parameter_plot(legit_ber, abs_thr, "Absolute Threshold Parameter Sweep Bit Error Plot for Legit", "Absolute Threshold",
-                                  savefig=savefigs, file_name=f"{file_name_stub}_absthr_legit", fig_dir=fig_dir)
+                                  savefig=savefigs, file_name=f"{file_name_stub}_absthr_legit", fig_dir=fig_dir, range=(0,100))
         bit_err_vs_parameter_plot(adv_ber, abs_thr, "Absolute Threshold Parameter Sweep Bit Error Plot for Adversary", "Absolute Threshold",
-                                  savefig=savefigs, file_name=f"{file_name_stub}_absthr_adv", fig_dir=fig_dir)
+                                  savefig=savefigs, file_name=f"{file_name_stub}_absthr_adv", fig_dir=fig_dir, range=(0,100))
 
     create_plots(MIETTINEN_DATA_DIRECTORY, MIETTINEN_CONTROLLED_FUZZING_STUB, FIG_DIR_NAME_STUB, plot_func, savefigs=savefigs)
 
 def main():
     plot_schurmann()
+    plot_miettinen()
 
 
 if __name__ == "__main__":
