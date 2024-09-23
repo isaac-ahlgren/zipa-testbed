@@ -67,6 +67,7 @@ class GPAKE:
         """Decrypt the encrypted public key."""
         decryptor = Cipher(self.algo(symm_key), self.mode(iv), default_backend()).decryptor()
         decrypted_data = decryptor.update(enc_pub_key) + decryptor.finalize()
+        print(f"Decrypted data: {decrypted_data.hex()}")
 
         unpadder = padding.PKCS7(128).unpadder()  # Block size is 128 bits (16 bytes)
         unpadded_data = unpadder.update(decrypted_data) + unpadder.finalize()
@@ -133,19 +134,26 @@ class GPAKE:
         session_id_bytes = json.dumps({'session_idx': session_idx}).encode()
         print(f"Sending IV_random in generate_and_send_random_value (expected 16 bytes): {len(iv_random)} bytes, IV: {iv_random.hex()}")
         print(f"Sending encrypted random value in generate_and_send_random_value: {len(encrypted_random_value)} bytes, Encrypted Random Value: {encrypted_random_value.hex}")
-        send_pake_msg(conn, [session_id_bytes, encrypted_random_value, iv_random, b''])
+        send_pake_msg(conn, [session_id_bytes, encrypted_random_value, iv_random])
 
         return random_value
     
     def receive_and_decrypt_random_value(self, conn, shared_key):
         """Receive and decrypt the random value sent by the device."""
         msg = pake_msg_standby(conn, self.timeout)
+        if msg is None:
+            raise ValueError("No message received during random value decryption.")
         enc_random_value_received = msg[1]
         iv_received = msg[2]
-        print(f"Received IV (expected 16 bytes): {len(iv_received)} bytes, IV: {iv_received.hex()}")
+        print(f"Received IV in receive and decrypt random value (expected 16 bytes): {len(iv_received)} bytes, IV: {iv_received.hex()}")
         assert len(iv_received) == 16, f"Received IV is not 16 bytes, instead {len(iv_received)} bytes"
 
-        return self.decode(shared_key, enc_random_value_received, iv_received)
+        print(f"Encrypted data to decrypt (expected 32 bytes): {len(enc_random_value_received)} bytes")
+
+        decrypted_random_value = self.decode(shared_key, enc_random_value_received, iv_received)
+        print(f"Decrypted random value: {decrypted_random_value.hex()}")
+
+        return decrypted_random_value
     
     def compute_final_key(self, random_values):
         """Sum all random values and hash the result to generate the final key."""
@@ -191,11 +199,14 @@ class GPAKE:
             self.send_encrypted_public_key(conn, device_id, i, pub_keys[i], passwords[i])
             # Step 3-7: Receive device's public keys, decrypt them, and exchange random values
             shared_key = self.handle_device_public_key_exchange(conn, priv_keys[i], passwords[i], device_id)
+            print(f"[HOST] Shared key: {shared_key.hex()}")
             random_value = self.generate_and_send_random_value(conn, shared_key, i)
+            print(f"[HOST] Generated and sent random value using shared key.")
             final_random_values.append(random_value)
 
             # Step 7: Receive and decrypt device's random value
             received_random_value = self.receive_and_decrypt_random_value(conn, shared_key)
+            print(f"[HOST] Received random value: {received_random_value.hex()}")
             final_random_values.append(received_random_value)
 
         # Step 8-9: Compute the final key
@@ -210,11 +221,14 @@ class GPAKE:
         final_random_values = []
         for i in range(len(grouped_events)):
             shared_key = self.handle_host_public_key_exchange(conn, priv_keys[i], pub_keys[i], passwords[i], device_id, i)
+            print(f"[DEVICE] Shared key: {shared_key.hex()}")
             received_random_value = self.receive_and_decrypt_random_value(conn, shared_key)
+            print(f"[DEVICE] Received random value: {received_random_value.hex()}")
             final_random_values.append(received_random_value)
 
             # Step 6: Generate and send encrypted random value
             random_value = self.generate_and_send_random_value(conn, shared_key, i)
+            print(f"[DEVICE] Generated and sent random value using shared key.")
             final_random_values.append(random_value)
 
         # Step 8-9: Compute the final key

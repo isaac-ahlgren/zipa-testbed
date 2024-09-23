@@ -324,17 +324,7 @@ def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
                 item = payload[index + 4 : index + 4 + item_length]
                 index += 4 + item_length
                 msg.append(item)
-                if len(msg) == 3:  # Assuming msg[2] is the enc_pub_key
-                    print(f"pake_msg_standby: Processing enc_pub_key at index {index}, length: {item_length}")
-                    if len(msg[2]) > 80:
-                        print(f"Warning: enc_pub_key length is larger than expected: {len(msg[2])}")
-                
-                if len(msg) == 4:  # When processing the iv (fourth item)
-                    print(f"pake_msg_standby: Processing iv at index {index}, length: {item_length}")
-                    if len(msg[3]) != 16:  # Ensure the IV length is exactly 16 bytes
-                        print(f"Error: IV length is incorrect, received length: {len(msg[3])}")
-                
-            
+                     
             for i, part in enumerate(msg):
                 print(f"Part {i}: Length {len(part)} bytes, Content: {part.hex() if isinstance(part, bytes) else part}")
             
