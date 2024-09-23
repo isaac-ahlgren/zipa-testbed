@@ -184,14 +184,12 @@ class GPAKE:
         """The host protocol with device identifiers and session identifiers."""
         device_id = "host_device" 
         priv_keys, pub_keys = self.generate_key_pairs(grouped_events)
-    
-        # Step 2: Encrypt and send public keys
-        for i, (pub_key, pw) in enumerate(zip(pub_keys, passwords)):
-            self.send_encrypted_public_key(conn, device_id, i, pub_key, pw)
 
-        # Step 3-7: Receive device's public keys, decrypt them, and exchange random values
         final_random_values = []
         for i in range(len(grouped_events)):
+            # Step 2: Encrypt and send public keys
+            self.send_encrypted_public_key(conn, device_id, i, pub_keys[i], passwords[i])
+            # Step 3-7: Receive device's public keys, decrypt them, and exchange random values
             shared_key = self.handle_device_public_key_exchange(conn, priv_keys[i], passwords[i], device_id)
             random_value = self.generate_and_send_random_value(conn, shared_key, i)
             final_random_values.append(random_value)

@@ -16,11 +16,13 @@ def setup_keys():
     key_length = 32
     timeout = 10
     passwords = [b"password1", b"password2", b"password3"]  # Example passwords
+
     grouped_events = [
         [(0, 1), (2, 3)],  # Event group 1
         [(4, 5), (6, 7)],  # Event group 2
         [(8, 9), (10, 11)],  # Event group 3
     ]
+    
     return key_length, timeout, passwords, grouped_events
 
 

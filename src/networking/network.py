@@ -261,17 +261,40 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
     return nonce
 
 
+def send_pake_msg_real(connection, msg):
+    length_payload = 0
+    for m in msg:
+        length_payload += len(m) + 4
+
+    payload = length_payload.to_bytes(4, byteorder="big")
+    print(f"Total payload length: {length_payload} bytes")
+    for m in msg:
+        payload += len(m).to_bytes(4, byteorder="big") + m
+
+    outgoing = FPFM.encode() + payload
+    connection.send(outgoing)
+
 def send_pake_msg(connection, msg):
     length_payload = 0
     for m in msg:
         length_payload += len(m) + 4
 
     payload = length_payload.to_bytes(4, byteorder="big")
-    for m in msg:
-        payload += len(m).to_bytes(4, byteorder="big") + m
-
+    
+    print(f"Total payload length: {length_payload} bytes")
+    
+    for i, m in enumerate(msg):
+        payload += len(m).to_bytes(4, byteorder="big")
+        payload += m
+        
+        print(f"Part {i}: Length {len(m)} bytes, Content: {m.hex() if isinstance(m, bytes) else m}")
+    
     outgoing = FPFM.encode() + payload
+    
+    print(f"Final outgoing message: {outgoing.hex()}")
+    
     connection.send(outgoing)
+
 
 
 def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
@@ -297,9 +320,23 @@ def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
             index = 0
             while index < msg_size:
                 item_length = int.from_bytes(payload[index : index + 4], "big")
+                print(f"Extracted item length: {item_length}, index: {index}") 
                 item = payload[index + 4 : index + 4 + item_length]
                 index += 4 + item_length
                 msg.append(item)
+                if len(msg) == 3:  # Assuming msg[2] is the enc_pub_key
+                    print(f"pake_msg_standby: Processing enc_pub_key at index {index}, length: {item_length}")
+                    if len(msg[2]) > 80:
+                        print(f"Warning: enc_pub_key length is larger than expected: {len(msg[2])}")
+                
+                if len(msg) == 4:  # When processing the iv (fourth item)
+                    print(f"pake_msg_standby: Processing iv at index {index}, length: {item_length}")
+                    if len(msg[3]) != 16:  # Ensure the IV length is exactly 16 bytes
+                        print(f"Error: IV length is incorrect, received length: {len(msg[3])}")
+                
+            
+            for i, part in enumerate(msg):
+                print(f"Part {i}: Length {len(part)} bytes, Content: {part.hex() if isinstance(part, bytes) else part}")
             
             print(f"pake_msg_standby: unpacked message: {msg}")
             break
