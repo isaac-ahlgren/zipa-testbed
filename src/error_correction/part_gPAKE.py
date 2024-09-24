@@ -37,23 +37,62 @@ class GPAKE:
         return priv_key.public_key().public_bytes(
             serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint
         )
-
-    def generate_shared_key(self, priv_key, peer_pub_key_bytes, local_device_id, peer_device_id):
-        """Generate shared key from private key and peer's public key, including device IDs and public keys in the derivation."""
+    
+    def generate_shared_key_host(self, priv_key, peer_pub_key_bytes, local_device_id, peer_device_id):
+        """Generate shared key from the host's private key and the device's public key."""
         peer_pub_key = ec.EllipticCurvePublicKey.from_encoded_point(self.curve, peer_pub_key_bytes)
         shared_key = priv_key.exchange(ec.ECDH(), peer_pub_key)
 
-        info = (local_device_id.encode() + peer_device_id.encode() +
-            priv_key.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint) +
-            peer_pub_key_bytes)
+        print(f"[DEBUG] Local Device ID (Host): {local_device_id}")
+        print(f"[DEBUG] Peer Device ID (Device): {peer_device_id}")
+        print(f"[DEBUG] Local Public Key (Host): {priv_key.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint).hex()}")
+        print(f"[DEBUG] Peer Public Key (Device): {peer_pub_key_bytes.hex()}")
 
-        return HKDF(
+        info = (local_device_id.encode() + peer_device_id.encode() +
+                priv_key.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint) +
+                peer_pub_key_bytes)
+
+        print(f"[DEBUG] Info Field for HKDF (Host): {info.hex()}")
+
+        derived_key = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
             salt=None,
             info=info,
             backend=default_backend(),
         ).derive(shared_key)
+
+        print(f"[DEBUG] Derived Shared Key (Host): {derived_key.hex()}")
+        return derived_key
+    
+    def generate_shared_key_device(self, priv_key, peer_pub_key_bytes, local_device_id, peer_device_id):
+        """Generate shared key from the device's private key and the host's public key."""
+        peer_pub_key = ec.EllipticCurvePublicKey.from_encoded_point(self.curve, peer_pub_key_bytes)
+        shared_key = priv_key.exchange(ec.ECDH(), peer_pub_key)
+
+        print(f"[DEBUG] Local Device ID (Device): {local_device_id}")
+        print(f"[DEBUG] Peer Device ID (Host): {peer_device_id}")
+        print(f"[DEBUG] Local Public Key (Device): {priv_key.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint).hex()}")
+        print(f"[DEBUG] Peer Public Key (Host): {peer_pub_key_bytes.hex()}")
+
+        info = (peer_device_id.encode() + local_device_id.encode() +
+                peer_pub_key_bytes +
+                priv_key.public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint))
+
+        print(f"[DEBUG] Info Field for HKDF (Device): {info.hex()}")
+
+        derived_key = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=None,
+            info=info,
+            backend=default_backend(),
+        ).derive(shared_key)
+
+        print(f"[DEBUG] Derived Shared Key (Device): {derived_key.hex()}")
+        return derived_key
+
+
 
     def encode(self, symm_key, pub_key_bytes, iv):
         """Encrypt the public key with symmetric encryption."""
@@ -121,8 +160,9 @@ class GPAKE:
 
         symm_key = self.hash_function(password)
         device_pub_key_bytes = self.decode(symm_key, enc_device_pub_key, iv_received)
+        print("Generating shared key device side")
     
-        return self.generate_shared_key(priv_key, device_pub_key_bytes, device_id, device_id_received)
+        return self.generate_shared_key_device(priv_key, device_pub_key_bytes, device_id, device_id_received)
     
     def generate_and_send_random_value(self, conn, shared_key, session_idx):
         """Generate random value, encrypt it with shared key, and send it."""
@@ -185,8 +225,9 @@ class GPAKE:
         }
         session_id_bytes = json.dumps(session_id).encode()
         send_pake_msg(conn, [device_id.encode(), session_id_bytes, enc_device_pub_key, iv])
+        print("Generating shared key host side")
 
-        return self.generate_shared_key(priv_key, host_pub_key_bytes, device_id, host_device_id)
+        return self.generate_shared_key_host(priv_key, host_pub_key_bytes, device_id, host_device_id)
 
     def host_protocol(self, grouped_events, passwords, conn):
         """The host protocol with device identifiers and session identifiers."""
