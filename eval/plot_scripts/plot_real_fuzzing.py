@@ -16,7 +16,7 @@ def bit_err_device_pairs(device_pairs, contents, param_label, file_name_stub, fi
         adv_byte_list = extract_from_contents(contents, adv)
 
         params = extract_from_contents(contents, "params")
-        param_list = extract_from_contents(params, "window_length")
+        param_list = extract_from_contents(params, param_label)
 
         legit_ber = get_avg_ber_list(legit1_byte_list, legit2_byte_list)
         adv_ber = get_avg_ber_list(legit1_byte_list, adv_byte_list)
@@ -49,9 +49,37 @@ def plot_schurmann(savefigs=True):
     bit_err_device_pairs(DEVICE_PAIRS, contents, "window_length", SCHURMANN_REAL_FUZZING_STUB, fig_dir, savefig=savefigs)
     bit_err_device_pairs(DEVICE_PAIRS, contents, "band_length", SCHURMANN_REAL_FUZZING_STUB, fig_dir, savefig=savefigs)
 
+def plot_miettinen(savefigs=True):
+    MIETTINEN_DATA_DIRECTORY = "../miettinen/miettinen_data/miettinen_real_fuzz"
+    MIETTINEN_REAL_FUZZING_STUB = "miettinen_real_fuzz_day1"
+    FIG_DIR_NAME_STUB = "miettinen_real_fuzz"
+    
+    DEVICE_PAIRS = [("10.0.0.238", "10.0.0.228", "10.0.0.239"),
+                    ("10.0.0.231", "10.0.0.232", "10.0.0.239"),
+                    ("10.0.0.233", "10.0.0.236", "10.0.0.239"),
+                    ("10.0.0.227", "10.0.0.229", "10.0.0.237"),
+                    ("10.0.0.235", "10.0.0.237", "10.0.0.239"),
+                    ("10.0.0.234", "10.0.0.239", "10.0.0.237")]
+
+    contents = parse_eval_directory(
+        f"{MIETTINEN_DATA_DIRECTORY}",
+        f"{MIETTINEN_REAL_FUZZING_STUB}",
+    )
+
+    if savefigs:
+        fig_dir = make_plot_dir(FIG_DIR_NAME_STUB)
+    else:
+        fig_dir = None
+
+    bit_err_device_pairs(DEVICE_PAIRS, contents, "f_samples", MIETTINEN_REAL_FUZZING_STUB, fig_dir, savefig=savefigs)
+    bit_err_device_pairs(DEVICE_PAIRS, contents, "w_samples", MIETTINEN_REAL_FUZZING_STUB, fig_dir, savefig=savefigs)
+    bit_err_device_pairs(DEVICE_PAIRS, contents, "rel_thr", MIETTINEN_REAL_FUZZING_STUB, fig_dir, savefig=savefigs)
+    bit_err_device_pairs(DEVICE_PAIRS, contents, "abs_thr", MIETTINEN_REAL_FUZZING_STUB, fig_dir, savefig=savefigs)
+
 
 def main():
     plot_schurmann()
+    plot_miettinen()
 
 
 if __name__ == "__main__":

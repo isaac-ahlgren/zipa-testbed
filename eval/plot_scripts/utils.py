@@ -70,12 +70,16 @@ def parse_eval_directory(data_dir, file_stub):
 def get_block_err(bits1, bits2, block_size):
     total = 0
     num_of_blocks = len(bits1) // block_size
-    for i in range(0, len(bits1), block_size):
-        sym1 = bits1[i * block_size : (i + 1) * block_size]
-        sym2 = bits2[i * block_size : (i + 1) * block_size]
-        if sym1 != sym2:
-            total += 1
-    return (total / num_of_blocks) * 100
+    if len(bits1) != 0 and len(bits2) != 0:
+        for i in range(0, len(bits1), block_size):
+            sym1 = bits1[i * block_size : (i + 1) * block_size]
+            sym2 = bits2[i * block_size : (i + 1) * block_size]
+            if sym1 != sym2:
+                total += 1
+        bit_err = (total / num_of_blocks) * 100
+    else:
+        bit_err = 50
+    return bit_err
 
 
 def cmp_byte_list(byte_list1, byte_list2, block_size):
@@ -90,7 +94,10 @@ def get_avg_ber_list(byte_list1, byte_list2):
     avg_ber_list = []
     for contents1, contents2 in zip(byte_list1, byte_list2):
         ber_list = cmp_byte_list(contents1, contents2, 1)
-        avg_ber = np.mean(ber_list)
+        if len(ber_list) != 0:
+            avg_ber = np.mean(ber_list)
+        else:
+            avg_ber = 50
         avg_ber_list.append(avg_ber)
     return avg_ber_list
 
@@ -122,11 +129,33 @@ def get_min_entropy(bits, key_length: int, symbol_size: int) -> float:
     max_prob = np.max(pdf)
     return -np.log2(max_prob)
 
+def condense_list(ziped_list):
+    outcome = []
+
+    total_ber = dict()
+    count = dict()
+    for ber, param in ziped_list:
+        if param in total_ber:
+            count[param] += 1 
+            total_ber[param] += ber
+        else:
+            count[param] = 1
+            total_ber[param] = ber
+    
+    for param in total_ber.keys():
+        ber = total_ber[param] / count[param]
+        outcome.append((ber, param))
+    
+    return outcome
+
+
 def bit_err_vs_parameter_plot(ber_list, param_list, plot_name, param_label, savefig=False, file_name=None, fig_dir=None, range=None):
     ziped_list = list(zip(ber_list, param_list))
 
     if range is not None:
         ziped_list = [x for x in ziped_list if range[0] <= x[1] <= range[1]]
+
+    ziped_list = condense_list(ziped_list)
 
     ziped_list.sort(key=lambda x: x[1])
 
