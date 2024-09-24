@@ -281,21 +281,13 @@ def send_pake_msg(connection, msg):
 
     payload = length_payload.to_bytes(4, byteorder="big")
     
-    print(f"Total payload length: {length_payload} bytes")
-    
-    for i, m in enumerate(msg):
+    for m in msg:
         payload += len(m).to_bytes(4, byteorder="big")
         payload += m
-        
-        print(f"Part {i}: Length {len(m)} bytes, Content: {m.hex() if isinstance(m, bytes) else m}")
     
     outgoing = FPFM.encode() + payload
     
-    print(f"Final outgoing message: {outgoing.hex()}")
-    
     connection.send(outgoing)
-
-
 
 def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
     msg = None
@@ -311,24 +303,17 @@ def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
             continue
         elif message[:8] == FPFM.encode():
             msg_size = int.from_bytes(message[8:], "big")
-            print(f"pake_msg_standby: message size is {msg_size}, raw message: {message.hex()}")
 
             payload = connection.recv(msg_size)
-            print(f"pake_msg_standby: raw payload received: {payload.hex()}")
 
             msg = []
             index = 0
             while index < msg_size:
-                item_length = int.from_bytes(payload[index : index + 4], "big")
-                print(f"Extracted item length: {item_length}, index: {index}") 
+                item_length = int.from_bytes(payload[index : index + 4], "big") 
                 item = payload[index + 4 : index + 4 + item_length]
                 index += 4 + item_length
                 msg.append(item)
                      
-            for i, part in enumerate(msg):
-                print(f"Part {i}: Length {len(part)} bytes, Content: {part.hex() if isinstance(part, bytes) else part}")
-            
-            print(f"pake_msg_standby: unpacked message: {msg}")
             break
 
     return msg
