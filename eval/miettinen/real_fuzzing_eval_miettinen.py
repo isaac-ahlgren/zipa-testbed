@@ -28,8 +28,8 @@ WRAP_AROUND_LIMIT_DEFAULT = 10
 # Random Parameter Ranges
 W_LENGTH_RANGE = (5000, 10 * 48000)
 F_LENGTH_RANGE = (5000, 10 * 48000)
-REL_THR_RANGE = (-1, 100)
-ABS_THR_RANGE = (0, 100)
+REL_THR_RANGE = (-1, 15)
+ABS_THR_RANGE = (0, 10000)
 
 FUZZING_DIR = "miettinen_real_fuzz"
 FUZZING_STUB = "miettinen_real_fuzz_day1"

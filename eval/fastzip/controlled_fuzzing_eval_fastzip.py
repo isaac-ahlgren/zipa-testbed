@@ -76,11 +76,11 @@ def main(
         overlap_size = random.randint(MIN_OVERLAP_DEFAULT, window_size // 2)  # nosec
         max_bits = key_length if window_size // 2 > key_length else window_size // 2
         n_bits = random.randint(MIN_N_BITS_DEFAULT, max_bits)  # nosec
-        max_eqd_delta = np.ceil(window_size / n_bits)
-        eqd_delta = random.randint(MIN_EQD_DELTA_DEFAULT, max_eqd_delta)  # nosec
-        ewma = random.choice([True, False])  # nosec
-        alpha = random.uniform(0, 1)  # nosec
-        remove_noise = random.choice([True, False])  # nosec
+        max_eqd_delta = 1 #np.ceil(window_size / n_bits)
+        eqd_delta = 1 #random.randint(MIN_EQD_DELTA_DEFAULT, max_eqd_delta)  # nosec
+        ewma = False #random.choice([True, False])  # nosec
+        alpha = 0.5 #random.uniform(0, 1)  # nosec
+        remove_noise = False #random.choice([True, False])  # nosec
         normalize = random.choice([True, False])  # nosec
         power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
         snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
