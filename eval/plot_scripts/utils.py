@@ -181,3 +181,27 @@ def make_plot_dir(dir_name):
         os.mkdir(dir)
     return dir
 
+def find_best_parameter_choice(legit_ber, adv_ber, params, file_stub, fig_dir):
+    best_score = 200
+    best_legit_ber = None
+    best_adv_ber = None
+    best_param = None
+    for legit, adv, param in zip(legit_ber, adv_ber, params):
+        adv_ber_score = 2*abs(50 - adv)
+        score = adv_ber_score + legit
+        if score < best_score:
+            best_param = param
+            best_legit_ber = legit
+            best_adv_ber = adv
+            best_score = score
+
+    if best_param is not None:
+        copy_best_param = best_param.copy()
+        copy_best_param["adv_ber"] = [best_adv_ber]
+        copy_best_param["legit_ber"] = [best_legit_ber]
+
+        file_name = fig_dir + "/" + file_stub + "_bestparam.csv"
+        df = pd.DataFrame(copy_best_param)
+        df.to_csv(file_name)
+
+
