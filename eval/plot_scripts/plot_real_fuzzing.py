@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from utils import extract_from_contents, get_avg_ber_list, parse_eval_directory, bit_err_vs_parameter_plot, make_plot_dir
+from utils import extract_from_contents, get_avg_ber_list, parse_eval_directory, bit_err_vs_parameter_plot, make_plot_dir, find_best_parameter_choice
 
 def bit_err_device_pairs(device_pairs, contents, param_label, file_name_stub, fig_dir, savefig=True):
     for pairs in device_pairs:
@@ -20,6 +20,10 @@ def bit_err_device_pairs(device_pairs, contents, param_label, file_name_stub, fi
 
         legit_ber = get_avg_ber_list(legit1_byte_list, legit2_byte_list)
         adv_ber = get_avg_ber_list(legit1_byte_list, adv_byte_list)
+
+        if savefig:
+            file_name = f"{file_name_stub}_{pairs[0]}_{pairs[1]}_{pairs[2]}"
+            find_best_parameter_choice(legit_ber, adv_ber, params, file_name, fig_dir)
 
         bit_err_vs_parameter_plot(legit_ber, param_list, f"Legitimate {pairs[0]} vs {pairs[1]} Using {param_label}", param_label, savefig=savefig, file_name=f"{legit_pair_file_stub}", fig_dir=fig_dir)
         bit_err_vs_parameter_plot(adv_ber, param_list, f"Adversary {pairs[0]} vs {pairs[2]} Using {param_label}", param_label, savefig=savefig, file_name=f"{adv_pair_file_stub}", fig_dir=fig_dir)

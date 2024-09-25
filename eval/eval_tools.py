@@ -58,9 +58,14 @@ def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
     return bits, extras
 
 
-def calc_all_events(signal: Signal_File, event_gen_algo_wrapper):
-    pass
-
+def calc_all_events(signal: Signal_File, event_gen_algo_wrapper, *argv):
+    all_events = []
+    all_event_features = []
+    while not signal.get_finished_reading():
+        events, event_features = event_gen_algo_wrapper(signal, *argv)
+        all_events.extend(events)
+        all_event_features.extend(event_features)
+    return all_events, all_event_features
 
 def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     """

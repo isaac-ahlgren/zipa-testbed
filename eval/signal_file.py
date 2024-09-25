@@ -187,6 +187,11 @@ class Signal_File(Signal_File_Interface):
                 samples = 0
         return output
 
+    def read_rest_of_buf(self):
+        buf = self.sample_buffer[self.start_sample:]
+        self.switch_files()
+        return buf
+
     def get_finished_reading(self):
         return self.finished_reading
 

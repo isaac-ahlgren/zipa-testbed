@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from utils import extract_from_contents, get_avg_ber_list, parse_eval_directory, bit_err_vs_parameter_plot, make_plot_dir
+from utils import extract_from_contents, get_avg_ber_list, parse_eval_directory, bit_err_vs_parameter_plot, make_plot_dir, find_best_parameter_choice
+
 
 def create_plots(data_dir, controlled_fuzzing_stub, fig_dir_name_stub, plot_func, savefigs=True):
     if savefigs:
@@ -24,6 +25,9 @@ def create_plots(data_dir, controlled_fuzzing_stub, fig_dir_name_stub, plot_func
         adv_ber = get_avg_ber_list(byte_list1, adv_byte_list)
 
         params = extract_from_contents(contents, "params")
+
+        if savefigs:
+            find_best_parameter_choice(legit_ber, adv_ber, params, file_name_stub, fig_dir)
 
         plot_func(legit_ber, adv_ber, params, file_name_stub, fig_dir, savefigs=savefigs)
 
