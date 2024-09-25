@@ -1,0 +1,2 @@
+,window_size,overlap_size,n_bits,eqd_delta,ewma,alpha,remove_noise,normalize,power_th,snr_th
+0,297,85,66,1,False,0.5,False,True,108.32379644481436,0.7815639750744887
