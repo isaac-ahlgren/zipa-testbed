@@ -45,7 +45,7 @@ class NFSLogger:
         self.identifier = identifier
         self.local_dir = local_dir
         if not os.path.isdir(local_dir):
-                os.mkdir(local_dir)
+            os.mkdir(local_dir)
         self.use_local_dir = use_local_dir
 
     def log_signal(self, name: str, signal: Union[float, List[float]]) -> None:

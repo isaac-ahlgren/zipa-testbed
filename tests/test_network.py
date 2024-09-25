@@ -18,12 +18,12 @@ from networking.network import (  # noqa
     commit_standby,
     dh_exchange,
     dh_exchange_standby,
-    fpake_msg_standby,
     get_nonce_msg_standby,
     get_nonce_msg_standby2,
+    pake_msg_standby,
     send_commit,
-    send_fpake_msg,
     send_nonce_msg,
+    send_pake_msg,
     send_status,
     status_standby,
 )
@@ -120,7 +120,7 @@ def test_ack():
         device_socket.connect(("127.0.0.1", 2000))
         result = device_socket.recv(8)  # Adjust buffer size if needed
         print(f"Client received: {result}")
-        assert result == ACKN.encode()  # Verify the received message
+        assert result == ACKN.encode()  # nosec
 
     print("Testing ack function.\nCreating processes.")
     host_process = Process(target=host, args=[], name="[HOST]")
@@ -184,8 +184,8 @@ def test_send_commit():
     host_process.join()
     device_process.join()
 
-    assert host_process.exitcode == 0
-    assert device_process.exitcode == 0
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
 
 
 def test_commit_standby():
@@ -223,12 +223,12 @@ def test_commit_standby():
         print(f"Client received commitments: {commitments}")
         print(f"Client received hashes: {hashes}")
 
-        assert commitments is not None
-        assert hashes is not None
-        assert len(commitments) == 2
-        assert len(hashes) == 2
-        assert commitments == commitments_list
-        assert hashes == hashes_list
+        assert commitments is not None  # nosec
+        assert hashes is not None  # nosec
+        assert len(commitments) == 2  # nosec
+        assert len(hashes) == 2  # nosec
+        assert commitments == commitments_list  # nosec
+        assert hashes == hashes_list  # nosec
 
     print("Testing commit_standby function.\nCreating processes.")
     host_process = Process(target=host, name="[HOST]")
@@ -242,8 +242,8 @@ def test_commit_standby():
     host_process.join()
     device_process.join()
 
-    assert host_process.exitcode == 0
-    assert device_process.exitcode == 0
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
 
 
 def test_dh_exchange():
@@ -257,7 +257,7 @@ def test_dh_exchange():
 
         # Receive and validate the DH key
         message = connection.recv(1024)
-        assert message[:8] == DHKY.encode()  # Validate prefix
+        assert message[:8] == DHKY.encode()  # nosec
         key_size = int.from_bytes(message[8:12], byteorder="big")
         key = message[12 : 12 + key_size]
         print(f"Host received key: {key}")
@@ -301,7 +301,7 @@ def test_dh_exchange_standby():
 
         # Receive and validate the DH key using dh_exchange_standby
         key = dh_exchange_standby(connection, 10)
-        assert key == b"\x01\x02\x03\x04\x05\x06\x07\x08"
+        assert key == b"\x01\x02\x03\x04\x05\x06\x07\x08"  # nosec
         print(f"Host received key: {key}")
 
     def device():
@@ -327,8 +327,8 @@ def test_dh_exchange_standby():
     host_process.join()
     device_process.join()
 
-    assert host_process.exitcode == 0
-    assert device_process.exitcode == 0
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
 
 
 def test_send_nonce_msg():
@@ -343,7 +343,7 @@ def test_send_nonce_msg():
         # Expect to receive the nonce message
         message = connection.recv(1024)
         print(f"Host received message: {message}")
-        assert message.startswith(NONC.encode())
+        assert message.startswith(NONC.encode())  # nosec
 
         nonce_size = int.from_bytes(message[8:12], byteorder="big")
         nonce = message[12 : 12 + nonce_size]
@@ -372,8 +372,8 @@ def test_send_nonce_msg():
     host_process.join()
     device_process.join()
 
-    assert host_process.exitcode == 0
-    assert device_process.exitcode == 0
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
 
 
 def test_get_nonce_msg_standby2():
@@ -388,7 +388,7 @@ def test_get_nonce_msg_standby2():
         # Expect to receive the nonce message
         nonce = get_nonce_msg_standby2(connection, 5)
         print(f"Host received nonce: {nonce}")
-        assert nonce == b"\x12\x34\x56\x78"
+        assert nonce == b"\x12\x34\x56\x78"  # nosec
 
     def device():
         time.sleep(1)  # Ensure the host is ready
@@ -413,8 +413,8 @@ def test_get_nonce_msg_standby2():
     host_process.join()
     device_process.join()
 
-    assert host_process.exitcode == 0
-    assert device_process.exitcode == 0
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
 
 
 def test_get_nonce_msg_standby():
@@ -429,7 +429,7 @@ def test_get_nonce_msg_standby():
         # Expect to receive the nonce message
         nonce = get_nonce_msg_standby(connection, 5)
         print(f"Host received nonce: {nonce}")
-        assert nonce == b"\x12\x34\x56\x78"
+        assert nonce == b"\x12\x34\x56\x78"  # nosec
 
     def device():
         time.sleep(1)  # Ensure the host is ready
@@ -454,8 +454,8 @@ def test_get_nonce_msg_standby():
     host_process.join()
     device_process.join()
 
-    assert host_process.exitcode == 0
-    assert device_process.exitcode == 0
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
 
 
 def test_ack_standby():
@@ -479,7 +479,7 @@ def test_ack_standby():
             device_socket, 5
         )  # Wait for ACK with a 5-second timeout
         print(f"Client received acknowledgment: {acknowledged}")
-        assert acknowledged is True  # Ensure we received an acknowledgment
+        assert acknowledged is True  # nosec
 
     print("Testing ack_standby function.\nCreating processes.")
     host_process = Process(target=host, args=[], name="[HOST]")
@@ -524,7 +524,7 @@ def test_send_fpake_msg():
         )
 
         # Assert the received data matches the expected payload
-        assert sent_data == expected_payload
+        assert sent_data == expected_payload  # nosec
         print("Host received correct data.")
 
     def device():
@@ -538,7 +538,7 @@ def test_send_fpake_msg():
         msg = [b"hello", b"world"]
 
         # Send the message
-        send_fpake_msg(device_socket, msg)
+        send_pake_msg(device_socket, msg)
         print("Device sent the message.")
 
     # Creating processes for host and device
@@ -569,7 +569,7 @@ def test_fpake_msg_standby():
 
         # Send a message
         msg = [b"hello", b"world"]
-        send_fpake_msg(connection, msg)
+        send_pake_msg(connection, msg)
         print("Host sent the message.")
 
     def device():
@@ -580,13 +580,13 @@ def test_fpake_msg_standby():
         device_socket.connect(("127.0.0.1", 2001))
 
         # Wait for the message using fpake_msg_standby
-        received_msg = fpake_msg_standby(device_socket, timeout=5)
+        received_msg = pake_msg_standby(device_socket, timeout=5)
 
         # Expected message
         expected_msg = [b"hello", b"world"]
 
         # Assert the received message matches the expected message
-        assert received_msg == expected_msg
+        assert received_msg == expected_msg  # nosec
         print("Device received the correct message.")
 
     # Creating processes for host and device
@@ -633,7 +633,7 @@ def test_status_standby_timeout_early_close():
         device_socket.close()
 
         # If result is None, it means no data was received and it likely timed out
-        assert (
+        assert (  # nosec
             result is None
         ), "Test failed: status_standby should not receive data after early close."
 
@@ -646,7 +646,7 @@ def test_status_standby_timeout_early_close():
     host_process.join()
     device_process.join()
 
-    assert (
+    assert (  # nosec
         device_process.exitcode == 0
     ), "Test failed: status_standby didn't handle early close correctly."
     print("Test passed: status_standby function handled early close properly.")
@@ -681,7 +681,7 @@ def test_commit_standby_timeout_early_close():
         device_socket.close()
 
         # No commitments or hashes should be received after early close
-        assert (
+        assert (  # nosec
             commitments is None and hashes is None
         ), "Test failed: commit_standby should not receive data after early close."
 
@@ -694,7 +694,7 @@ def test_commit_standby_timeout_early_close():
     host_process.join()
     device_process.join()
 
-    assert (
+    assert (  # nosec
         device_process.exitcode == 0
     ), "Test failed: commit_standby didn't handle early close correctly."
     print("Test passed: commit_standby function handled early close properly.")
@@ -729,7 +729,7 @@ def test_dh_exchange_standby_timeout_early_close():
         device_socket.close()
 
         # No key should be received after early close
-        assert (
+        assert (  # nosec
             key is None
         ), "Test failed: dh_exchange_standby should not receive data after early close."
 
@@ -742,7 +742,7 @@ def test_dh_exchange_standby_timeout_early_close():
     host_process.join()
     device_process.join()
 
-    assert (
+    assert (  # nosec
         device_process.exitcode == 0
     ), "Test failed: dh_exchange_standby didn't handle early close correctly."
     print("Test passed: dh_exchange_standby function handled early close properly.")
@@ -777,7 +777,7 @@ def test_get_nonce_msg_standby_timeout_early_close():
         device_socket.close()
 
         # No nonce should be received after early close
-        assert (
+        assert (  # nosec
             nonce is None
         ), "Test failed: get_nonce_msg_standby should not receive data after early close."
 
@@ -790,7 +790,7 @@ def test_get_nonce_msg_standby_timeout_early_close():
     host_process.join()
     device_process.join()
 
-    assert (
+    assert (  # nosec
         device_process.exitcode == 0
     ), "Test failed: get_nonce_msg_standby didn't handle early close correctly."
     print("Test passed: get_nonce_msg_standby function handled early close properly.")
@@ -828,7 +828,7 @@ def test_ack_standby_timeout_early_close():
         device_socket.close()
 
         # No acknowledgment should be received after early close
-        assert (
+        assert (  # nosec
             acknowledged is False
         ), "Test failed: ack_standby should not receive data after early close."
 
@@ -841,7 +841,7 @@ def test_ack_standby_timeout_early_close():
     host_process.join()
     device_process.join()
 
-    assert (
+    assert (  # nosec
         device_process.exitcode == 0
     ), "Test failed: ack_standby didn't handle early close correctly."
     print("Test passed: ack_standby function handled early close properly.")
@@ -870,13 +870,13 @@ def test_fpake_msg_standby_timeout_early_close():
         start_time = time.time()
 
         # Wait for up to 10 seconds for fpake_msg_standby
-        received_msg = fpake_msg_standby(device_socket, 5)
+        received_msg = pake_msg_standby(device_socket, 5)
         end_time = time.time()
         print(f"FPAKE msg standby lasted {end_time - start_time} seconds.\n")
         device_socket.close()
 
         # No message should be received after early close
-        assert (
+        assert (  # nosec
             received_msg is None
         ), "Test failed: fpake_msg_standby should not receive data after early close."
 
@@ -889,7 +889,7 @@ def test_fpake_msg_standby_timeout_early_close():
     host_process.join()
     device_process.join()
 
-    assert (
+    assert (  # nosec
         device_process.exitcode == 0
     ), "Test failed: fpake_msg_standby didn't handle early close correctly."
     print("Test passed: fpake_msg_standby function handled early close properly.")
