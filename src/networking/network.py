@@ -360,27 +360,25 @@ def ack_standby(connection: socket.socket, timeout: int) -> bool:
     return acknowledged
 
 
-def send_fpake_msg(connection, msg):
+def send_pake_msg(connection, msg):
     length_payload = 0
     for m in msg:
         length_payload += len(m) + 4
 
     payload = length_payload.to_bytes(4, byteorder="big")
+
     for m in msg:
-        payload += len(m).to_bytes(4, byteorder="big") + m
+        payload += len(m).to_bytes(4, byteorder="big")
+        payload += m
 
     outgoing = FPFM.encode() + payload
+
     connection.send(outgoing)
 
 
-def fpake_msg_standby(connection: socket.socket, timeout: int) -> list:
-    """
-    Waits for a FPFM message within the specified timeout period.
 
-    :param connection: The network connection to receive from.
-    :param timeout: The maximum time in seconds to wait for a message.
-    :returns: The decoded message as a list, or None if no valid message is received.
-    """
+def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
+
     msg = None
     reference = time.time()
     connection.settimeout(timeout)  # Set socket timeout
