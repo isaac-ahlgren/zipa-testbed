@@ -218,7 +218,6 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
 
 
 # TESTING CODE###
-import socket
 
 
 def device(prot):

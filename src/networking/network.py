@@ -376,7 +376,6 @@ def send_pake_msg(connection, msg):
     connection.send(outgoing)
 
 
-
 def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
 
     msg = None
