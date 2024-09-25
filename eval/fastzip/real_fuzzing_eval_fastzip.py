@@ -13,7 +13,7 @@ from fastzip_tools import (
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
     get_fuzzing_command_line_args,
-    load_controlled_signal_files,
+    load_real_signal_files,
     log_parameters,
     make_dirs,
 )
@@ -179,7 +179,7 @@ def main(
         number_of_choices,
         key_length,
         fuzzing_dir,
-        f"{FUZZING_STUB}_snr{target_snr}",
+        f"{FUZZING_STUB}",
         multithreaded=True,
     )
 
