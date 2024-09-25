@@ -42,8 +42,8 @@ class Fuzzy_Commitment:
         if len(bytes1) != len(bytes2):
             raise ValueError(f"Mismatched lengths: {len(bytes1)} and {len(bytes2)}")
         output = bytearray([0 for i in range(len(bytes1))])
-        for i in range(len(bytes1)):
-            output[i] = bytes1[i] ^ bytes2[i]
+        for i in range(len(bytes2)):
+            output[i] = bytes2[i] ^ bytes1[i]
         return output
 
     def commit_witness(self, witness: bytearray) -> Tuple[bytes, bytearray]:

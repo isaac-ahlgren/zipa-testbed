@@ -3,6 +3,8 @@ from typing import Any, List
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 
+from error_correction.corrector import Fuzzy_Commitment
+from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import (
     ack,
     ack_standby,
@@ -34,6 +36,9 @@ class Miettinen_Protocol(ProtocolInterface):
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.f = parameters["f"] * self.sensor.sensor.sample_rate
         self.w = parameters["w"] * self.sensor.sensor.sample_rate
+        self.key_length = parameters["key_length"]
+        self.parity_symbols = parameters["parity_symbols"]
+        self.commitment_length = self.key_length + self.parity_symbols
         self.rel_thresh = parameters["rel_thresh"]
         self.abs_thresh = parameters["abs_thresh"]
         self.auth_threshold = parameters["auth_thresh"]
@@ -46,6 +51,9 @@ class Miettinen_Protocol(ProtocolInterface):
         self.nonce_byte_size = 16
         self.time_length = (self.w + self.f) * (self.commitment_length * 8 + 1)
         self.count = 0
+        self.re = Fuzzy_Commitment(
+            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
+        )
 
     def process_context(self) -> List[bytes]:
         """
@@ -149,8 +157,10 @@ class Miettinen_Protocol(ProtocolInterface):
 
             success = False
 
+            if self.verbose:
+                print("[HOST] Extracting context.")
             # Extract bits from sensor
-            witness = self.process_context()
+            witness = self.get_context()
             witness = witness[0]
 
             # Wait for Commitment
@@ -256,6 +266,8 @@ class Miettinen_Protocol(ProtocolInterface):
         )
 
         self.count += 1
+        ProtocolInterface.reset_flag(self.queue_flag)
+        self.clear_queue()
 
     def host_protocol_single_threaded(self, device_socket: socket.socket) -> None:
         """
@@ -302,8 +314,9 @@ class Miettinen_Protocol(ProtocolInterface):
                 print("Successfully ACKed participating device\n")
 
             # Extract key from sensor
-            self.shm_active.value += 1
-            witness = self.process_context()
+            if self.verbose:
+                print("[CLIENT] Extracting context.")
+            witness = self.get_context()
             witness = witness[0]
 
             # Commit Secret

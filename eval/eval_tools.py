@@ -1,163 +1,17 @@
-import glob
-from typing import Callable, List, Tuple
+import argparse
+import os
+import random
+from typing import List, Tuple
 
 import numpy as np
+import pandas as pd
 from scipy.io import wavfile
-
-
-class Signal_Buffer:
-    def __init__(self, buf: np.ndarray, noise: bool = False, target_snr: int = 20):
-        """
-        Initialize a buffer to manage signal data with optional noise addition.
-
-        :param buf: Array containing the signal data.
-        :param noise: If true, Gaussian noise is added to the output based on the target SNR.
-        :param target_snr: The signal-to-noise ratio used to calculate noise level.
-        """
-        self.signal_buffer = buf
-        self.index = 0
-        self.noise = noise
-        if self.noise:
-            self.noise_std = calc_snr_dist_params(buf, target_snr)
-
-    def read(self, samples_to_read: int) -> np.ndarray:
-        """
-        Read a specific number of samples from the buffer, adding noise if specified.
-
-        :param samples_to_read: The number of samples to read from the buffer.
-        :return: An array of the read samples, possibly with noise added.
-        """
-        samples = samples_to_read
-
-        output = np.array([])
-        while samples_to_read != 0:
-            samples_can_read = len(self.signal_buffer) - self.index
-            if samples_can_read <= samples_to_read:
-                buf = self.signal_buffer[self.index : self.index + samples_can_read]
-                output = np.append(output, buf)
-                samples_to_read = samples_to_read - samples_can_read
-                self.index = 0
-            else:
-                buf = self.signal_buffer[self.index : self.index + samples_to_read]
-                output = np.append(output, buf)
-                self.index = self.index + samples_to_read
-                samples_to_read = 0
-        if self.noise:
-            noise = np.random.normal(0, self.noise_std, samples)
-            output += noise
-        return output
-
-    def sync(self, other_signal_buff: "Signal_Buffer"):
-        """
-        Synchronize this buffer's index with another signal buffer's index.
-
-        :param other_signal_buff: Another Signal_Buffer instance to synchronize with.
-        """
-        self.index = other_signal_buff.index
-
-
-class Signal_File:
-    def __init__(
-        self,
-        signal_directory: str,
-        file_names: str,
-        wrap_around_read: bool = False,
-        load_func: Callable = np.loadtxt,
-    ):
-        """
-        Initialize a file-based signal manager that can handle multiple signal files.
-
-        :param signal_directory: The directory containing signal files.
-        :param file_pattern: The glob pattern to match files within the directory.
-        :param wrap_around_read: If True, wraps around to the first file after the last file is read.
-        :param load_func: The function used to load signal data from a file.
-        """
-        self.signal_directory = signal_directory
-        self.files = glob.glob(file_names, root_dir=signal_directory)
-        if len(self.files) == 0:
-            print("No files found")
-        else:
-            self.files.sort()
-        self.file_index = 0
-        self.start_sample = 0
-        self.load_func = load_func
-        self.sample_buffer = self.load_func(self.signal_directory + self.files[0])
-        self.wrap_around_read = wrap_around_read
-
-    def switch_files(self):
-        """
-        Switch to the next file in the directory or wrap around if enabled.
-        """
-        self.start_sample = 0
-        self.file_index += 1
-        print("Loading in " + self.signal_directory + self.files[self.file_index])
-        if len(self.files) == self.file_index and self.wrap_around_read:
-            self.reset()
-        else:
-            del self.sample_buffer
-            self.sample_buffer = self.load_func(
-                self.signal_directory + self.files[self.file_index]
-            )
-
-    def read(self, samples: int) -> np.ndarray:
-        """
-        Read a specified number of samples across multiple files.
-
-        :param samples: Number of samples to read.
-        :return: Array containing the read samples.
-        """
-        output = np.array([])
-
-        while samples != 0:
-            samples_can_read = len(self.sample_buffer) - self.start_sample
-            if samples_can_read <= samples:
-                buffer = self.sample_buffer[
-                    self.start_sample : self.start_sample + samples_can_read
-                ]
-                output = np.append(output, buffer)
-                self.switch_files()
-                samples -= samples_can_read
-            else:
-                buffer = self.sample_buffer[
-                    self.start_sample : self.start_sample + samples
-                ]
-                output = np.append(output, buffer)
-                self.start_sample = self.start_sample + samples
-                samples = 0
-        return output
-
-    def reset(self):
-        """
-        Reset the reader to the start of the first file.
-        """
-        self.start_sample = 0
-        self.file_index = 0
-        del self.sample_buffer
-        self.sample_buffer = self.load_func(self.signal_directory + self.files[0])
-
-    def sync(self, other_sf: "Signal_File"):
-        """
-        Synchronize this file reader with another, matching the current file and sample index.
-
-        :param other_sf: Another Signal_File instance to synchronize with.
-        """
-        self.file_index = other_sf.file_index
-        self.start_sample = other_sf.start_sample
-        del self.sample_buffer
-        self.sample_buffer = self.load_func(
-            self.signal_directory + self.files[self.file_index]
-        )
-
-
-def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
-    """
-    Load a controlled signal from a WAV file.
-
-    :param file_name: The path to the WAV file.
-    :return: A tuple containing the signal data as a numpy array and the sample rate.
-    """
-    sr, data = wavfile.read(file_name)
-    return data.astype(np.int64), sr
+from signal_file import (
+    Noisy_File,
+    Signal_Buffer,
+    Signal_File,
+    Wrap_Around_File,
+)
 
 
 def calc_snr_dist_params(signal: np.ndarray, target_snr: float) -> float:
@@ -189,6 +43,120 @@ def add_gauss_noise(signal: np.ndarray, target_snr: float) -> np.ndarray:
     return signal + noise
 
 
+def gen_id():
+    return random.randint(0, 2**64)  # nosec
+
+
+def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
+    bits = []
+    extras = []
+    while not signal.get_finished_reading():
+        b, *extra = bit_gen_algo_wrapper(signal, *argv)
+        if b is not None:
+            bits.append(b)
+            extras.append(extra)
+    return bits, extras
+
+
+def calc_all_events(signal: Signal_File, event_gen_algo_wrapper):
+    pass
+
+
+def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
+    """
+    Load a controlled signal from a WAV file.
+
+    :param file_name: The path to the WAV file.
+    :return: A tuple containing the signal data as a numpy array and the sample rate.
+    """
+    sr, data = wavfile.read(file_name)
+    return data.astype(np.int64)
+
+
+def wrap_signal_file(
+    sf, noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None
+):
+    if wrap_around:
+        sf = Wrap_Around_File(sf, wrap_around_limit=wrap_around_limit)
+    if noise:
+        sf = Noisy_File(sf, target_snr)
+    return sf
+
+
+def load_signal_files(
+    dir,
+    files,
+    ids,
+    load_func=np.loadtxt,
+    noise=False,
+    target_snr=None,
+    wrap_around=False,
+    wrap_around_limit=None,
+):
+    sfs = []
+    for file, id in zip(files, ids):
+        sf = Signal_File(dir, file, load_func=load_func, id=id)
+        sf = wrap_signal_file(
+            sf,
+            noise=noise,
+            target_snr=target_snr,
+            wrap_around=wrap_around,
+            wrap_around_limit=wrap_around_limit,
+        )
+        sfs.append(sf)
+    return sfs
+
+
+def load_signal_buffers(
+    buffers,
+    ids,
+    noise=False,
+    target_snr=None,
+    wrap_around=False,
+    wrap_around_limit=None,
+):
+    sbs = []
+    for buf, id in zip(buffers, ids):
+        sb = Signal_Buffer(buf, id=id)
+        sb = wrap_signal_file(
+            sb,
+            noise=noise,
+            target_snr=target_snr,
+            wrap_around=wrap_around,
+            wrap_around_limit=wrap_around_limit,
+        )
+        sbs.append(sb)
+    return sbs
+
+
+def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limit=None):
+    return load_signal_files(
+        "../../data/",
+        [
+            "controlled_signal.wav",
+            "controlled_signal.wav",
+            "adversary_controlled_signal.wav",
+        ],
+        ["legit_signal1", "legit_signal2", "adv_signal"],
+        load_func=load_controlled_signal,
+        noise=True,
+        target_snr=target_snr,
+        wrap_around=wrap_around,
+        wrap_around_limit=wrap_around_limit,
+    )
+
+
+def load_controlled_signal_buffers(buffers, target_snr=None, noise=False):
+    return load_signal_buffers(
+        [buffers[0], buffers[1], buffers[2]],
+        ids=["legit1", "legit2", "adv"],
+        noise=noise,
+        target_snr=target_snr,
+        wrap_around=True,
+        wrap_around_limit=None,
+    )
+
+
 def bytes_to_bitstring(b: bytes, length: int) -> str:
     """
     Convert bytes to a bitstring of a specified length.
@@ -207,6 +175,12 @@ def bytes_to_bitstring(b: bytes, length: int) -> str:
     elif difference < 0:
         bs = bs[:length]
     return bs
+
+
+def bitstring_to_bytes(s: str) -> bytes:
+    if s == "":
+        return b""
+    return int(s, 2).to_bytes((len(s) + 7) // 8, byteorder="big")
 
 
 def cmp_bits(bits1: bytes, bits2: bytes, length: int) -> float:
@@ -277,23 +251,74 @@ def flatten_fingerprints(fps: List[List[bytes]]) -> List[bytes]:
     return flattened_fps
 
 
-def get_min_entropy(bits: List[bytes], key_length: int, symbol_size: int) -> float:
-    """
-    Calculate the minimum entropy of a list of bitstrings based on symbol size.
+def log_bytes(file_name_stub, byte_list, key_length):
+    byte_file_name = file_name_stub + "_bits.txt"
+    with open(byte_file_name, "w") as file:
+        for b in byte_list:
+            bit_string = bytes_to_bitstring(b, key_length)
+            file.write(bit_string + "\n")
 
-    :param bits: List of bitstrings.
-    :param key_length: The total length of each bitstring.
-    :param symbol_size: The size of each symbol in bits.
-    :return: The minimum entropy observed across all symbols.
-    """
-    arr = []
-    for b in bits:
-        bs = bytes_to_bitstring(b, key_length)
-        for i in range(0, key_length // symbol_size, symbol_size):
-            symbol = bs[i * symbol_size : (i + 1) * symbol_size]
-            arr.append(int(symbol, 2))
 
-    hist, bin_edges = np.histogram(arr, bins=2**symbol_size)
-    pdf = hist / sum(hist)
-    max_prob = np.max(pdf)
-    return -np.log2(max_prob)
+def log_extras(file_name_stub, extras_list):
+    extra_file_name = file_name_stub + "_extras.txt"
+    df = pd.DataFrame(extras_list)
+    df.to_csv(extra_file_name)
+
+
+def log_outcomes(file_name_stub, byte_list, extra_list, key_length):
+    log_bytes(file_name_stub, byte_list, key_length)
+    log_extras(file_name_stub, extra_list)
+
+
+def log_parameters(file_name_stub, name_list, parameter_list):
+    csv_file = dict()
+    for name, param in zip(name_list, parameter_list):
+        csv_file[name] = [param]
+
+    file_name = file_name_stub + "_params.csv"
+    df = pd.DataFrame(csv_file)
+    df.to_csv(file_name)
+
+
+def get_fuzzing_command_line_args(
+    key_length_default: int = None,
+    target_snr_default: int = None,
+    number_of_choices_default: int = None,
+    wrap_around_limit_default: float = None,
+):
+    """
+    Parse command-line arguments for the script.
+
+    :return: Tuple containing window length, band length, key length, SNR level, and number of trials.
+    """
+    parser = argparse.ArgumentParser()
+
+    # Add arguments without descriptions
+    parser.add_argument("-kl", "--key_length", type=int, default=key_length_default)
+    parser.add_argument("-snr", "--snr_level", type=int, default=target_snr_default)
+    parser.add_argument("-c", "--choices", type=int, default=number_of_choices_default)
+    parser.add_argument(
+        "-wwl", "--wrap_around_limit", type=int, default=wrap_around_limit_default
+    )
+
+    # Parsing command-line arguments
+    args = parser.parse_args()
+
+    # Extracting arguments
+    key_length = getattr(args, "key_length")
+    target_snr = getattr(args, "snr_level")
+    number_of_choices = getattr(args, "choices")
+    wrap_around_limit = getattr(args, "wrap_around_limit")
+
+    return key_length, target_snr, number_of_choices, wrap_around_limit
+
+
+def make_dirs(data_dir, fuzzing_dir, fuzzing_stub_dir):
+    if not os.path.isdir(data_dir):
+        os.mkdir(data_dir)
+
+    if not os.path.isdir(f"{data_dir}/{fuzzing_dir}"):
+        os.mkdir(f"{data_dir}/{fuzzing_dir}")
+
+    if not os.path.isdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}"):
+        os.mkdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}")

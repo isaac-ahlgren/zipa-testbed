@@ -162,3 +162,5 @@ cython_debug/
 #.idea/
 
 zipa-testbed-venv/
+*.csv
+*.txt

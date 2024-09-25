@@ -34,7 +34,7 @@ class PerceptioProcessing:
 
         event_features = PerceptioProcessing.get_event_features(events, signal)
 
-        labels, k, intertias = PerceptioProcessing.kmeans_w_elbow_method(
+        labels, k, _ = PerceptioProcessing.kmeans_w_elbow_method(
             event_features, cluster_sizes_to_check, cluster_th
         )
 
@@ -148,11 +148,11 @@ class PerceptioProcessing:
         :param cluster_th: Threshold for determining the elbow point in clustering.
         :return: Cluster labels and the determined number of clusters.
         """
-
         if len(event_features) < cluster_sizes_to_check:
             return np.zeros(len(event_features), dtype=int), 1
 
         km = KMeans(1, n_init=50, random_state=0).fit(event_features)
+
         x1 = km.inertia_
         rel_inert = x1
 
@@ -161,6 +161,7 @@ class PerceptioProcessing:
         inertias = [rel_inert]
 
         for i in range(2, cluster_sizes_to_check + 1):
+
             labels = km.labels_
 
             km = KMeans(i, n_init=50, random_state=0).fit(event_features)

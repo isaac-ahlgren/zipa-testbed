@@ -12,8 +12,9 @@ sys.path.insert(
 
 from signal_processing.shurmann import SchurmannProcessing  # noqa: E402
 
-MICROPHONE_SAMPLING_RATE = 48000
+MICROPHONE_SAMPLING_RATE = 44100
 ANTIALIASING_FILTER = 18000
+DATA_DIRECTORY = "./schurmann_data"
 
 
 def schurmann_wrapper_func(

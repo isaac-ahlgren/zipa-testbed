@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import List
 
 import numpy as np
 from schurmann_tools import (
@@ -13,14 +14,14 @@ from schurmann_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import add_gauss_noise, cmp_bits  # noqa: E402
+from eval_tools import load_controlled_signal_buffers  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 WINDOW_LENGTH_DEFAULT = 16537
 BAND_LENGTH_DEFAULT = 500
 KEY_LENGTH_DEFAULT = 128
 TARGET_SNR_DEFAULT = 20
-TRIALS_DEFAULT = 1000
+TRIALS_DEFAULT = 100
 
 
 def main(
@@ -43,10 +44,12 @@ def main(
     signal1 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
     signal2 = golden_signal(sample_num, MICROPHONE_SAMPLING_RATE)
     adv_signal = adversary_signal(sample_num, MICROPHONE_SAMPLING_RATE)
-    signals = (signal1, signal2, adv_signal)
+    signals = load_controlled_signal_buffers(
+        [signal1, signal2, adv_signal], target_snr=target_snr, noise=True
+    )
 
     # Defining the bit generation algorithm
-    def bit_gen_algo(signal: np.ndarray) -> np.ndarray:
+    def bit_gen_algo(signal: np.ndarray, *argv: List) -> np.ndarray:
         """
         Processes the signal using the Schurmann wrapper function to generate cryptographic bits.
 
@@ -55,21 +58,29 @@ def main(
         :return: The processed signal data after applying the Schurmann algorithm.
         :rtype: np.ndarray
         """
-        noisy_signal = add_gauss_noise(signal, target_snr)
+        samples = signal.read(argv[4])
         return schurmann_wrapper_func(
-            noisy_signal,
-            window_length,
-            band_length,
-            MICROPHONE_SAMPLING_RATE,
-            ANTIALIASING_FILTER,
+            samples,
+            argv[0],
+            argv[1],
+            argv[2],
+            argv[3],
         )
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials)
+    evaluator.evaluate_controlled_signals(
+        signals,
+        trials,
+        window_length,
+        band_length,
+        MICROPHONE_SAMPLING_RATE,
+        ANTIALIASING_FILTER,
+        sample_num,
+    )
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(cmp_bits, key_length)
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_length)
 
     le_avg_be = np.mean(legit_bit_errs)
     adv_avg_be = np.mean(adv_bit_errs)

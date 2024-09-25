@@ -10,12 +10,9 @@ from perceptio_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import (  # noqa: E402
-    Signal_Buffer,
-    events_cmp_bits,
-    load_controlled_signal,
-)
+from eval_tools import load_controlled_signal_files  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
+from signal_file import Signal_Buffer  # noqa: E402
 
 TOP_TH_DEFAULT = 3000
 BOTTOM_TH_DEFAULT = 1500
@@ -48,22 +45,7 @@ def main(
     trials=TRIALS_DEFAULT,
 ):
 
-    #  Loading the controlled signals
-    legit_signal, sr = load_controlled_signal("../../data/controlled_signal.wav")
-    adv_signal, sr = load_controlled_signal(
-        "../../data/adversary_controlled_signal.wav"
-    )
-
-    legit_signal_buffer1 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
-    )
-    legit_signal_buffer2 = Signal_Buffer(
-        legit_signal.copy(), noise=True, target_snr=target_snr
-    )
-    adv_signal_buffer = Signal_Buffer(adv_signal, noise=True, target_snr=target_snr)
-
-    # Grouping the signal buffers into a tuple
-    signals = (legit_signal_buffer1, legit_signal_buffer2, adv_signal_buffer)
+    signals = load_controlled_signal_files(target_snr, wrap_around=True)
 
     # Defining the bit generation algorithm
     def bit_gen_algo(signal: Signal_Buffer) -> ByteString:
@@ -95,13 +77,11 @@ def main(
         return bits
 
     # Creating an evaluator object with the bit generation algorithm
-    evaluator = Evaluator(bit_gen_algo)
+    evaluator = Evaluator(bit_gen_algo, event_driven=True)
     # Evaluating the signals with the specified number of trials
-    evaluator.evaluate(signals, trials)
+    evaluator.evaluate_controlled_signals(signals, trials)
     # Comparing the bit errors for legitimate and adversary signals
-    legit_bit_errs, adv_bit_errs = evaluator.cmp_func(
-        events_cmp_bits, key_size_in_bytes
-    )
+    legit_bit_errs, adv_bit_errs = evaluator.cmp_collected_bits(key_size_in_bytes * 8)
 
     le_avg_be = np.mean(legit_bit_errs)
     adv_avg_be = np.mean(adv_bit_errs)

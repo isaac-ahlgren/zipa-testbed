@@ -36,6 +36,7 @@ class MiettinenProcessing:
         :return: A binary string representing the generated key.
         """
         bits = ""
+
         for i in range(len(c) - 1):
             feature1 = np.abs((c[i] / c[i - 1]) - 1)
             feature2 = np.abs(c[i] - c[i - 1])
@@ -64,4 +65,5 @@ class MiettinenProcessing:
 
         signal = MiettinenProcessing.signal_preprocessing(x, f, w)
         key = MiettinenProcessing.gen_key(signal, rel_thresh, abs_thresh)
+
         return bitstring_to_bytes(key)

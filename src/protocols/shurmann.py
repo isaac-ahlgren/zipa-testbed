@@ -3,6 +3,8 @@ from typing import Any, List
 
 from cryptography.hazmat.primitives import constant_time
 
+from error_correction.corrector import Fuzzy_Commitment
+from error_correction.reed_solomon import ReedSolomonObj
 from networking.network import (
     ack,
     ack_standby,
@@ -27,6 +29,9 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         ProtocolInterface.__init__(self, parameters, sensor, logger)
         self.name = "Shurmann_Siggs_Protocol"
         self.wip = False
+        self.key_length = parameters["key_length"]
+        self.parity_symbols = parameters["parity_symbols"]
+        self.commitment_length = self.key_length + self.parity_symbols
         self.window_len = parameters["window_len"]
         self.band_len = parameters["band_len"]
         self.count = 0
@@ -40,6 +45,9 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
                 + 1
             )
             * self.window_len
+        )
+        self.re = Fuzzy_Commitment(
+            ReedSolomonObj(self.commitment_length, self.key_length), self.key_length
         )
 
     def process_context(self) -> List[bytes]:
@@ -209,8 +217,10 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
         self.count += 1
 
 
-"""###TESTING CODE###
+# TESTING CODE###
 import socket
+
+
 def device(prot):
     print("device")
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -218,6 +228,7 @@ def device(prot):
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.connect(("127.0.0.1", 2000))
     prot.device_protocol(s)
+
 
 def host(prot):
     print("host")
@@ -230,19 +241,23 @@ def host(prot):
     s.setblocking(0)
     prot.host_protocol([conn])
 
+
 if __name__ == "__main__":
     import multiprocessing as mp
-    from test_sensor import Test_Sensor
+
     from sensor_reader import Sensor_Reader
-    prot = Shurmann_Siggs_Protocol(Sensor_Reader(Test_Sensor(44100, 44100*400, 1024)),
-                                   8,
-                                   4,
-                                   10000,
-                                   1000,
-                                   10,
-                                   None,
+    from test_sensor import Test_Sensor
+
+    prot = Shurmann_Siggs_Protocol(
+        Sensor_Reader(Test_Sensor(44100, 44100 * 400, 1024)),
+        8,
+        4,
+        10000,
+        1000,
+        10,
+        None,
     )
     h = mp.Process(target=host, args=[prot])
     d = mp.Process(target=device, args=[prot])
     h.start()
-    d.start()"""
+    d.start()

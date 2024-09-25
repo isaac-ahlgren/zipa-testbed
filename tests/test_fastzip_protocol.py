@@ -44,7 +44,7 @@ DUMMY_LOGGER = NFSLogger(  # nosec
     host="SERVER IP",
     database="file_log",
     nfs_server_dir="./local_data",  # Make sure this directory exists and is writable
-    local_dir="./local_data/",
+    local_dir="./local_data",
     identifier="DEVICE IDENTIFIER",  # Could be IP address or any unique identifier
     use_local_dir=True,
 )
@@ -71,6 +71,9 @@ def test_fastzip_interaction():
     host_process.join()
     device_process.join()
     test_reader.poll_process.terminate()
+
+    assert host_process.exitcode == 0  # nosec
+    assert device_process.exitcode == 0  # nosec
 
 
 def host(protocol):
