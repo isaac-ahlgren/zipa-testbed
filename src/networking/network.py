@@ -260,20 +260,22 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
 
     return nonce
 
+
 def send_pake_msg(connection, msg):
     length_payload = 0
     for m in msg:
         length_payload += len(m) + 4
 
     payload = length_payload.to_bytes(4, byteorder="big")
-    
+
     for m in msg:
         payload += len(m).to_bytes(4, byteorder="big")
         payload += m
-    
+
     outgoing = FPFM.encode() + payload
-    
+
     connection.send(outgoing)
+
 
 def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
     msg = None
@@ -295,11 +297,11 @@ def pake_msg_standby(connection: socket.socket, timeout: int) -> bool:
             msg = []
             index = 0
             while index < msg_size:
-                item_length = int.from_bytes(payload[index : index + 4], "big") 
+                item_length = int.from_bytes(payload[index : index + 4], "big")
                 item = payload[index + 4 : index + 4 + item_length]
                 index += 4 + item_length
                 msg.append(item)
-                     
+
             break
 
     return msg

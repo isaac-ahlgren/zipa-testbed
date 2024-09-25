@@ -2,7 +2,6 @@ from typing import Any
 
 import numpy as np
 
-
 from error_correction.fPAKE import fPAKE
 from networking.network import ack, ack_standby, send_status, socket
 from protocols.protocol_interface import ProtocolInterface

@@ -5,8 +5,8 @@ from multiprocessing import Process, Queue
 
 sys.path.insert(1, os.getcwd() + "/src")
 
-from error_correction.part_gPAKE import GPAKE
-from networking.network import pake_msg_standby, send_pake_msg
+from error_correction.part_gPAKE import GPAKE  # noqa: E402
+from networking.network import pake_msg_standby, send_pake_msg  # noqa: E402
 
 
 def test_gpake_network_communication():
@@ -41,7 +41,7 @@ def test_gpake_network_communication():
 
     host_socket.close()
     device_process.join()
-    
+
     assert d1 == recv_d1  # nosec
     assert d2 == recv_d2  # nosec
     assert d3 == recv_d3  # nosec
@@ -50,7 +50,10 @@ def test_gpake_network_communication():
 def test_gpake():
     """Test the GPAKE protocol by establishing a shared key between a host and a device."""
     grouped_events = [[1, 2, 3], [4, 5, 6]]  # Example grouped events
-    passwords = [b"\x01" * 16, b"\x02" * 16]  # Example 16-byte passwords for each event group
+    passwords = [
+        b"\x01" * 16,
+        b"\x02" * 16,
+    ]  # Example 16-byte passwords for each event group
 
     gpake = GPAKE()
     queue = Queue()
@@ -62,7 +65,9 @@ def test_gpake():
         device_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         device_socket.connect(("127.0.0.1", 2000))
 
-        final_key_device = gpake.device_protocol(grouped_events, passwords, device_socket, device_id)
+        final_key_device = gpake.device_protocol(
+            grouped_events, passwords, device_socket, device_id
+        )
         queue.put(final_key_device)
         print(f"Final key (device): {final_key_device.hex()}")
         device_socket.close()
@@ -79,7 +84,6 @@ def test_gpake():
     connection, _ = host_socket.accept()
 
     # Execute GPAKE host protocol
-    device_id = "host_device"
     final_key_host = gpake.host_protocol(grouped_events, passwords, connection)
     print(f"Final key (host): {final_key_host.hex()}")
 
