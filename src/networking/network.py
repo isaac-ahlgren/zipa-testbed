@@ -265,6 +265,33 @@ def send_nonce_msg(connection: socket.socket, nonce: bytes) -> None:
     connection.send(message)
 
 
+def get_nonce_msg_standby2(connection: socket.socket, timeout: int) -> Optional[bytes]:
+    """
+    Waits to receive a nonce within a specified timeout period.
+
+    :param connection: The network connection to receive from.
+    :param timeout: The maximum time in seconds to wait for the nonce.
+    :returns: The received nonce if successful, None otherwise.
+    """
+    reference = time.time()
+    timestamp = reference
+    nonce = None
+
+    # While process hasn't timed out
+    while (timestamp - reference) < timeout:
+        timestamp = time.time()
+        message = connection.recv(12)
+
+        if message is None:
+            continue
+        else:
+            command = message[:8]
+            if command == NONC.encode():
+                nonce_size = int.from_bytes(message[8:], "big")
+                nonce = connection.recv(nonce_size)
+                break
+
+    return nonce
 
 
 def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[bytes]:
