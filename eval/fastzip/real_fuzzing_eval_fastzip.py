@@ -44,7 +44,7 @@ NORMALIZE_DEFAULT = True
 
 POWER_TH_RANGE = (30, 200)
 
-SNR_TH_RANGE = (0.5, 2)
+SNR_TH_RANGE = (0.5, 10)
 
 # no need to worry
 PEAK_STATUS_DEFAULT = None
@@ -80,7 +80,6 @@ def main(
     fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}"
 
     signals = load_real_signal_files(data_dir, dev_ids, sensor_type, timestamp)
-
     def get_random_parameters():
         window_size = random.randint(
             WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]
@@ -174,6 +173,7 @@ def main(
         parameter_log_func=log,
         event_driven=False,
     )
+
     evaluator.fuzzing_evaluation(
         signals,
         number_of_choices,
@@ -182,4 +182,7 @@ def main(
         f"{FUZZING_STUB}",
         multithreaded=True,
     )
+
+if __name__ == "__main__":
+    main()
 
