@@ -51,8 +51,8 @@ PEAK_STATUS_DEFAULT = None
 NUM_PEAKS_DEFAULT = 0
 BIAS_DEFAULT = 0
 
-FUZZING_DIR = "schurmann_real_fuzz"
-FUZZING_STUB = "schurmann_real_fuzz_day1"
+FUZZING_DIR = "fastzip_real_fuzz"
+FUZZING_STUB = "fastzip_real_fuzz_day1"
 
 DEFAULT_IDS = ["10.0.0.238","10.0.0.228",
             "10.0.0.231","10.0.0.232",
