@@ -9,6 +9,8 @@ from eval_tools import (
     events_cmp_bits,
     gen_id,
     log_outcomes,
+    log_bytes,
+    make_dirs,
 )
 from signal_file_interface import Signal_File_Interface
 
@@ -59,32 +61,6 @@ class Evaluator:
             ):
                 legit_signal1.sync(legit_signal2)
 
-    def evaluate_real_signals(
-        self, signals: Tuple[Any, Any, Any], *argv: Any
-    ) -> None:
-        """
-        Evaluate the signals over a specified number of trials to generate cryptographic bits.
-
-        :param signals: A tuple containing three signal sources (legit_signal1, legit_signal2, adv_signal).
-        :param trials: The number of trials to perform bit generation.
-        """
-        legit_signal1, legit_signal2, adv_signal = signals
-        while not legit_signal1.get_finished_reading() and not legit_signal2.get_finished_reading() and not adv_signal.get_finished_reading():
-            bits1 = self.bit_gen_algo_wrapper(legit_signal1, *argv)
-
-            if bits1 is not None:
-                self.legit_bits1.append(bits1)
-
-            bits2 = self.bit_gen_algo_wrapper(legit_signal2, *argv)
-
-            if bits2 is not None:
-                self.legit_bits2.append(bits2)
-
-            adv_bits = self.bit_gen_algo_wrapper(adv_signal, *argv)
-
-            if adv_bits is not None:
-                self.adv_bits.append(adv_bits)
-
     def cmp_collected_bits(self, key_length: int) -> Tuple[List[float], List[float]]:
         """
         Compare bit errors using a specified comparison function and key length.
@@ -121,7 +97,7 @@ class Evaluator:
     def evaluate_device_ed(self, signal: Signal_File_Interface, params: Tuple):
         return calc_all_events(signal, self.bit_gen_algo_wrapper, *params)
 
-    def fuzzing_func(self, signal, key_length, file_stub, params):
+    def eval_func(self, signal, key_length, file_stub, params):
         if self.event_driven:
             outcome, extras = self.evaluate_device_ed(signal, params)
         else:
@@ -131,19 +107,44 @@ class Evaluator:
         log_outcomes(file_stub, outcome, extras, key_length)
         signal.reset()
 
-    def fuzzing_single_threaded(self, signals, key_length, file_stub, params):
-        for signal in signals:
-            self.fuzzing_func(signal, key_length, file_stub, params)
+    def eval(self, signals, key_length, file_stub, params, multithreaded=True):
+        if multithreaded:
+            self.eval_multithreaded(signals, key_length, file_stub, params)
+        else:
+            self.eval_single_threaded(signals, key_length, file_stub, params)
 
-    def fuzzing_multithreaded(self, signals, key_length, file_stub, params):
+    def eval_single_threaded(self, signals, key_length, file_stub, params):
+        for signal in signals:
+            self.eval_func(signal, key_length, file_stub, params)
+
+    def eval_multithreaded(self, signals, key_length, file_stub, params):
         threads = []
         for signal in signals:
             p = Process(
-                target=self.fuzzing_func, args=(signal, key_length, file_stub, params)
+                target=self.eval_func, args=(signal, key_length, file_stub, params)
             )
             p.start()
             threads.append(p)
 
+        for thread in threads:
+            thread.join()
+
+    def best_parameter_evaluation(self, group_signals, group_params, key_length, dir, file_stub):
+        threads = []
+        for signal_group, params in zip(group_signals, group_params):
+            id1 = signal_group[0].get_id()
+            id2 = signal_group[1].get_id()
+            id3 = signal_group[2].get_id()
+            dir_path = f"{dir}/{file_stub}_{id1}_{id2}_{id3}"
+            if not os.path.isdir(dir_path):
+                os.mkdir(dir_path)
+
+            stub = f"{dir_path}/{file_stub}"
+            for signal in signal_group:
+                p = Process(target=self.eval_func, args=(signal, key_length, stub, params))
+                p.start()
+                threads.append(p)
+        
         for thread in threads:
             thread.join()
 
@@ -167,6 +168,7 @@ class Evaluator:
             self.parameter_log_func(params, file_stub)
 
             if multithreaded:
-                self.fuzzing_multithreaded(signals, key_length, file_stub, params)
+                self.eval_multithreaded(signals, key_length, file_stub, params)
             else:
-                self.fuzzing_single_threaded(signals, key_length, file_stub, params)
+                self.eval_single_threaded(signals, key_length, file_stub, params)
+
