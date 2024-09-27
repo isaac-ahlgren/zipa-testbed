@@ -36,7 +36,7 @@ TIMESTAMP_DEFAULT = "202408*"
 SENSOR_DATA_DIR_DEFAULT = "/mnt/nas"
 
 PARAM_DIR = "../plot_scripts/plot_data/schurmann_real_fuzz"
-PARAM_FILE_STUB = "schurmann_real_fuzz"
+PARAM_FILE_STUB = "schurmann_real_fuzz_day1"
         
 
 def main(
