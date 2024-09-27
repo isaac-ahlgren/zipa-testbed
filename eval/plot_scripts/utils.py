@@ -1,10 +1,13 @@
 import glob
 import os
+import sys
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
+from eval_tools import load_parameters  # noqa: E402
 
 PLOTTING_DIR = "./plot_data"
 
@@ -13,24 +16,6 @@ def load_bytes(byte_file):
         output = file.readlines()
     output = [bits.strip() for bits in output]
     return output
-
-
-def fix_dict(d):
-    new_d = dict()
-    for k in d.keys():
-        if k == "Unnamed: 0":
-            continue
-        val = d[k]
-        ext_val = val[0]
-        new_d[k] = ext_val
-    return new_d
-
-
-def load_parameters(param_file):
-    df = pd.read_csv(param_file)
-    df_dict = df.to_dict()
-    params = fix_dict(df_dict)
-    return params
 
 
 def parse_eval_directory(data_dir, file_stub):

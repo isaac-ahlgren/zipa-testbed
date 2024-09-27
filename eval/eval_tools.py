@@ -333,3 +333,36 @@ def make_dirs(data_dir, fuzzing_dir, fuzzing_stub_dir):
 
     if not os.path.isdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}"):
         os.mkdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}")
+
+def fix_dict(d):
+    new_d = dict()
+    for k in d.keys():
+        if k == "Unnamed: 0":
+            continue
+        val = d[k]
+        ext_val = val[0]
+        new_d[k] = ext_val
+    return new_d
+
+def load_parameters(param_file):
+    df = pd.read_csv(param_file)
+    df_dict = df.to_dict()
+    params = fix_dict(df_dict)
+    return params
+
+def load_signal_groups(groups, sensor_type, timestamp, signal_data_dir, best_param_dir, param_file_stub, param_unpack_func):
+    group_signals = []
+    group_parameters = []
+    for group in groups:
+        signals = load_real_signal_files(signal_data_dir, group, sensor_type, timestamp)
+        
+        id1 = group[0]
+        id2 = group[1]
+        id3 = group[2]
+        file = f"{best_param_dir}/{param_file_stub}_{id1}_{id2}_{id3}_bestparam.csv"
+        best_param = load_parameters(file)
+        params = param_unpack_func(best_param)
+
+        group_signals.append(signals)
+        group_parameters.append(params)
+    return group_signals, group_parameters
