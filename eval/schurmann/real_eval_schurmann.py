@@ -70,7 +70,7 @@ def main(
             )
         else:
             output = None
-        return output
+        return output, read_length
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
