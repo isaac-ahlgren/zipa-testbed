@@ -222,8 +222,8 @@ class FastZIPProcessing:
         power = FastZIPProcessing.compute_sig_power(signal)
 
         if peak_status:
-            signal = FastZIPProcessing.ewma_filter(abs(signal), alpha)
-            peaks = FastZIPProcessing.get_peaks(signal, sample_rate)
+            abs_signal = FastZIPProcessing.ewma_filter(abs(signal), alpha)
+            peaks = FastZIPProcessing.get_peaks(abs_signal, sample_rate)
 
         snr = FastZIPProcessing.compute_snr(signal)
 

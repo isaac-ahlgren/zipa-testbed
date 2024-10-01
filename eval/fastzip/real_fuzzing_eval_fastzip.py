@@ -30,13 +30,7 @@ WRAP_AROUND_LIMIT_DEFAULT = 10
 WINDOW_SIZE_RANGE = (50, 10000)
 
 MIN_OVERLAP_DEFAULT = 0
-
-MIN_N_BITS_DEFAULT = 10
-
-BIAS_DEFAULT = 0  # no need to worry
-
-MIN_EQD_DELTA_DEFAULT = 1  # dependent of window_size /  n_bits (smaller)
-
+ 
 EWMA_FILTER_DEFAULT = None
 ALPHA_DEFAULT = None  # between 0 and 1
 REMOVE_NOISE_DEFAULT = None
@@ -85,41 +79,35 @@ def main(
             WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]
         )  # nosec
         overlap_size = random.randint(MIN_OVERLAP_DEFAULT, window_size // 2)  # nosec
-        max_bits = key_length if window_size // 2 > key_length else window_size // 2
-        n_bits = random.randint(MIN_N_BITS_DEFAULT, max_bits)  # nosec
-        max_eqd_delta = 1 #np.ceil(window_size / n_bits)
-        eqd_delta = 1 #random.randint(MIN_EQD_DELTA_DEFAULT, max_eqd_delta)  # nosec
-        ewma = False #random.choice([True, False])  # nosec
-        alpha = 0.5 #random.uniform(0, 1)  # nosec
-        remove_noise = False #random.choice([True, False])  # nosec
+        alpha = None #random.uniform(0, 1)  # nosec
         normalize = random.choice([True, False])  # nosec
         power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
         snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
+        peak_th = 0
+        peak_status = False
         return (
             window_size,
             overlap_size,
-            n_bits,
-            eqd_delta,
-            ewma,
-            alpha,
-            remove_noise,
-            normalize,
             power_th,
             snr_th,
+            peak_th,
+            MICROPHONE_SAMPLING_RATE,
+            peak_status,
+            normalize,
+            alpha,
         )
 
     def log(params, file_name_stub):
         names = [
             "window_size",
             "overlap_size",
-            "n_bits",
-            "eqd_delta",
-            "ewma",
-            "alpha",
-            "remove_noise",
-            "normalize",
             "power_th",
-            "snr_th",
+            "snr_thr",
+            "peak_th",
+            "sampling_rate",
+            "peak_status",
+            "normalize",
+            "alpha",
         ]
         param_list = [
             params[0],
@@ -131,7 +119,6 @@ def main(
             params[6],
             params[7],
             params[8],
-            params[9],
         ]
         log_parameters(file_name_stub, names, param_list)
 
