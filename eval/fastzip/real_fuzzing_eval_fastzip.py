@@ -128,7 +128,7 @@ def main(
         fastzip_event_detection_wrapper_func,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
-        event_driven=False,
+        event_gen=True,
     )
 
     evaluator.fuzzing_evaluation(
