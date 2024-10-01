@@ -7,7 +7,7 @@ import numpy as np
 from fastzip_tools import (
     DATA_DIRECTORY,
     MICROPHONE_SAMPLING_RATE,
-    fastzip_wrapper_function,
+    fastzip_event_detection_wrapper_func,
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
@@ -135,40 +135,10 @@ def main(
         ]
         log_parameters(file_name_stub, names, param_list)
 
-    def bit_gen_algo(signal: Signal_File, *args: List) -> np.ndarray:
-        """
-        Generates bits based on the analysis of overlapping chunks from a signal.
-
-        :param signal: The signal buffer to process.
-        :type signal: Signal_Buffer
-        :return: A byte string of the generated bits up to the specified key length.
-        :rtype: ByteString
-        """
-        output, samples_read = fastzip_wrapper_function(
-            signal,
-            args[2],
-            args[0],
-            args[1],
-            args[8],
-            args[9],
-            NUM_PEAKS_DEFAULT,
-            BIAS_DEFAULT,
-            args[3],
-            MICROPHONE_SAMPLING_RATE,
-            KEY_LENGTH_DEFAULT,
-            PEAK_STATUS_DEFAULT,
-            args[4],
-            args[5],
-            args[6],
-            args[7],
-        )
-        if len(output) != KEY_LENGTH_DEFAULT // 8:
-            output = None
-        return output, samples_read
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
-        bit_gen_algo,
+        fastzip_event_detection_wrapper_func,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_driven=False,
