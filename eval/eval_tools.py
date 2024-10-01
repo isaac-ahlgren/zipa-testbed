@@ -276,9 +276,17 @@ def log_extras(file_name_stub, extras_list):
     df.to_csv(extra_file_name)
 
 
-def log_outcomes(file_name_stub, byte_list, extra_list, key_length):
+def log_bit_gen_outcomes(file_name_stub, byte_list, extra_list, key_length):
     log_bytes(file_name_stub, byte_list, key_length)
     log_extras(file_name_stub, extra_list)
+
+def log_event_gen_outcomes(file_name_stub, event_timestamps):
+    start_times = [x[0] for x in event_timestamps]
+    end_times = [x[1] for x in event_timestamps]
+    csv_dict = {"start_times": start_times, "end_times": end_times}
+    timestamps_file_name = f"{file_name_stub}_time_stamps.csv"
+    timestamps_df = pd.DataFrame(csv_dict)
+    timestamps_df.to_csv(timestamps_file_name)    
 
 
 def log_parameters(file_name_stub, name_list, parameter_list):

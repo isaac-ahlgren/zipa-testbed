@@ -133,6 +133,7 @@ class Signal_File(Signal_File_Interface):
             self.files.sort()
         self.file_index = 0
         self.start_sample = 0
+        self.global_index = 0
         self.load_func = load_func
         self.curr_file_name = self.signal_directory + self.files[0]
         self.sample_buffer = None
@@ -177,6 +178,7 @@ class Signal_File(Signal_File_Interface):
                 ]
                 output = np.append(output, buffer)
                 self.switch_files()
+                self.global_index += samples_can_read
                 samples -= samples_can_read
             else:
                 buffer = self.sample_buffer[
@@ -184,6 +186,7 @@ class Signal_File(Signal_File_Interface):
                 ]
                 output = np.append(output, buffer)
                 self.start_sample = self.start_sample + samples
+                self.global_index += samples
                 samples = 0
         return output
 
@@ -197,6 +200,9 @@ class Signal_File(Signal_File_Interface):
 
     def get_id(self):
         return self.id
+    
+    def get_global_index(self):
+        return self.global_index
 
     def reset(self):
         """
@@ -209,6 +215,7 @@ class Signal_File(Signal_File_Interface):
         self.finished_reading = False
         self.curr_file_name = self.signal_directory + self.files[0]
         self.start_sample = 0
+        self.global_index = 0
         self.file_index = 0
 
     def sync(self, other_sf):
@@ -219,6 +226,7 @@ class Signal_File(Signal_File_Interface):
         """
         self.file_index = other_sf.file_index
         self.start_sample = other_sf.start_sample
+        self.global_index = other_sf.global_index
         self.curr_file_name = self.signal_directory + self.files[self.file_index]
         del self.sample_buffer
         self.sample_buffer = self.load_func(self.curr_file_name)

@@ -33,6 +33,42 @@ def manage_overlapping_chunks(
     overlap_size = len(new_chunk)
     return np.concatenate((previous_chunk[-overlap_size:], new_chunk))
 
+def fastzip_event_detection_wrapper_func(signal, chunk_size, overlap_size, power_thresh, snr_thresh, peak_thresh, sample_rate, peak_status, alpha):
+    found_event = False
+    start_timestamp = None
+    end_timestamp = None
+    events = []
+    chunk = signal.read(chunk_size)
+    while not signal.get_finished_reading:
+        activity = FastZIPProcessing.activity_filter(
+                                                chunk,
+                                                power_thresh,
+                                                snr_thresh,
+                                                peak_thresh,
+                                                sample_rate,
+                                                peak_status,
+                                                alpha)
+        
+        if not found_event and activity:
+            found_event = True
+            start_timestamp = signal.get_global_index()
+        elif found_event and not activity:
+            found_event = False
+            end_timestamp = signal.get_global_index()
+            events.append((start_timestamp, end_timestamp))
+        
+        if signal.get_finished_reading():
+            break
+        else:
+            new_chunk = signal.read(chunk_size - overlap_size)
+            chunk = manage_overlapping_chunks(new_chunk, chunk)
+
+    if found_event:
+        end_timestamp = signal.get_global_index()
+        events.append((start_timestamp, end_timestamp))
+
+    return events
+
 
 def fastzip_wrapper_function(
     sensor,
