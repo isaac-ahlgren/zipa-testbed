@@ -43,23 +43,26 @@ def adversary_signal(sample_num: int) -> np.ndarray:
 def get_events(arr, top_th, bottom_th, lump_th, a):
     return PerceptioProcessing.get_events(arr, a, bottom_th, top_th, lump_th)
 
-def merge_events(first_event_list, second_event_list, lump_th, chunk_size):
+def merge_events(first_event_list, second_event_list, lump_th, chunk_size, iteration):
     for i in range(len(second_event_list)):
         second_event_list[i] = (
-                second_event_list[i][0] + chunk_size,
-                second_event_list[i][1] + chunk_size,
+                second_event_list[i][0] + iteration*chunk_size,
+                second_event_list[i][1] + iteration*chunk_size,
             )
-    
+
     event_list = []
     if len(first_event_list) != 0 and len(second_event_list) != 0:
         end_event = first_event_list[-1]
         beg_event = second_event_list[0]
 
-        if end_event[1] - beg_event[0] < lump_th:
+        if beg_event[0] - end_event[1] < lump_th:
             new_event = (end_event[0], beg_event[1])
             event_list.extend(first_event_list[:-1])
             event_list.append(new_event)
             event_list.extend(second_event_list[1:])
+        else:
+            event_list.extend(first_event_list)
+            event_list.extend(second_event_list)
     else:
         event_list.extend(first_event_list)
         event_list.extend(second_event_list)
@@ -68,13 +71,15 @@ def merge_events(first_event_list, second_event_list, lump_th, chunk_size):
 
 def extract_all_events(signal, top_th, bottom_th, lump_th, a, chunk_size=10000):
     events = None
+    iteration = 0
     while not signal.get_finished_reading():
         chunk = signal.read(chunk_size)
         new_events = get_events(chunk, top_th, bottom_th, lump_th, a)
         if events is not None:
-            events = merge_events(events, new_events, lump_th, len(chunk))
+            events = merge_events(events, new_events, lump_th, chunk_size, iteration)
         else:
             events = new_events
+        iteration += 1
     return events
 
 def extract_events(

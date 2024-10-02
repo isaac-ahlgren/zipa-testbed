@@ -20,7 +20,7 @@ def test_extract_all_events():
     events = extract_all_events(sb, 2, 0.1, 20, 1)
 
     assert len(events) == 4
-    assert events[0][0] == 1 and events[0][1] == 2
-    assert events[1][0] == 9980 and events[1][1] == 10019
-    assert events[2][0] == 11500 and events[2][1] == 11579
-    assert events[3][0] == 20000 and events[3][1] == 20019
+    assert events[0][0] == 1 and events[0][1] == 3
+    assert events[1][0] == 9980 and events[1][1] == 10020
+    assert events[2][0] == 11500 and events[2][1] == 11580
+    assert events[3][0] == 20000 and events[3][1] == 20020
