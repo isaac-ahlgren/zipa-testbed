@@ -102,7 +102,7 @@ def main(
         bit_gen_algo,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
-        event_driven=False,
+        event_gen=False,
     )
     evaluator.fuzzing_evaluation(
         signals,

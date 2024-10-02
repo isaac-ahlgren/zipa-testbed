@@ -11,6 +11,9 @@ sys.path.insert(
 
 from signal_processing.perceptio import PerceptioProcessing  # noqa: E402
 
+MICROPHONE_SAMPLING_RATE = 44100
+DATA_DIRECTORY = "./perceptio_data"
+
 goldsig_rng = np.random.default_rng(0)
 
 
@@ -37,7 +40,44 @@ def adversary_signal(sample_num: int) -> np.ndarray:
     return adv_rng.integers(0, 10, size=sample_num)
 
 
-def get_events(
+def get_events(arr, top_th, bottom_th, lump_th, a):
+    return PerceptioProcessing.get_events(arr, a, bottom_th, top_th, lump_th)
+
+def merge_events(first_event_list, second_event_list, lump_th, chunk_size):
+    for i in range(len(second_event_list)):
+        second_event_list[i] = (
+                second_event_list[i][0] + chunk_size,
+                second_event_list[i][1] + chunk_size,
+            )
+    
+    event_list = []
+    if len(first_event_list) != 0 and len(second_event_list) != 0:
+        end_event = first_event_list[-1]
+        beg_event = second_event_list[0]
+
+        if end_event[1] - beg_event[0] < lump_th:
+            new_event = (end_event[0], beg_event[1])
+            event_list.extend(first_event_list[:-1])
+            event_list.append(new_event)
+            event_list.extend(second_event_list[1:])
+    else:
+        event_list.extend(first_event_list)
+        event_list.extend(second_event_list)
+    
+    return event_list
+
+def extract_all_events(signal, top_th, bottom_th, lump_th, a, chunk_size=10000):
+    events = None
+    while not signal.get_finished_reading():
+        chunk = signal.read(chunk_size)
+        new_events = get_events(chunk, top_th, bottom_th, lump_th, a)
+        if events is not None:
+            events = merge_events(events, new_events, lump_th, len(chunk))
+        else:
+            events = new_events
+    return events
+
+def extract_events(
     arr: np.ndarray, top_th: float, bottom_th: float, lump_th: int, a: float
 ) -> Tuple[List[Tuple[int, int]], List[np.ndarray]]:
     """
@@ -54,7 +94,6 @@ def get_events(
     event_features = PerceptioProcessing.get_event_features(events, arr)
 
     return events, event_features
-
 
 def gen_min_events(
     signal: np.ndarray,
@@ -83,7 +122,7 @@ def gen_min_events(
     while len(events) < min_events:
         chunk = signal.read(chunk_size)
 
-        found_events, found_event_features = get_events(
+        found_events, found_event_features = extract_events(
             chunk, top_th, bottom_th, lump_th, a
         )
 

@@ -31,22 +31,15 @@ WINDOW_SIZE_RANGE = (50, 10000)
 
 MIN_OVERLAP_DEFAULT = 0
  
-EWMA_FILTER_DEFAULT = None
 ALPHA_DEFAULT = None  # between 0 and 1
-REMOVE_NOISE_DEFAULT = None
 NORMALIZE_DEFAULT = True
 
 POWER_TH_RANGE = (30, 200)
 
 SNR_TH_RANGE = (0.5, 10)
 
-# no need to worry
-PEAK_STATUS_DEFAULT = None
-NUM_PEAKS_DEFAULT = 0
-BIAS_DEFAULT = 0
-
-FUZZING_DIR = "fastzip_real_fuzz"
-FUZZING_STUB = "fastzip_real_fuzz_day1"
+FUZZING_DIR = "fastzip_event_real_fuzz"
+FUZZING_STUB = "fastzip_event_real_fuzz_day1"
 
 DEFAULT_IDS = ["10.0.0.238","10.0.0.228",
             "10.0.0.231","10.0.0.232",

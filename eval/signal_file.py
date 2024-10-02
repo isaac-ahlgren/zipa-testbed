@@ -54,6 +54,9 @@ class Noisy_File(Signal_File_Interface):
 
     def get_id(self):
         return self.sf.get_id()
+    
+    def get_global_index(self):
+        return self.sf.global_index
 
     def reset(self):
         self.sf.reset()
@@ -71,6 +74,7 @@ class Wrap_Around_File(Signal_File_Interface):
         self.sf = sf
         self.wrap_around_limit = wrap_around_limit
         self.num_of_resets = 0
+        self.global_index = 0
         self.finished_reading = False
 
     def read(self, samples: int) -> np.ndarray:
@@ -78,6 +82,7 @@ class Wrap_Around_File(Signal_File_Interface):
 
         while not self.finished_reading and samples != 0:
             buf = self.sf.read(samples)
+            self.global_index += len(buf)
             samples -= len(buf)
             output = np.append(output, buf)
 
@@ -97,9 +102,13 @@ class Wrap_Around_File(Signal_File_Interface):
 
     def get_id(self):
         return self.sf.get_id()
+    
+    def get_global_index(self):
+        return self.global_index
 
     def reset(self):
         self.num_of_resets = 0
+        self.global_index = 0
         self.finished_reading = False
         self.sf.reset()
 
@@ -126,7 +135,7 @@ class Signal_File(Signal_File_Interface):
         """
         self.signal_directory = signal_directory
         self.files = glob.glob(file_names, root_dir=signal_directory)
-        #print(f"{signal_directory}/{file_names}")
+        print(f"{signal_directory}/{file_names}")
         if len(self.files) == 0:
             print("No files found")
         else:
@@ -189,11 +198,6 @@ class Signal_File(Signal_File_Interface):
                 self.global_index += samples
                 samples = 0
         return output
-
-    def read_rest_of_buf(self):
-        buf = self.sample_buffer[self.start_sample:]
-        self.switch_files()
-        return buf
 
     def get_finished_reading(self):
         return self.finished_reading
