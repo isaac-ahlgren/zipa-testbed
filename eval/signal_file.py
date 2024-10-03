@@ -3,6 +3,7 @@ import os
 from typing import Callable
 
 import numpy as np
+import pandas as pd
 from signal_file_interface import Signal_File_Interface
 
 
@@ -143,6 +144,7 @@ class Signal_File(Signal_File_Interface):
         self.file_index = 0
         self.start_sample = 0
         self.global_index = 0
+        self.file_global_indexes = []
         self.load_func = load_func
         self.curr_file_name = self.signal_directory + self.files[0]
         self.sample_buffer = None
@@ -165,6 +167,8 @@ class Signal_File(Signal_File_Interface):
             print("Loading in " + self.curr_file_name)
             del self.sample_buffer
             self.sample_buffer = self.load_func(self.curr_file_name)
+            self.add_file_global_index(self.global_index)
+
 
     def read(self, samples: int) -> np.ndarray:
         """
@@ -198,6 +202,29 @@ class Signal_File(Signal_File_Interface):
                 self.global_index += samples
                 samples = 0
         return output
+
+    def add_file_global_index(self, global_index):
+        if len(self.file_lengths) != len(self.files):
+            self.file_global_indexes.append(global_index)
+
+    # Fix this shit
+    def set_global_index(self, index):
+        file_num = None
+        file_index = None
+        for i in range(len(self.file_global_index)):
+            boundary = self.file_global_index[i]
+            if index > boundary:
+                file_num = i
+                file_index = self. 
+        
+        if file_num is not None:
+            if file_num == self.file_index:
+                boundary = self.file_global_index[i]
+            self.curr_file_name = self.signal_directory + self.files[i]
+            self.sample_buffer = self.load_func(self.curr_file_name)
+
+            
+
 
     def get_finished_reading(self):
         return self.finished_reading
@@ -293,3 +320,11 @@ class Signal_Buffer(Signal_File_Interface):
     def reset(self):
         self.finished_reading = False
         self.start_sample = 0
+
+    class Event_File():
+        def __init__(self, event_file, signal_directory, file_names, id=""):
+            self.event_file = event_file
+            self.sf = Signal_File(signal_directory, file_names, id=id)
+        
+        def get_events(num_events):
+
