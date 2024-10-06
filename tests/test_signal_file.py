@@ -11,6 +11,7 @@ from signal_file import (  # noqa: E402
     Signal_Buffer,
     Signal_File,
     Wrap_Around_File,
+    Event_File,
 )
 
 
@@ -169,3 +170,111 @@ def test_noisy_signal():
     assert sf.get_finished_reading() is False  # nosec
     assert sf.sf.sf.start_sample == read_length  # nosec
     assert not np.array_equal(ref_signal[:100], received_samples)  # nosec
+
+
+def test_set_global_index():
+    sf = Signal_File(
+        "./data/", "*.wav", load_func=load_controlled_signal, id="test"
+    )
+    ref_signal1 = load_controlled_signal("./data/adversary_controlled_signal.wav")
+    ref_signal2 = load_controlled_signal("./data/controlled_signal.wav")
+
+    read_length = 10000
+
+    boundary = len(ref_signal1)
+
+    sf.set_global_index(boundary)
+
+    test_sig = sf.read(read_length)
+    ref_sig = ref_signal2[:read_length]
+
+    assert np.array_equal(ref_sig, test_sig) # nosec
+
+
+    sf.set_global_index(0)
+    test_sig = sf.read(read_length)
+    ref_sig = ref_signal1[:read_length]
+
+    assert np.array_equal(ref_sig, test_sig) # nosec
+
+    sf.set_global_index(boundary)
+
+    test_sig = sf.read(read_length)
+    ref_sig = ref_signal2[:read_length]
+
+    assert np.array_equal(ref_sig, test_sig) # nosec
+
+    new_sf = Signal_File(
+        "./data/", "*.wav", load_func=load_controlled_signal, id="test"
+    )
+
+    new_sf.read(boundary)
+    sf.set_global_index(0)
+    test_sig = sf.read(read_length)
+    ref_sig = ref_signal1[:read_length]
+
+    assert np.array_equal(ref_sig, test_sig) # nosec
+
+    position = boundary + len(ref_signal2)
+    new_sf.set_global_index(position)
+
+    assert new_sf.get_finished_reading() == True # nosec
+
+def test_event_file():
+    sf = Signal_File(
+        "./data/", "*.wav", load_func=load_controlled_signal, id="test"
+    )
+    ref_signal1 = load_controlled_signal("./data/adversary_controlled_signal.wav")
+    ref_signal2 = load_controlled_signal("./data/controlled_signal.wav")
+
+    boundary = len(ref_signal1)
+
+    event_list = [[0,2*48000], [41*48000,41*48000 + 100], [boundary-48000,boundary+48000]]
+    ef = Event_File(event_list, sf)
+
+    events = ef.get_events(2)
+
+    assert len(events) == 2
+    assert np.array_equal(events[0], ref_signal1[0:2*48000])
+    assert np.array_equal(events[1], ref_signal1[41*48000:41*48000 + 100])
+
+    event = ef.get_events(1)
+
+    assert len(event) == 1
+    assert np.array_equal(event[0], np.concatenate((ref_signal1[boundary-48000:], ref_signal2[:48000])))
+    assert ef.get_finished_reading() == True
+
+    sf1 = Signal_File(
+        "./data/", "adv*.wav", load_func=load_controlled_signal, id="test"
+    )
+
+    sf2 = Signal_File(
+        "./data/", "con*.wav", load_func=load_controlled_signal, id="test"
+    )
+
+    event_list1 =  [[0,2*48000], [41*48000,41*48000 + 100]]
+    event_list2 = [[300,2*48000], [3*48000, 3*48000 + 300]]
+
+    ef1 = Event_File(event_list1, sf1)
+    ef2 = Event_File(event_list2, sf2)
+
+    ef1.sync(ef2)
+    
+    ef1_curr_event = ef1.get_current_event()
+    ef2_curr_event = ef2.get_current_event()
+    assert  ef1_curr_event[0] == 41*48000
+    assert ef2_curr_event[0] == 300
+    assert ef1.event_index == 1
+    assert ef2.event_index == 0
+
+    ef1.reset()
+
+    ef2.sync(ef1)
+    
+    ef1_curr_event = ef1.get_current_event()
+    ef2_curr_event = ef2.get_current_event()
+    assert  ef1_curr_event[0] == 41*48000
+    assert ef2_curr_event[0] == 300
+    assert ef1.event_index == 1
+    assert ef2.event_index == 0
+

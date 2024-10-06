@@ -144,7 +144,7 @@ class Signal_File(Signal_File_Interface):
         self.file_index = 0
         self.start_sample = 0
         self.global_index = 0
-        self.file_global_indexes = []
+        self.file_global_indexes = [0]
         self.load_func = load_func
         self.curr_file_name = self.signal_directory + self.files[0]
         self.sample_buffer = None
@@ -152,21 +152,25 @@ class Signal_File(Signal_File_Interface):
         self.finished_reading = False
         self.id = id
 
+    def load_in_buf(self, file_index):
+        self.file_index = file_index
+        self.curr_file_name = self.signal_directory + self.files[file_index]
+        print("Loading in " + self.curr_file_name)
+        del self.sample_buffer
+        self.sample_buffer = self.load_func(self.curr_file_name)
+
     def switch_files(self):
         """
         Switch to the next file in the directory or wrap around if enabled.
         """
         self.start_sample = 0
-        self.file_index += 1
+        file_index = self.file_index + 1
         if (
-            len(self.files) == self.file_index
+            len(self.files) == file_index
         ):  # If no more to read, set the finished reading flag
             self.finished_reading = True
         else:
-            self.curr_file_name = self.signal_directory + self.files[self.file_index]
-            print("Loading in " + self.curr_file_name)
-            del self.sample_buffer
-            self.sample_buffer = self.load_func(self.curr_file_name)
+            self.load_in_buf(file_index)
             self.add_file_global_index(self.global_index)
 
 
@@ -185,6 +189,7 @@ class Signal_File(Signal_File_Interface):
 
         while samples != 0 and not self.finished_reading:
             samples_can_read = len(self.sample_buffer) - self.start_sample
+
             if samples_can_read <= samples:
                 buffer = self.sample_buffer[
                     self.start_sample : self.start_sample + samples_can_read
@@ -204,26 +209,54 @@ class Signal_File(Signal_File_Interface):
         return output
 
     def add_file_global_index(self, global_index):
-        if len(self.file_lengths) != len(self.files):
+        if self.file_index >= len(self.file_global_indexes):
             self.file_global_indexes.append(global_index)
 
-    # Fix this shit
-    def set_global_index(self, index):
-        file_num = None
+    def look_up_file_and_index(self, index):
         file_index = None
-        for i in range(len(self.file_global_index)):
-            boundary = self.file_global_index[i]
-            if index > boundary:
-                file_num = i
-                file_index = self. 
+        sample_index = None
+        for i in range(len(self.file_global_indexes)):
+            boundary = self.file_global_indexes[i]
+            if index >= boundary:
+                file_index = i
+                sample_index = index - boundary
         
-        if file_num is not None:
-            if file_num == self.file_index:
-                boundary = self.file_global_index[i]
-            self.curr_file_name = self.signal_directory + self.files[i]
-            self.sample_buffer = self.load_func(self.curr_file_name)
+        if file_index != self.file_index:    
+            self.load_in_buf(file_index)
+        self.start_sample = file_index
+        self.global_indexes = index
 
-            
+    def generate_file_and_index(self, index):
+        curr_index = self.file_global_indexes[-1]
+        curr_file_index = len(self.file_global_indexes) - 1
+        while True:
+            if curr_file_index >= len(self.files):
+                self.finished_reading = True
+                break
+
+            buf_file_name =  self.signal_directory + self.files[curr_file_index]
+            next_buf = self.load_func(buf_file_name)
+            curr_index += len(next_buf)
+            self.add_file_global_index(curr_index)
+
+            if curr_index >= index:
+                self.curr_file_name = buf_file_name
+                del self.sample_buffer
+                self.file_index = curr_file_index
+                self.sample_buffer = next_buf
+                self.dtype = self.sample_buffer.dtype
+                self.global_index = index
+                self.start_sample = index - self.file_global_indexes[curr_file_index]
+                break
+            else:
+                curr_file_index += 1
+                del next_buf
+
+    def set_global_index(self, index):
+        if index >= self.file_global_indexes[-1]:
+            self.generate_file_and_index(index)
+        else:
+            self.look_up_file_and_index(index)
 
 
     def get_finished_reading(self):
@@ -321,10 +354,70 @@ class Signal_Buffer(Signal_File_Interface):
         self.finished_reading = False
         self.start_sample = 0
 
-    class Event_File():
-        def __init__(self, event_file, signal_directory, file_names, id=""):
-            self.event_file = event_file
-            self.sf = Signal_File(signal_directory, file_names, id=id)
+class Event_File():
+    def __init__(self, event_list, signal_file):
+        self.events = event_list
+        self.event_index = 0
+        self.sf = signal_file
+        if len(event_list) != 0:
+            self.finished_reading = False
+        else:
+            self.finished_reading = True
         
-        def get_events(num_events):
+    def get_events(self, num_events):
+        event_signals = []
+        while not self.finished_reading and len(event_signals) < num_events:
+            event = self.get_current_event()
+
+            start_index = event[0]
+            read_length = event[1] - event[0]
+            self.sf.set_global_index(start_index)
+            event_signal = self.sf.read(read_length)
+            
+            event_signals.append(event_signal)
+            self.inc_event_index()
+            
+        return event_signals
+
+    def get_current_event(self):
+        if not self.finished_reading:
+            out = self.events[self.event_index]
+        else:
+            out = self.events[-1]
+        return out
+
+    def inc_event_index(self):
+        self.event_index += 1
+        if self.event_index >= len(self.events):
+            self.finished_reading = True
+
+    def get_finished_reading(self):
+        return self.finished_reading
+
+    def sync(self, other_ef):
+        if not self.finished_reading and not other_ef.get_finished_reading():
+            other_curr_event = other_ef.get_current_event()
+            other_start = other_curr_event[0]
+
+            curr_event = self.get_current_event()
+            start = curr_event[0]
+
+            if other_start < start:
+                other_ef.sync(self)
+            else:
+                while other_start > start and not self.finished_reading:
+                    self.inc_event_index()
+                    curr_event = self.get_current_event()
+                    start = curr_event[0]
+
+    def reset(self):
+        self.event_index = 0
+        self.finished_reading = False
+
+        
+
+            
+            
+
+
 
