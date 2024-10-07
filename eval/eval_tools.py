@@ -312,7 +312,7 @@ def log_parameters(file_name_stub, name_list, parameter_list):
 def log_seed(file_name_stub, seed):
     csv_file = dict()
 
-    csv_file["seed_used"] = seed
+    csv_file["seed_used"] = [seed]
     file_name = f"{file_name_stub}_seed.csv"
 
     df = pd.DataFrame(csv_file)
