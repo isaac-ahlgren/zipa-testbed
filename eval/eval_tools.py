@@ -100,7 +100,7 @@ def load_signal_files(
     seeds = None,
 ):
     if seeds is None:
-        seeds = [None for i in range(len(buffers))]
+        seeds = [None for i in range(len(files))]
 
     sfs = []
     for file, id, seed in zip(files, ids, seeds):
