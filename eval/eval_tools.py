@@ -99,8 +99,11 @@ def load_signal_files(
     wrap_around_limit=None,
     seeds = None,
 ):
+    if seeds is None:
+        seeds = [None for i in range(len(buffers))]
+
     sfs = []
-    for file, id in zip(files, ids):
+    for file, id, seed in zip(files, ids, seeds):
         sf = Signal_File(dir, file, load_func=load_func, id=id)
         sf = wrap_signal_file(
             sf,
@@ -108,6 +111,7 @@ def load_signal_files(
             target_snr=target_snr,
             wrap_around=wrap_around,
             wrap_around_limit=wrap_around_limit,
+            seed=seed,
         )
         sfs.append(sf)
     return sfs
@@ -160,7 +164,7 @@ def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limi
         target_snr=target_snr,
         wrap_around=wrap_around,
         wrap_around_limit=wrap_around_limit,
-        seed=seeds,
+        seeds=seeds,
     )
 
 
