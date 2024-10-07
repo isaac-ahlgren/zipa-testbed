@@ -397,6 +397,9 @@ class Event_File():
     def get_finished_reading(self):
         return self.finished_reading
 
+    def get_id(self):
+        return self.sf.get_id()
+
     def sync(self, other_ef):
         if not self.finished_reading and not other_ef.get_finished_reading():
             other_curr_event = other_ef.get_current_event()

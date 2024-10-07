@@ -17,7 +17,7 @@ from eval_tools import (  # noqa: E402
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Signal_File  # noqa: E402
+from signal_file import Signal_File, Event_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
@@ -26,10 +26,8 @@ NUMBER_OF_CHOICES_DEFAULT = 500
 WRAP_AROUND_LIMIT_DEFAULT = 10
 
 # Random Parameter Ranges
-A_LENGTH_RANGE = (0, 1)
-TOP_TH_RANGE = (100, 10000)
-BOTTOM_TH_MIN_VAL = 0
-LUMP_TH = (0, 50)
+CLUSTER_SZ_RANGE = (1, 5)
+CLUSTER_TH_RANGE = (0.1, 0.5)
 
 FUZZING_DIR = "perceptio_controlled_fuzz"
 FUZZING_STUB = "perceptio_controlled_fuzz"
@@ -51,20 +49,16 @@ def main(
 
     def get_random_parameters():
         cluster_size = random.randint(CLUSTER_SZ_RANGE[0], CLUSTER_SZ_RANGE[1])  # nosec
-        bottom_th = random.randint(BOTTOM_TH_MIN_VAL, top_th)  # nosec
-        lump_th = random.randint(LUMP_TH[0], LUMP_TH[1])  # nosec
-        a = random.uniform(A_LENGTH_RANGE[0], A_LENGTH_RANGE[1])  # nosec
+        cluster_th = random.uniform(CLUSTER_TH_RANGE[0], CLUSTER_TH_RANGE[1])  # nosec
         # Calculating the number of samples needed
         return (
-            top_th,
-            bottom_th,
-            lump_th,
-            a,
+            cluster_size,
+            cluster_th,
         )
 
     def log(params, file_name_stub):
-        names = ["top_th", "bottom_th", "lump_th", "a"]
-        param_list = [params[0], params[1], params[2], params[3]]
+        names = ["top_th", "bottom_th", "lump_th", "a", "cluster_size", "cluster_th"]
+        param_list = [params[0], params[1], params[2], params[3], params[4], params[5]]
         log_parameters(file_name_stub, names, param_list)
 
     # Creating an evaluator object with the bit generation algorithm
