@@ -3,11 +3,10 @@ import sys
 from typing import List
 
 import numpy as np
-from schurmann_tools import (
-    ANTIALIASING_FILTER,
+from miettinen_tools import (
     MICROPHONE_SAMPLING_RATE,
     DATA_DIRECTORY,
-    schurmann_wrapper_func,
+    miettinen_wrapper_func,
     unpack_parameters,
 )
 
@@ -20,7 +19,7 @@ WINDOW_LENGTH_DEFAULT = 461598
 BAND_LENGTH_DEFAULT = 21460
 KEY_LENGTH_DEFAULT = 128
 
-DATA_FILE_STUB = "schurmann_real_eval_full_two_weeks"
+DATA_FILE_STUB = "miettinen_real_eval_full_two_weeks"
 
 DEFAULT_GROUPS = [["10.0.0.238", "10.0.0.228", "10.0.0.239"],
                   ["10.0.0.231", "10.0.0.232", "10.0.0.239"],
@@ -35,8 +34,8 @@ TIMESTAMP_DEFAULT = "202408*"
 
 SENSOR_DATA_DIR_DEFAULT = "/mnt/nas"
 
-PARAM_DIR = "../plot_scripts/plot_data/schurmann_real_fuzz"
-PARAM_FILE_STUB = "schurmann_real_fuzz_day1"
+PARAM_DIR = "../plot_scripts/plot_data/miettinen_real_fuzz"
+PARAM_FILE_STUB = "miettinen_real_fuzz_day1"
         
 
 def main(
@@ -52,7 +51,6 @@ def main(
     group_signals, group_params = load_signal_groups(groups, sensor_type, timestamp, signal_data_dir, 
                                                          parameter_data_dir, parameter_file_stub, unpack_parameters)
 
-    # Defining thcontrolled_signal_fuzzinge bit generation algorithm
     def bit_gen_algo(signal: Signal_File, *argv: List) -> np.ndarray:
         """
         Processes the signal using the Schurmann wrapper function to generate cryptographic bits.
@@ -62,15 +60,15 @@ def main(
         :return: The processed signal data after applying the Schurmann algorithm.
         :rtype: np.ndarray
         """
-        read_length = argv[2]
-        signal_chunk = signal.read(read_length)  # Reading a chunk of the signal
+        read_length = argv[4]
+        signal_chunk = signal.read(argv[4])  # Reading a chunk of the signal
         if len(signal_chunk) == read_length:
-            output = schurmann_wrapper_func(
-                signal_chunk, argv[0], argv[1], MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER
+            output = miettinen_wrapper_func(
+                signal_chunk, argv[0], argv[1], argv[2], argv[3]
             )
         else:
             output = None
-        return output, read_length
+        return output, None
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)

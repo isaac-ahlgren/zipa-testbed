@@ -63,7 +63,7 @@ def main(
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
-        extract_all_events,
+        process_events,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_gen=True,

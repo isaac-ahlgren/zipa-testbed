@@ -82,7 +82,7 @@ def plot_miettinen(savefigs=True):
 
 
 def main():
-    plot_schurmann()
+    #plot_schurmann()
     plot_miettinen()
 
 
