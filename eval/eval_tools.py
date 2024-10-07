@@ -79,12 +79,12 @@ def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
 
 
 def wrap_signal_file(
-    sf, noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None
+    sf, noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None, seed=None
 ):
     if wrap_around:
         sf = Wrap_Around_File(sf, wrap_around_limit=wrap_around_limit)
     if noise:
-        sf = Noisy_File(sf, target_snr)
+        sf = Noisy_File(sf, target_snr, seed=seed)
     return sf
 
 
@@ -97,6 +97,7 @@ def load_signal_files(
     target_snr=None,
     wrap_around=False,
     wrap_around_limit=None,
+    seeds = None,
 ):
     sfs = []
     for file, id in zip(files, ids):
@@ -119,9 +120,13 @@ def load_signal_buffers(
     target_snr=None,
     wrap_around=False,
     wrap_around_limit=None,
+    seeds=None
 ):
+    if seeds is None:
+        seeds = [None for i in range(len(buffers))]
+
     sbs = []
-    for buf, id in zip(buffers, ids):
+    for buf, id, seed in zip(buffers, ids, seeds):
         sb = Signal_Buffer(buf, id=id)
         sb = wrap_signal_file(
             sb,
@@ -129,6 +134,7 @@ def load_signal_buffers(
             target_snr=target_snr,
             wrap_around=wrap_around,
             wrap_around_limit=wrap_around_limit,
+            seed=seed,
         )
         sbs.append(sb)
     return sbs
@@ -140,7 +146,7 @@ def load_real_signal_files(data_dir, dev_ids, sensor_type, times):
         file_stubs.append(stubs)
     return load_signal_files(data_dir + "/", file_stubs, dev_ids, noise=False, wrap_around=False)
 
-def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limit=None):
+def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limit=None, seeds=[None,None,None]):
     return load_signal_files(
         "../../data/",
         [
@@ -154,6 +160,7 @@ def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limi
         target_snr=target_snr,
         wrap_around=wrap_around,
         wrap_around_limit=wrap_around_limit,
+        seed=seeds,
     )
 
 
@@ -295,6 +302,15 @@ def log_parameters(file_name_stub, name_list, parameter_list):
         csv_file[name] = [param]
 
     file_name = file_name_stub + "_params.csv"
+    df = pd.DataFrame(csv_file)
+    df.to_csv(file_name)
+
+def log_seed(file_name_stub, seed):
+    csv_file = dict()
+
+    csv_file["seed_used"] = seed
+    file_name = f"{file_name_stub}_seed.csv"
+
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name)
 

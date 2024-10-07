@@ -8,12 +8,15 @@ from signal_file_interface import Signal_File_Interface
 
 
 class Noisy_File(Signal_File_Interface):
-    def __init__(self, sf: Signal_File_Interface, target_snr: float):
+    def __init__(self, sf: Signal_File_Interface, target_snr: float, seed=None):
         self.sf = sf
         self.target_snr = target_snr
 
-        seed = int.from_bytes(os.urandom(8), "big")
-        self.rng = np.random.default_rng(seed)
+        if seed is None:
+            self.seed = int.from_bytes(os.urandom(8), "big")
+        else:
+            self.seed = seed
+        self.rng = np.random.default_rng(self.seed)
 
     def calc_snr_dist_params(self, signal: np.ndarray, target_snr: float) -> float:
         """

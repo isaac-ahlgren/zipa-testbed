@@ -115,6 +115,14 @@ class PerceptioProcessing:
 
         return events
 
+    def generate_features(self, signal):
+        length = len(signal)
+        if length == 1:
+            max_amplitude = signal[0]
+        else:
+            max_amplitude = np.max(signal)
+        return length, max_amplitude
+
     def get_event_features(
         events: List[Tuple[int, int]], signal: np.ndarray
     ) -> List[Tuple[int, float]]:
@@ -127,11 +135,8 @@ class PerceptioProcessing:
         """
         event_features = []
         for i in range(len(events)):
-            length = events[i][1] - events[i][0] + 1
-            if length == 1:
-                max_amplitude = signal[events[i][1]]
-            else:
-                max_amplitude = np.max(signal[events[i][0] : events[i][1]])
+            event_signal = signal[events[i][0] : events[i][1]]
+            length, max_amplitude = self.generate_features(event_signal)
             event_features.append((length, max_amplitude))
         return event_features
 

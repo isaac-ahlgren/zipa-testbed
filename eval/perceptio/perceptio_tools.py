@@ -69,6 +69,20 @@ def merge_events(first_event_list, second_event_list, lump_th, chunk_size, itera
     
     return event_list
 
+def process_events(events, event_signals, cluster_sizes_to_check, cluster_th, key_size, Fs):
+
+    event_features = [PerceptioProcessing.generate_features(x) for x in event_signals]
+
+    labels, k, _ = PerceptioProcessing.kmeans_w_elbow_method(
+        event_features, cluster_sizes_to_check, cluster_th
+    )
+
+    grouped_events = PerceptioProcessing.group_events(events, labels, k)
+
+    fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size, Fs)
+
+    return fps
+
 def extract_all_events(signal, top_th, bottom_th, lump_th, a, chunk_size=10000):
     events = None
     iteration = 0

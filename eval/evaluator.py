@@ -9,6 +9,7 @@ from eval_tools import (
     gen_id,
     log_bit_gen_outcomes,
     log_event_gen_outcomes,
+    log_seed,
 )
 from signal_file_interface import Signal_File_Interface
 
@@ -20,6 +21,7 @@ class Evaluator:
         random_parameter_func=None,
         parameter_log_func=None,
         event_gen=False,
+        log_seed=False,
     ):
         """
         Initialize the Evaluator with a specific bit generation algorithm.
@@ -30,6 +32,7 @@ class Evaluator:
         self.random_parameter_func = random_parameter_func
         self.parameter_log_func = parameter_log_func
         self.event_gen = event_gen
+        self.log_seed = log_seed
         self.legit_bits1 = []
         self.legit_bits2 = []
         self.adv_bits = []
@@ -94,7 +97,12 @@ class Evaluator:
 
     def eval_event_gen_func(self, signal: Signal_File_Interface, key_length, file_stub, params):
         event_timestamps = self.func(signal, *params)
+        file_stub = file_stub + "_" + signal.get_id()
+
         log_event_gen_outcomes(file_stub, event_timestamps)
+
+        if self.log_seed:
+            log_seed(file_stub, signal.seed)
 
     def eval_bit_gen_func(self, signal, key_length, file_stub, params):
         outcome, extras = self.evaluate_device_bit_gen(signal, params)
