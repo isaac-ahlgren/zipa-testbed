@@ -49,6 +49,9 @@ def main(
     timestamp=TIMESTAMP_DEFAULT,
 
 ):
+    if not os.path.isdir(DATA_DIRECTORY):
+        os.mkdir(DATA_DIRECTORY)
+
     group_signals, group_params = load_signal_groups(groups, sensor_type, timestamp, signal_data_dir, 
                                                          parameter_data_dir, parameter_file_stub, unpack_parameters)
 

@@ -11,7 +11,7 @@ from miettinen_tools import (
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_signal_groups  # noqa: E402
+from eval_tools import load_signal_groups, make_dirs  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 from signal_file import Signal_File  # noqa: E402
 
@@ -48,6 +48,9 @@ def main(
     timestamp=TIMESTAMP_DEFAULT,
 
 ):
+    if not os.path.isdir(DATA_DIRECTORY):
+        os.mkdir(DATA_DIRECTORY)
+
     group_signals, group_params = load_signal_groups(groups, sensor_type, timestamp, signal_data_dir, 
                                                          parameter_data_dir, parameter_file_stub, unpack_parameters)
 
