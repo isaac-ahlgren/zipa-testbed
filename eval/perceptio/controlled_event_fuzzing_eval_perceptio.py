@@ -73,6 +73,7 @@ def main(
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_gen=True,
+        log_seed=True,
     )
     evaluator.fuzzing_evaluation(
         signals,
