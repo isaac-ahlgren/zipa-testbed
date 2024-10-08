@@ -1,6 +1,7 @@
 import argparse
 import os
 import random
+import glob
 from typing import List, Tuple
 
 import numpy as np
@@ -331,9 +332,10 @@ def log_seed(file_name_stub, seed):
 def log_event_bits(file_name_stub, event_bits):
     for bits in event_bits:
         file_name = file_name_stub + "_eventbits.txt"
+        bit_string = ""
         for b in byte_list:
-            bit_string = bytes_to_bitstring(b, key_length)
-            file.write(bit_string + "\n")
+            bit_string += bytes_to_bitstring(b, key_length)
+        file.write(bit_string + "\n")
         
 
 def get_fuzzing_command_line_args(
@@ -394,6 +396,19 @@ def load_parameters(param_file):
     df_dict = df.to_dict()
     params = fix_dict(df_dict)
     return params
+
+def load_random_events(event_dir):
+    all_files = glob.glob(event_dir)
+
+    if len(all_files) == 0:
+        raise Exception("load_random_events: No files found")
+
+    rand_index = random.randint(0, len(all_files)-1)
+
+    # finish this later
+    event_dir = all_files[rand_index]
+
+
 
 def load_signal_groups(groups, sensor_type, timestamp, signal_data_dir, best_param_dir, param_file_stub, param_unpack_func):
     group_signals = []

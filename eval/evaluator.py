@@ -11,6 +11,7 @@ from eval_tools import (
     log_bit_gen_outcomes,
     log_event_gen_outcomes,
     log_seed,
+    log_event_bits,
 )
 from signal_file_interface import Signal_File_Interface
 
@@ -22,7 +23,7 @@ class Evaluator:
         random_parameter_func=None,
         parameter_log_func=None,
         event_gen=False,
-        event_gen_bits=False,
+        event_bit_gen=False,
         log_seed=False,
     ):
         """
@@ -34,7 +35,7 @@ class Evaluator:
         self.random_parameter_func = random_parameter_func
         self.parameter_log_func = parameter_log_func
         self.event_gen = event_gen
-        self.event_gen_bits = event_gen_bits
+        self.event_bit_gen = event_bit_gen
         self.log_seed = log_seed
         self.legit_bits1 = []
         self.legit_bits2 = []
@@ -112,7 +113,7 @@ class Evaluator:
 
         for b, signal in zip(bits, signals):
             new_file_stub = file_stub + "_" + signal.get_id()
-            
+            log_event_bits(new_file_stub, b)           
 
     def eval_bit_gen_func(self, signal, key_length, file_stub, params):
         outcome, extras = self.evaluate_device_bit_gen(signal, params)
@@ -124,6 +125,8 @@ class Evaluator:
     def eval_func(self, *params):
         if self.event_gen:
             self.eval_event_gen_func(*params)
+        elif self.event_bit_gen:
+            self.eval_event_bit_gen_func(*params)
         else:
             self.eval_bit_gen_func(*params)
 
@@ -185,4 +188,3 @@ class Evaluator:
                 self.eval_multithreaded(signals, key_length, file_stub, params)
             else:
                 self.eval_single_threaded(signals, key_length, file_stub, params)
-
