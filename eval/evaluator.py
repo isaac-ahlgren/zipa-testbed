@@ -108,7 +108,11 @@ class Evaluator:
             log_seed(file_stub, signal.seed)
 
     def eval_event_bit_gen_func(self, signals, key_length, file_stub, params):
-        legit1_total_bits, legit2_total_bits, adv_total_bits = 
+        bits = calc_all_events(signals, self.func, key_length, params)
+
+        for b, signal in zip(bits, signals):
+            new_file_stub = file_stub + "_" + signal.get_id()
+            
 
     def eval_bit_gen_func(self, signal, key_length, file_stub, params):
         outcome, extras = self.evaluate_device_bit_gen(signal, params)
