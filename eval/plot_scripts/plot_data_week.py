@@ -126,9 +126,9 @@ def plot_ber_comparisons(legit_comparison, adv_comparison):
 if __name__ == "__main__":
     # Loading the new bit files into the week_data list
     week_data = [
-        load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.227_bits.txt"),
-        load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.229_bits.txt"),
-        load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.237_bits.txt")
+        load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.227_10.0.0.229_10.0.0.237/schurmann_real_eval_full_two_weeks_10.0.0.227_bits.txt"),
+        load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.227_10.0.0.229_10.0.0.237/schurmann_real_eval_full_two_weeks_10.0.0.229_bits.txt"),
+        load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.227_10.0.0.229_10.0.0.237/schurmann_real_eval_full_two_weeks_10.0.0.237_bits.txt")
     ]
 
     block_size = 1  # Define the block size
