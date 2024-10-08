@@ -4,6 +4,7 @@ from typing import Any, Callable, List, Tuple
 
 from eval_tools import (
     calc_all_bits,
+    calc_all_events,
     cmp_bits,
     events_cmp_bits,
     gen_id,
@@ -21,6 +22,7 @@ class Evaluator:
         random_parameter_func=None,
         parameter_log_func=None,
         event_gen=False,
+        event_gen_bits=False,
         log_seed=False,
     ):
         """
@@ -32,6 +34,7 @@ class Evaluator:
         self.random_parameter_func = random_parameter_func
         self.parameter_log_func = parameter_log_func
         self.event_gen = event_gen
+        self.event_gen_bits = event_gen_bits
         self.log_seed = log_seed
         self.legit_bits1 = []
         self.legit_bits2 = []
@@ -103,6 +106,9 @@ class Evaluator:
 
         if self.log_seed:
             log_seed(file_stub, signal.seed)
+
+    def eval_event_bit_gen_func(self, signals, key_length, file_stub, params):
+        legit1_total_bits, legit2_total_bits, adv_total_bits = 
 
     def eval_bit_gen_func(self, signal, key_length, file_stub, params):
         outcome, extras = self.evaluate_device_bit_gen(signal, params)

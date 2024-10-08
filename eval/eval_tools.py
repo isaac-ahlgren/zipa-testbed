@@ -58,14 +58,24 @@ def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
     return bits, extras
 
 
-def calc_all_events(signal: Signal_File, event_gen_algo_wrapper, *argv):
-    all_events = []
-    all_event_features = []
-    while not signal.get_finished_reading():
-        events, event_features = event_gen_algo_wrapper(signal, *argv)
-        all_events.extend(events)
-        all_event_features.extend(event_features)
-    return all_events, all_event_features
+def calc_all_events(signals, event_bit_gen_algo_wrapper, *argv):
+    legit1 = signals[0]
+    legit2 = signals[1]
+    adv = signals[2]
+    
+    legit1_total_bits = []
+    legit2_total_bits = []
+    adv_total_bits = []
+    while not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
+        legit1_bits = event_bit_gen_algo_wrapper(legit1, *argv)
+        legit2_bits = event_bit_gen_algo_wrapper(legit2, *argv)
+        adv_bits = event_bit_gen_algo_wrapper(adv, *argv)
+        legit1_total_bits.append(legit1_bits)
+        legit2_total_bits.append(legit2_bits)
+        adv_total_bits.append(adv_bits)
+        legit2.sync(legit1)
+        adv.sync(legit1)
+    return legit1_total_bits, legit2_total_bits, adv_total_bits
 
 def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     """
@@ -318,6 +328,13 @@ def log_seed(file_name_stub, seed):
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name)
 
+def log_event_bits(file_name_stub, event_bits):
+    for bits in event_bits:
+        file_name = file_name_stub + "_eventbits.txt"
+        for b in byte_list:
+            bit_string = bytes_to_bitstring(b, key_length)
+            file.write(bit_string + "\n")
+        
 
 def get_fuzzing_command_line_args(
     key_length_default: int = None,
