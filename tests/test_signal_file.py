@@ -122,6 +122,11 @@ def test_wrap_around():
     assert read_length != len(received_samples)  # nosec
     assert sb.get_finished_reading() is True  # nosec
 
+    sf.reset()
+    sf.set_global_index(len(ref_signal))
+    test_signal = sf.read(40000)
+    assert np.array_equal(test_signal, ref_signal[0:40000])
+
 
 def test_noisy_signal():
     sf = Noisy_File(
@@ -183,20 +188,24 @@ def test_set_global_index():
 
     boundary = len(ref_signal1)
 
-    sf.set_global_index(boundary)
+    # Test if it switches file properly (tests generate_file_and_index by looking ahead)
+    sf.set_global_index(boundary) # set global index to just after the first file
 
+     # Read and test output from signal file with reference signal from raw buffer
     test_sig = sf.read(read_length)
     ref_sig = ref_signal2[:read_length]
 
     assert np.array_equal(ref_sig, test_sig) # nosec
 
-
+    # Test if it can switch back to the first file (tests look_up_file_and_index)
     sf.set_global_index(0)
     test_sig = sf.read(read_length)
     ref_sig = ref_signal1[:read_length]
 
     assert np.array_equal(ref_sig, test_sig) # nosec
 
+    print("here")
+    # Test if it switched file properly again (tests look_up_file_and_index)
     sf.set_global_index(boundary)
 
     test_sig = sf.read(read_length)
@@ -209,16 +218,19 @@ def test_set_global_index():
     )
 
     new_sf.read(boundary)
-    sf.set_global_index(0)
-    test_sig = sf.read(read_length)
+    new_sf.set_global_index(0)
+    test_sig = new_sf.read(read_length)
     ref_sig = ref_signal1[:read_length]
 
     assert np.array_equal(ref_sig, test_sig) # nosec
 
+    new_sf.set_global_index(0)
     position = boundary + len(ref_signal2)
     new_sf.set_global_index(position)
 
     assert new_sf.get_finished_reading() == True # nosec
+
+
 
 def test_event_file():
     sf = Signal_File(
@@ -232,13 +244,13 @@ def test_event_file():
     event_list = [[0,2*48000], [41*48000,41*48000 + 100], [boundary-48000,boundary+48000]]
     ef = Event_File(event_list, sf)
 
-    events = ef.get_events(2)
+    events_timestamp, events = ef.get_events(2)
 
     assert len(events) == 2
     assert np.array_equal(events[0], ref_signal1[0:2*48000])
     assert np.array_equal(events[1], ref_signal1[41*48000:41*48000 + 100])
 
-    event = ef.get_events(1)
+    events_timestamp, event = ef.get_events(1)
 
     assert len(event) == 1
     assert np.array_equal(event[0], np.concatenate((ref_signal1[boundary-48000:], ref_signal2[:48000])))

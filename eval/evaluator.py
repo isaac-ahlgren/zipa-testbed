@@ -4,8 +4,9 @@ from typing import Any, Callable, List, Tuple
 
 from eval_tools import (
     calc_all_bits,
-    calc_all_events,
+    calc_all_event_bits,
     cmp_bits,
+    load_event_files,
     events_cmp_bits,
     gen_id,
     log_bit_gen_outcomes,
@@ -109,11 +110,15 @@ class Evaluator:
             log_seed(file_stub, signal.seed)
 
     def eval_event_bit_gen_func(self, signals, key_length, file_stub, params):
-        bits = calc_all_events(signals, self.func, key_length, params)
+        event_dir = params[-1]
+
+        event_files = load_event_files(event_dir, signals)
+
+        bits = calc_all_event_bits(event_files, self.func, key_length, params)
 
         for b, signal in zip(bits, signals):
             new_file_stub = file_stub + "_" + signal.get_id()
-            log_event_bits(new_file_stub, b)           
+            log_event_bits(new_file_stub, b, key_length)           
 
     def eval_bit_gen_func(self, signal, key_length, file_stub, params):
         outcome, extras = self.evaluate_device_bit_gen(signal, params)

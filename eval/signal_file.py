@@ -61,6 +61,9 @@ class Noisy_File(Signal_File_Interface):
     
     def get_global_index(self):
         return self.sf.global_index
+    
+    def set_global_index(self, index):
+        self.sf.set_global_index(index)
 
     def reset(self):
         self.sf.reset()
@@ -109,6 +112,15 @@ class Wrap_Around_File(Signal_File_Interface):
     
     def get_global_index(self):
         return self.global_index
+    
+    def set_global_index(self, index):
+        self.num_of_resets = 0
+        self.sf.set_global_index(index)
+        if self.sf.get_finished_reading():
+            subfile_index = index % self.sf.max_length
+            self.sf.set_global_index(subfile_index)
+            self.num_of_resets = index // self.sf.max_length
+        self.global_index = index
 
     def reset(self):
         self.num_of_resets = 0
@@ -153,6 +165,7 @@ class Signal_File(Signal_File_Interface):
         self.sample_buffer = None
         self.dtype = None
         self.finished_reading = False
+        self.max_length = None
         self.id = id
 
     def load_in_buf(self, file_index):
@@ -166,13 +179,14 @@ class Signal_File(Signal_File_Interface):
         """
         Switch to the next file in the directory or wrap around if enabled.
         """
-        self.start_sample = 0
         file_index = self.file_index + 1
         if (
             len(self.files) == file_index
         ):  # If no more to read, set the finished reading flag
             self.finished_reading = True
+            self.max_length = self.start_sample + 1
         else:
+            self.start_sample = 0
             self.load_in_buf(file_index)
             self.add_file_global_index(self.global_index)
 
@@ -198,8 +212,8 @@ class Signal_File(Signal_File_Interface):
                     self.start_sample : self.start_sample + samples_can_read
                 ]
                 output = np.append(output, buffer)
-                self.switch_files()
                 self.global_index += samples_can_read
+                self.switch_files()
                 samples -= samples_can_read
             else:
                 buffer = self.sample_buffer[
@@ -226,14 +240,17 @@ class Signal_File(Signal_File_Interface):
         
         if file_index != self.file_index:    
             self.load_in_buf(file_index)
-        self.start_sample = file_index
+        self.start_sample = sample_index
         self.global_indexes = index
 
     def generate_file_and_index(self, index):
         curr_index = self.file_global_indexes[-1]
         curr_file_index = len(self.file_global_indexes) - 1
         while True:
-            if curr_file_index >= len(self.files):
+            print(f"curr_file_index: {curr_file_index}, index: {index}, curr_index: {curr_index}, len(self.files): {len(self.files)}")
+            print()
+            if len(self.file_global_indexes) == len(self.files):
+                self.max_length = curr_index + 1
                 self.finished_reading = True
                 break
 
@@ -256,6 +273,7 @@ class Signal_File(Signal_File_Interface):
                 del next_buf
 
     def set_global_index(self, index):
+        print(f"{index} >= {self.file_global_indexes[-1]}")
         if index >= self.file_global_indexes[-1]:
             self.generate_file_and_index(index)
         else:
@@ -369,6 +387,7 @@ class Event_File():
         
     def get_events(self, num_events):
         event_signals = []
+        events = []
         while not self.finished_reading and len(event_signals) < num_events:
             event = self.get_current_event()
 
@@ -378,9 +397,10 @@ class Event_File():
             event_signal = self.sf.read(read_length)
             
             event_signals.append(event_signal)
+            events.append(event)
             self.inc_event_index()
             
-        return event_signals
+        return events, event_signals
 
     def get_current_event(self):
         if not self.finished_reading:

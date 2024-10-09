@@ -46,7 +46,6 @@ def main(
     parameter_file_stub=PARAM_FILE_STUB,
     sensor_type=SENSOR_TYPE_DEFAULT,
     timestamp=TIMESTAMP_DEFAULT,
-
 ):
     if not os.path.isdir(DATA_DIRECTORY):
         os.mkdir(DATA_DIRECTORY)

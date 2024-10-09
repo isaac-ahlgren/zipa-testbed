@@ -11,6 +11,7 @@ from signal_file import (
     Noisy_File,
     Signal_Buffer,
     Signal_File,
+    Event_File,
     Wrap_Around_File,
 )
 
@@ -59,7 +60,7 @@ def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
     return bits, extras
 
 
-def calc_all_events(signals, event_bit_gen_algo_wrapper, *argv):
+def calc_all_event_bits(signals, event_bit_gen_algo_wrapper, number_of_events, *argv):
     legit1 = signals[0]
     legit2 = signals[1]
     adv = signals[2]
@@ -67,15 +68,27 @@ def calc_all_events(signals, event_bit_gen_algo_wrapper, *argv):
     legit1_total_bits = []
     legit2_total_bits = []
     adv_total_bits = []
+
+    legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
+    legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
+    adv_events, adv_event_sigs = adv.get_events(number_of_events)
+    print(f"{number_of_events}; {argv}")
+    quit()
     while not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
-        legit1_bits = event_bit_gen_algo_wrapper(legit1, *argv)
-        legit2_bits = event_bit_gen_algo_wrapper(legit2, *argv)
-        adv_bits = event_bit_gen_algo_wrapper(adv, *argv)
+        legit1_bits = event_bit_gen_algo_wrapper(legit1_events, legit1_event_sigs, *argv)
+        legit2_bits = event_bit_gen_algo_wrapper(legit2_events, legit2_event_sigs, *argv)
+        adv_bits = event_bit_gen_algo_wrapper(adv_events, adv_event_sigs, *argv)
+        
         legit1_total_bits.append(legit1_bits)
         legit2_total_bits.append(legit2_bits)
+        
         adv_total_bits.append(adv_bits)
         legit2.sync(legit1)
         adv.sync(legit1)
+
+        legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
+        legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
+        adv_events, adv_event_sigs = adv.get_events(number_of_events)
     return legit1_total_bits, legit2_total_bits, adv_total_bits
 
 def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
@@ -127,6 +140,40 @@ def load_signal_files(
         sfs.append(sf)
     return sfs
 
+def load_events(file):
+    df = pd.read_csv(file)  
+    df = df.to_dict()
+    output = [(df["start_times"][i], df["end_times"][i]) for i in range(len(df))]
+    return output
+
+def load_event_file(
+    event_file_dir,
+    sf,
+):
+    id = sf.get_id()
+    file_list = glob.glob(f"*{id}_time_stamps.csv", root_dir=event_file_dir)
+
+    if len(file_list) == 0:
+        raise Exception("load_event_file: Could not find event file")
+
+    file_name = file_list[0]
+
+    event_list = load_events(f"{event_file_dir}/{file_name}")
+
+    ef = Event_File(event_list, sf)
+
+    return ef
+
+
+def load_event_files(
+    event_file_dir,
+    sfs,
+):
+    efs = []
+    for sf in sfs:
+        ef = load_event_file(event_file_dir, sf)
+        efs.append(ef)
+    return efs
 
 def load_signal_buffers(
     buffers,
@@ -329,13 +376,14 @@ def log_seed(file_name_stub, seed):
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name)
 
-def log_event_bits(file_name_stub, event_bits):
-    for bits in event_bits:
-        file_name = file_name_stub + "_eventbits.txt"
-        bit_string = ""
-        for b in byte_list:
-            bit_string += bytes_to_bitstring(b, key_length)
-        file.write(bit_string + "\n")
+def log_event_bits(file_name_stub, event_bits, key_length):
+    file_name = file_name_stub + "_eventbits.txt"
+    with open(file_name, "w") as file:
+        for bits in event_bits:
+            bit_string = ""
+            for b in bits:
+                bit_string += bytes_to_bitstring(b, key_length)
+            file.write(bit_string + "\n")
         
 
 def get_fuzzing_command_line_args(
@@ -398,17 +446,20 @@ def load_parameters(param_file):
     return params
 
 def load_random_events(event_dir):
-    all_files = glob.glob(event_dir)
+    all_files = glob.glob("*", root_dir=event_dir)
 
     if len(all_files) == 0:
         raise Exception("load_random_events: No files found")
 
     rand_index = random.randint(0, len(all_files)-1)
 
-    # finish this later
-    event_dir = all_files[rand_index]
+    chosen_events = all_files[rand_index]
 
+    path_to_events = f"{event_dir}/{chosen_events}"
 
+    params = load_parameters(f"{path_to_events}/{chosen_events}_params.csv")
+
+    return path_to_events, params
 
 def load_signal_groups(groups, sensor_type, timestamp, signal_data_dir, best_param_dir, param_file_stub, param_unpack_func):
     group_signals = []

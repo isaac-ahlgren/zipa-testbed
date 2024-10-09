@@ -69,7 +69,7 @@ def merge_events(first_event_list, second_event_list, lump_th, chunk_size, itera
     
     return event_list
 
-def process_events(events, event_signals, cluster_sizes_to_check, cluster_th, key_size, Fs):
+def process_events(events, event_signals, key_size, cluster_sizes_to_check, cluster_th, Fs):
 
     event_features = [PerceptioProcessing.generate_features(x) for x in event_signals]
 
