@@ -32,7 +32,7 @@ EVENT_NUM_DEFAULT = 16
 CLUSTER_SZ_RANGE = (1, 5)
 CLUSTER_TH_RANGE = (0.1, 0.2)
 
-EVENT_DIR = "/home/ikey/ZIPA-TESTBED-DATA/perceptio_data/perceptio_controlled_fuzz/perceptio_controlled_event_fuzz_snr40"
+EVENT_DIR = "/home/ikey/perceptio_data/perceptio_controlled_fuzz/perceptio_controlled_event_fuzz_snr40"
 
 FUZZING_DIR = "perceptio_controlled_fuzz"
 FUZZING_STUB = "perceptio_controlled_fuzz"

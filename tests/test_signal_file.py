@@ -126,6 +126,13 @@ def test_wrap_around():
     sf.set_global_index(len(ref_signal))
     test_signal = sf.read(40000)
     assert np.array_equal(test_signal, ref_signal[0:40000])
+    assert sf.num_of_resets == 1
+
+    sf.set_global_index(3*len(ref_signal))
+    assert sf.get_finished_reading() is True
+
+    sf.set_global_index(0)
+    assert sf.get_finished_reading() is False
 
 
 def test_noisy_signal():
@@ -204,7 +211,6 @@ def test_set_global_index():
 
     assert np.array_equal(ref_sig, test_sig) # nosec
 
-    print("here")
     # Test if it switched file properly again (tests look_up_file_and_index)
     sf.set_global_index(boundary)
 
@@ -213,6 +219,7 @@ def test_set_global_index():
 
     assert np.array_equal(ref_sig, test_sig) # nosec
 
+    # Create new signal file for fresh lookup table
     new_sf = Signal_File(
         "./data/", "*.wav", load_func=load_controlled_signal, id="test"
     )
@@ -228,7 +235,7 @@ def test_set_global_index():
     position = boundary + len(ref_signal2)
     new_sf.set_global_index(position)
 
-    assert new_sf.get_finished_reading() == True # nosec
+    assert new_sf.get_finished_reading() is True # nosec
 
 
 
@@ -289,4 +296,27 @@ def test_event_file():
     assert ef2_curr_event[0] == 300
     assert ef1.event_index == 1
     assert ef2.event_index == 0
+
+    sf = Wrap_Around_File(
+        Signal_File(
+            "./data/",
+            "controlled_signal.wav",
+            load_func=load_controlled_signal,
+            id="test",
+        ),
+        wrap_around_limit=2,
+    )
+    ref_signal = load_controlled_signal("./data/controlled_signal.wav")
+
+    event_list = [[0,2*48000], [len(ref_signal), len(ref_signal) + 2*48000]]
+
+    ef = Event_File(event_list, sf)
+
+    event1, event_sig1 = ef.get_events(1)
+
+    event2, event_sig2 = ef.get_events(1)
+
+    assert event1 != event2
+    assert np.array_equal(event_sig1, event_sig2)
+    assert np.array_equal(event_sig1[0], ref_signal[:2*48000])
 

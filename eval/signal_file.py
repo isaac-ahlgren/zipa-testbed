@@ -85,7 +85,7 @@ class Wrap_Around_File(Signal_File_Interface):
         self.finished_reading = False
 
     def read(self, samples: int) -> np.ndarray:
-        output = np.array([])
+        output = np.array([], dtype=self.sf.dtype)
 
         while not self.finished_reading and samples != 0:
             buf = self.sf.read(samples)
@@ -120,6 +120,12 @@ class Wrap_Around_File(Signal_File_Interface):
             subfile_index = index % self.sf.max_length
             self.sf.set_global_index(subfile_index)
             self.num_of_resets = index // self.sf.max_length
+            if self.num_of_resets >= self.wrap_around_limit:
+                self.finished_reading = True
+            else:
+                self.finished_reading = False
+        else:
+            self.finished_reading = False
         self.global_index = index
 
     def reset(self):
@@ -174,6 +180,7 @@ class Signal_File(Signal_File_Interface):
         print("Loading in " + self.curr_file_name)
         del self.sample_buffer
         self.sample_buffer = self.load_func(self.curr_file_name)
+        self.dtype = self.sample_buffer.dtype
 
     def switch_files(self):
         """
@@ -226,7 +233,7 @@ class Signal_File(Signal_File_Interface):
         return output
 
     def add_file_global_index(self, global_index):
-        if self.file_index >= len(self.file_global_indexes):
+        if len(self.file_global_indexes) - 1 < len(self.files):
             self.file_global_indexes.append(global_index)
 
     def look_up_file_and_index(self, index):
@@ -242,24 +249,25 @@ class Signal_File(Signal_File_Interface):
             self.load_in_buf(file_index)
         self.start_sample = sample_index
         self.global_indexes = index
+        self.finished_reading = False
 
     def generate_file_and_index(self, index):
         curr_index = self.file_global_indexes[-1]
         curr_file_index = len(self.file_global_indexes) - 1
+
         while True:
-            print(f"curr_file_index: {curr_file_index}, index: {index}, curr_index: {curr_index}, len(self.files): {len(self.files)}")
-            print()
-            if len(self.file_global_indexes) == len(self.files):
+
+            if len(self.file_global_indexes) - 1 == len(self.files):
                 self.max_length = curr_index + 1
                 self.finished_reading = True
                 break
-
+                
             buf_file_name =  self.signal_directory + self.files[curr_file_index]
             next_buf = self.load_func(buf_file_name)
             curr_index += len(next_buf)
             self.add_file_global_index(curr_index)
 
-            if curr_index >= index:
+            if curr_index > index:
                 self.curr_file_name = buf_file_name
                 del self.sample_buffer
                 self.file_index = curr_file_index
@@ -267,13 +275,13 @@ class Signal_File(Signal_File_Interface):
                 self.dtype = self.sample_buffer.dtype
                 self.global_index = index
                 self.start_sample = index - self.file_global_indexes[curr_file_index]
+                self.finished_reading = False
                 break
             else:
                 curr_file_index += 1
                 del next_buf
 
     def set_global_index(self, index):
-        print(f"{index} >= {self.file_global_indexes[-1]}")
         if index >= self.file_global_indexes[-1]:
             self.generate_file_and_index(index)
         else:
