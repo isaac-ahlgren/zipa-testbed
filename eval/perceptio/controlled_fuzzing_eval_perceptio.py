@@ -6,6 +6,7 @@ from typing import List
 import numpy as np
 from perceptio_tools import (
     DATA_DIRECTORY,
+    MICROPHONE_SAMPLING_RATE,
     process_events,
 )
 
@@ -32,7 +33,7 @@ EVENT_NUM_DEFAULT = 16
 CLUSTER_SZ_RANGE = (1, 5)
 CLUSTER_TH_RANGE = (0.1, 0.2)
 
-EVENT_DIR = "/home/ikey/perceptio_data/perceptio_controlled_fuzz/perceptio_controlled_event_fuzz_snr40"
+EVENT_DIR = "/home/ikey/perceptio_data/perceptio_controlled_fuzz/perceptio_controlled_event_fuzz_snr"
 
 FUZZING_DIR = "perceptio_controlled_fuzz"
 FUZZING_STUB = "perceptio_controlled_fuzz"
@@ -57,31 +58,40 @@ def main(
     def get_random_parameters():
         cluster_size = random.randint(CLUSTER_SZ_RANGE[0], CLUSTER_SZ_RANGE[1])  # nosec
         cluster_th = random.uniform(CLUSTER_TH_RANGE[0], CLUSTER_TH_RANGE[1])  # nosec
-        event_dir, params = load_random_events(EVENT_DIR)
+        event_dir, params = load_random_events(EVENT_DIR + str(target_snr))
         top_th = params["top_th"]
         bottom_th = params["bottom_th"]
         lump_th = params["lump_th"]
         a = params["a"]
 
         return (
-            EVENT_NUM_DEFAULT,
             top_th,
             bottom_th,
             lump_th,
             a,
             cluster_size,
             cluster_th,
-            event_dir
+            MICROPHONE_SAMPLING_RATE,
+            EVENT_NUM_DEFAULT,
+            event_dir,
         )
 
     def log(params, file_name_stub):
-        names = ["number_of_events", "top_th", "bottom_th", "lump_th", "a", "cluster_size", "cluster_th", "event_dir"]
-        param_list = [params[0], params[1], params[2], params[3], params[4], params[5], params[6]]
+        names = ["top_th", "bottom_th", "lump_th", "a", "cluster_size", "cluster_th", "sampling_rate", "number_of_events", "event_dir"]
+        param_list = [params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7]]
         log_parameters(file_name_stub, names, param_list)
+
+    def func(signals, *params):
+        key_size = params[0]
+        cluster_sizes_to_check = params[5]
+        cluster_th = params[6]
+        Fs = params[7]
+        number_of_events = params[8]
+        return calc_all_event_bits(signals, process_events, number_of_events, key_size, cluster_sizes_to_check, cluster_th, Fs)
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
-        process_events,
+        func,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_bit_gen=True,

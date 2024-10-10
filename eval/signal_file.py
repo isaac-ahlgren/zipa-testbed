@@ -61,6 +61,10 @@ class Noisy_File(Signal_File_Interface):
     
     def get_global_index(self):
         return self.sf.global_index
+
+    def set_seed(self, seed):
+        self.seed = seed
+        self.rng = np.random.default_rng(self.seed)
     
     def set_global_index(self, index):
         self.sf.set_global_index(index)

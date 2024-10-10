@@ -114,7 +114,7 @@ class Evaluator:
 
         event_files = load_event_files(event_dir, signals)
 
-        bits = calc_all_event_bits(event_files, self.func, key_length, params)
+        bits = self.func(event_files, key_length, *params)
 
         for b, signal in zip(bits, signals):
             new_file_stub = file_stub + "_" + signal.get_id()
