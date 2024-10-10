@@ -86,14 +86,13 @@ def main(
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_gen=True,
-        change_and_log_seed=True,
     )
     evaluator.fuzzing_evaluation(
         signals,
         number_of_choices,
         key_length,
         fuzzing_dir,
-        f"{FUZZING_STUB}_snr{target_snr}",
+        FUZZING_STUB,
         multithreaded=True,
     )
 
