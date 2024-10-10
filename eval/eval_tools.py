@@ -444,6 +444,15 @@ def load_parameters(param_file):
     params = fix_dict(df_dict)
     return params
 
+def load_controlled_signal_seeds(dir, signals):
+    seeds = []
+    for signal in signals:
+        file_name = glob.glob(f"*{signal.get_id()}_seed.csv", root_dir=dir)
+        df = pd.read_csv(f"{dir}/{file_name[0]}")
+        df_dict = df.to_dict()
+        seeds.append(df_dict["seed_used"][0])
+    return seeds
+
 def load_random_events(event_dir):
     all_files = glob.glob("*", root_dir=event_dir)
 

@@ -7,6 +7,7 @@ from eval_tools import (
     calc_all_event_bits,
     cmp_bits,
     load_event_files,
+    load_controlled_signal_seeds,
     events_cmp_bits,
     gen_id,
     log_bit_gen_outcomes,
@@ -25,7 +26,7 @@ class Evaluator:
         parameter_log_func=None,
         event_gen=False,
         event_bit_gen=False,
-        log_seed=False,
+        change_and_log_seed=False,
     ):
         """
         Initialize the Evaluator with a specific bit generation algorithm.
@@ -37,7 +38,7 @@ class Evaluator:
         self.parameter_log_func = parameter_log_func
         self.event_gen = event_gen
         self.event_bit_gen = event_bit_gen
-        self.log_seed = log_seed
+        self.change_and_log_seed = change_and_log_seed
         self.legit_bits1 = []
         self.legit_bits2 = []
         self.adv_bits = []
@@ -106,11 +107,16 @@ class Evaluator:
 
         log_event_gen_outcomes(file_stub, event_timestamps)
 
-        if self.log_seed:
+        if self.change_and_log_seed:
             log_seed(file_stub, signal.seed)
 
     def eval_event_bit_gen_func(self, signals, key_length, file_stub, params):
         event_dir = params[-1]
+
+        if self.change_and_log_seed:
+            seeds = load_controlled_signal_seeds(event_dir, signals)   
+            for signal, seed in zip(signals, seeds):
+                signal.set_seed(seed)
 
         event_files = load_event_files(event_dir, signals)
 
@@ -187,7 +193,7 @@ class Evaluator:
             if not os.path.isdir(file_dir):
                 os.mkdir(file_dir)
             file_stub = file_dir + "/" + choice_file_stub
-            self.parameter_log_func(params, file_stub)
+            self.parameter_log_func(params, file_stub) 
 
             if multithreaded:
                 self.eval_multithreaded(signals, key_length, file_stub, params)

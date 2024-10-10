@@ -23,7 +23,7 @@ from signal_file import Signal_File  # noqa: E402
 KEY_LENGTH_DEFAULT = 128
 TARGET_SNR_DEFAULT = 40
 NUMBER_OF_CHOICES_DEFAULT = 500
-WRAP_AROUND_LIMIT_DEFAULT = 10
+WRAP_AROUND_LIMIT_DEFAULT = 1
 
 # Random Parameter Ranges
 A_LENGTH_RANGE = (0, 1)
@@ -73,7 +73,7 @@ def main(
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_gen=True,
-        log_seed=True,
+        change_and_log_seed=True,
     )
     evaluator.fuzzing_evaluation(
         signals,

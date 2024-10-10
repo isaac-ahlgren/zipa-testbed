@@ -12,11 +12,9 @@ class Noisy_File(Signal_File_Interface):
         self.sf = sf
         self.target_snr = target_snr
 
-        if seed is None:
-            self.seed = int.from_bytes(os.urandom(8), "big")
-        else:
-            self.seed = seed
-        self.rng = np.random.default_rng(self.seed)
+        self.seed = seed
+        if seed is not None:
+            self.rng = np.random.default_rng(self.seed)
 
     def calc_snr_dist_params(self, signal: np.ndarray, target_snr: float) -> float:
         """
@@ -45,6 +43,10 @@ class Noisy_File(Signal_File_Interface):
         :return: The signal with added Gaussian noise.
         """
 
+        if self.seed is None:
+            self.seed = int.from_bytes(os.urandom(8), "big")
+            self.rng = np.random.default_rng(self.seed)
+
         noise_std = self.calc_snr_dist_params(signal, target_snr)
         noise = self.rng.normal(0, noise_std, len(signal))
         return signal + noise
@@ -64,6 +66,13 @@ class Noisy_File(Signal_File_Interface):
 
     def set_seed(self, seed):
         self.seed = seed
+        self.rng = np.random.default_rng(self.seed)
+
+    def get_seed(self):
+        return self.seed
+
+    def regen_seed(self):
+        self.seed = int.from_bytes(os.urandom(8), "big")
         self.rng = np.random.default_rng(self.seed)
     
     def set_global_index(self, index):

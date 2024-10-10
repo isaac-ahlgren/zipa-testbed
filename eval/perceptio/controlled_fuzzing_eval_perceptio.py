@@ -16,6 +16,7 @@ from eval_tools import (  # noqa: E402
     load_random_events,
     load_controlled_signal_files,
     log_parameters,
+    calc_all_event_bits,
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
@@ -78,7 +79,7 @@ def main(
 
     def log(params, file_name_stub):
         names = ["top_th", "bottom_th", "lump_th", "a", "cluster_size", "cluster_th", "sampling_rate", "number_of_events", "event_dir"]
-        param_list = [params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7]]
+        param_list = [params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8]]
         log_parameters(file_name_stub, names, param_list)
 
     def func(signals, *params):
@@ -95,6 +96,7 @@ def main(
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_bit_gen=True,
+        change_and_log_seed=True,
     )
     evaluator.fuzzing_evaluation(
         signals,
