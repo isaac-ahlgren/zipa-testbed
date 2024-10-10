@@ -23,7 +23,7 @@ from signal_file import Signal_File  # noqa: E402
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
 TARGET_SNR_DEFAULT = 40
-NUMBER_OF_CHOICES_DEFAULT = 500
+NUMBER_OF_CHOICES_DEFAULT = 1000
 WRAP_AROUND_LIMIT_DEFAULT = 10
 
 # Random Parameter Ranges
@@ -35,12 +35,12 @@ LUMP_TH = (0, 15*MICROPHONE_SAMPLING_RATE)
 FUZZING_DIR = "perceptio_real_fuzz"
 FUZZING_STUB = "perceptio_real_event_fuzz"
 
-DEFAULT_GROUPS = [["10.0.0.238", "10.0.0.228", "10.0.0.239"],
-                  ["10.0.0.231", "10.0.0.232", "10.0.0.239"],
-                  ["10.0.0.233", "10.0.0.236", "10.0.0.239"],
-                  ["10.0.0.227", "10.0.0.229", "10.0.0.237"],
-                  ["10.0.0.235", "10.0.0.237", "10.0.0.239"],
-                  ["10.0.0.234", "10.0.0.239", "10.0.0.237"]]
+DEFAULT_IDS = ["10.0.0.238","10.0.0.228",
+            "10.0.0.231","10.0.0.232",
+            "10.0.0.233","10.0.0.236",
+            "10.0.0.227","10.0.0.229",
+            "10.0.0.235","10.0.0.237",
+            "10.0.0.234","10.0.0.239"]
 
 DEFAULT_SENSOR_TYPE = "mic"
 
