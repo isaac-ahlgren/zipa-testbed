@@ -167,9 +167,9 @@ def save_to_csv(legit_comparison, adv_comparison, custom_csv_filename):
 if __name__ == "__main__":
    # Loading the new bit files into the week_data list
    week_data = [
-       load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.238_10.0.0.228_10.0.0.239/schurmann_real_eval_full_two_weeks_10.0.0.238_bits.txt"),
-       load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.238_10.0.0.228_10.0.0.239/schurmann_real_eval_full_two_weeks_10.0.0.228_bits.txt"),
-       load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.238_10.0.0.228_10.0.0.239/schurmann_real_eval_full_two_weeks_10.0.0.239_bits.txt")
+       load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.227_10.0.0.229_10.0.0.237/schurmann_real_eval_full_two_weeks_10.0.0.227_bits.txt"),
+       load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.227_10.0.0.229_10.0.0.237/schurmann_real_eval_full_two_weeks_10.0.0.229_bits.txt"),
+       load_bytes("local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_10.0.0.227_10.0.0.229_10.0.0.237/schurmann_real_eval_full_two_weeks_10.0.0.237_bits.txt")
    ]
 
 
@@ -178,8 +178,8 @@ if __name__ == "__main__":
 
 
    # Plot combined comparisons for hourly data over the week with a custom plot filename
-   plot_ber_comparisons(legit_comparison, adv_comparison, custom_plot_filename="238-228-239_ber_comparison_plot_week.pdf")
+   plot_ber_comparisons(legit_comparison, adv_comparison, custom_plot_filename="227-229-237_ber_comparison_plot_week.pdf")
 
 
    # Save the BER data to a custom CSV file
-   save_to_csv(legit_comparison, adv_comparison, custom_csv_filename="238-228-239_ber_comparison_data_week.csv")
+   save_to_csv(legit_comparison, adv_comparison, custom_csv_filename="227-229-237_ber_comparison_data_week.csv")
