@@ -60,7 +60,7 @@ def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
 
         new_events, last_chunk = get_events(chunk, last_chunk, top_th, bottom_th, a)
         if events is not None:
-            events = merge_events(events, new_events, lump_th, chunk_size, iteration)
+            events = IoTCupidProcessing.merge_events(events, new_events, lump_th, chunk_size, iteration)
         else:
             events = new_events
         iteration += 1
