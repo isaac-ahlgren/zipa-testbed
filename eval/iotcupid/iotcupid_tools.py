@@ -46,7 +46,7 @@ def get_events(chunk, prev_chunk, top_th, bottom_th, a):
     if detected_event:
         output = [(0, len(chunk))]
     else:
-        output = None
+        output = []
     return output, proc_chunk
 
 def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
