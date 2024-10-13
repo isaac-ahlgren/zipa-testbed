@@ -28,7 +28,7 @@ WRAP_AROUND_LIMIT_DEFAULT = 10
 
 # Random Parameter Ranges
 A_LENGTH_RANGE = (0, 1)
-TOP_TH_RANGE = (100, 10000)
+TOP_TH_RANGE = (0.5, 100)
 WINDOW_LENGTH_RANGE = (100, MICROPHONE_SAMPLING_RATE*10)
 LUMP_TH_RANGE = (0, 50)
 BOTTOM_TH_MIN_VAL = 0
@@ -57,7 +57,6 @@ def main(
         window_sz = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1]) # nosec
         lump_th = random.randint(LUMP_TH_RANGE[0], LUMP_TH_RANGE[1]*window_sz)  # nosec
         a = random.uniform(A_LENGTH_RANGE[0], A_LENGTH_RANGE[1])  # nosec
-        print(f"top_th: {top_th}, bottom_th: {bottom_th}, lump_th: {lump_th}, a: {a}, window_size: {window_sz}")
         # Calculating the number of samples needed
         return (
             top_th,
