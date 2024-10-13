@@ -50,7 +50,6 @@ def get_events(chunk, prev_chunk, top_th, bottom_th, a):
     return output, proc_chunk
 
 def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
-    print(f"top_th: {top_th}, bottom_th: {bottom_th}, lump_th: {lump_th}, a: {a}, window_size: {window_size}")
     events = None
     last_chunk = None
     iteration = 0
