@@ -24,9 +24,7 @@ from signal_file import Signal_File, Event_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
-TARGET_SNR_DEFAULT = 40
 NUMBER_OF_CHOICES_DEFAULT = 500
-WRAP_AROUND_LIMIT_DEFAULT = 10
 EVENT_NUM_DEFAULT = 16
 
 
@@ -34,27 +32,37 @@ EVENT_NUM_DEFAULT = 16
 CLUSTER_SZ_RANGE = (1, 5)
 CLUSTER_TH_RANGE = (0.1, 0.2)
 
-EVENT_DIR = "./perceptio_data/perceptio_controlled_fuzz/perceptio_controlled_event_fuzz_snr"
+EVENT_DIR = "./perceptio_data/perceptio_real_fuzz/perceptio_real_event_fuzz"
 
-FUZZING_DIR = "perceptio_controlled_fuzz"
-FUZZING_STUB = "perceptio_controlled_fuzz"
+FUZZING_DIR = "perceptio_real_fuzz"
+FUZZING_STUB = "perceptio_real_fuzz"
 
+DEVICE_GROUPS = [["10.0.0.238", "10.0.0.228", "10.0.0.239"],
+                 ["10.0.0.231", "10.0.0.232", "10.0.0.239"],
+                 ["10.0.0.233", "10.0.0.236", "10.0.0.239"],
+                 ["10.0.0.227", "10.0.0.229", "10.0.0.237"],
+                 ["10.0.0.235", "10.0.0.237", "10.0.0.239"],
+                 ["10.0.0.234", "10.0.0.239", "10.0.0.237"]]
+
+DEFAULT_SENSOR_TYPE = "mic"
+
+DEFAULT_TIMESTAMP = "20240813*"
+
+SENSOR_DATA_DIR = "/mnt/nas"
 
 def main(
     key_length=KEY_LENGTH_DEFAULT,
-    target_snr=TARGET_SNR_DEFAULT,
     number_of_choices=NUMBER_OF_CHOICES_DEFAULT,
-    wrap_around_limit=WRAP_AROUND_LIMIT_DEFAULT,
+    data_dir=SENSOR_DATA_DIR,
+    sensor_type=DEFAULT_SENSOR_TYPE,
+    dev_groups=DEFAULT_GROUPS,
+    timestamp=DEFAULT_TIMESTAMP,
 ):
-    make_dirs(DATA_DIRECTORY, FUZZING_DIR, f"{FUZZING_STUB}_snr{target_snr}")
+    make_dirs(DATA_DIRECTORY, FUZZING_DIR, FUZZING_STUB)
 
-    fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}_snr{target_snr}"
+    fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}"
 
-    signals = load_controlled_signal_files(
-        target_snr, wrap_around=True, wrap_around_limit=wrap_around_limit
-    )
-
-    signals = [signals]
+    groups = load_real_signal_groups(data_dir, dev_groups, sensor_type, timestamp)
 
     def get_random_parameters():
         cluster_size = random.randint(CLUSTER_SZ_RANGE[0], CLUSTER_SZ_RANGE[1])  # nosec
@@ -96,14 +104,13 @@ def main(
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_bit_gen=True,
-        change_and_log_seed=True,
     )
     evaluator.fuzzing_evaluation(
-        signals,
+        groups,
         number_of_choices,
         key_length,
         fuzzing_dir,
-        f"{FUZZING_STUB}_snr{target_snr}",
+        FUZZING_STUB,
         multithreaded=True,
     )
 

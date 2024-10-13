@@ -40,7 +40,7 @@ class IoTCupidProcessing:
             received_events, smoothed_data
         )
         if len(received_events) < 2:
-            # Needs two events in order to calculate interevent timings
+            # Needs two events in order to calculate inte6revent timings
             print("Error: Less than two events detected")
             return ([], received_events)
 
@@ -68,20 +68,11 @@ class IoTCupidProcessing:
 
         return inter_event_timings, grouped_events
 
-    def ewma(signal: np.ndarray, a: float) -> np.ndarray:
-        """
-        Computes the exponentially weighted moving average (EWMA) of a signal.
-
-        :param signal: The input signal as a NumPy array.
-        :param a: The smoothing factor used in the EWMA calculation.
-        :return: The EWMA of the signal as a NumPy array.
-        """
-        y = np.zeros(len(signal))
-
-        y[0] = a * signal[0]
-        for i in range(1, len(signal)):
-            y[i] = a * signal[i] + (1 - a) * y[i - 1]
-        return y
+    def ewma(signal_window: np.ndarray, prev_signal_window: np.ndarray, a: float) -> np.ndarray:
+        if prev_signal_window is None:
+            return signal_window
+        else:
+            return a*signal_window + (1-a)*prev_signal_window
 
     """
     Comments potentially for the paper: This algorithm doesn't seem like it was designed for live testing in mind.
@@ -92,20 +83,42 @@ class IoTCupidProcessing:
     with is extremely computationally expensive for large buffers)
     """
 
-    def compute_derivative(signal, window_size: int) -> np.ndarray:
-        """
-        Computes the derivative of a signal based on a specified window size.
+    def compute_derivative(signal):
+        return (signal[-1] - signal[0]) / len(signal)
+    
+    def detect_event(derivative, bottom_th, top_th):
+        event_detected = False
+        if derivative >= bottom_th and derivative <= top_th:
+            event_detected = True
+        return event_detected
 
-        :param signal: Pandas DataFrame containing the signal data.
-        :param window_size: The size of the window over which to compute the derivative.
-        :return: DataFrame containing the derivatives.
-        """
-        derivative_values = []
-        for i in range(len(signal) - window_size):
-            derivative = (signal[i + window_size] - signal[i]) / window_size
-            derivative_values.append(derivative)
-        return np.array(derivative_values)
+    def merge_events(first_event_list, second_event_list, lump_th, chunk_size, iteration):
+        for i in range(len(second_event_list)):
+            second_event_list[i] = (
+                    second_event_list[i][0] + iteration*chunk_size,
+                    second_event_list[i][1] + iteration*chunk_size,
+                )
 
+        event_list = []
+        if len(first_event_list) != 0 and len(second_event_list) != 0:
+            end_event = first_event_list[-1]
+            beg_event = second_event_list[0]
+
+            if beg_event[0] - end_event[1] < lump_th:
+                new_event = (end_event[0], beg_event[1])
+                event_list.extend(first_event_list[:-1])
+                event_list.append(new_event)
+                event_list.extend(second_event_list[1:])
+            else:
+                event_list.extend(first_event_list)
+                event_list.extend(second_event_list)
+        else:
+            event_list.extend(first_event_list)
+            event_list.extend(second_event_list)
+        
+        return event_list
+
+    # EVENTUALLY GET RID OF THIS FUNCTION
     def detect_events(
         derivatives: np.ndarray, bottom_th: float, top_th: float, agg_th: int
     ) -> List[Tuple[int, int]]:

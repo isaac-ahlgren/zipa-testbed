@@ -7,9 +7,12 @@ import numpy as np
 
 sys.path.insert(
     1, os.getcwd() + "/../../src/"
-)  # Gives us path to Perceptio algorithm in /src
+)  # Gives us path to IoTCupid algorithm in /src
 
 from signal_processing.iotcupid import IoTCupidProcessing  # noqa: E402
+
+MICROPHONE_SAMPLING_RATE = 44100
+DATA_DIRECTORY = "./iotcupid_data"
 
 goldsig_rng = np.random.default_rng(0)
 
@@ -36,6 +39,33 @@ def adversary_signal(sample_num):
     """
     return adv_rng.integers(0, 10, size=sample_num)
 
+def get_events(chunk, prev_chunk, top_th, bottom_th, a):
+    proc_chunk = IoTCupidProcessing.ewma(chunk, prev_chunk, a)
+    deriv = IoTCupidProcessing.compute_derivative(proc_chunk)
+    detected_event = IoTCupidProcessing.detect_event(abs(deriv), bottom_th, top_th)
+    if detected_event:
+        output = [(0, len(chunk))]
+    else:
+        output = None
+    return output, proc_chunk
+
+def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
+    print(f"top_th: {top_th}, bottom_th: {bottom_th}, lump_th: {lump_th}, a: {a}, window_size: {window_size}")
+    events = None
+    last_chunk = None
+    iteration = 0
+    while not signal.get_finished_reading():
+        chunk = signal.read(window_size)
+        if len(chunk) != window_size:
+            continue
+
+        new_events, last_chunk = get_events(chunk, last_chunk, top_th, bottom_th, a)
+        if events is not None:
+            events = merge_events(events, new_events, lump_th, chunk_size, iteration)
+        else:
+            events = new_events
+        iteration += 1
+    return events
 
 def gen_min_events(
     signal: Any,

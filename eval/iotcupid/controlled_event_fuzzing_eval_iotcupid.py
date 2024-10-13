@@ -4,40 +4,37 @@ import sys
 from typing import List
 
 import numpy as np
-from perceptio_tools import (
+from iotcupid_tools import (
     DATA_DIRECTORY,
     MICROPHONE_SAMPLING_RATE,
-    process_events,
+    extract_all_events,
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
     get_fuzzing_command_line_args,
-    load_random_events,
     load_controlled_signal_files,
     log_parameters,
-    calc_all_event_bits,
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Signal_File, Event_File  # noqa: E402
+from signal_file import Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
 TARGET_SNR_DEFAULT = 40
 NUMBER_OF_CHOICES_DEFAULT = 500
 WRAP_AROUND_LIMIT_DEFAULT = 10
-EVENT_NUM_DEFAULT = 16
-
 
 # Random Parameter Ranges
-CLUSTER_SZ_RANGE = (1, 5)
-CLUSTER_TH_RANGE = (0.1, 0.2)
+A_LENGTH_RANGE = (0, 1)
+TOP_TH_RANGE = (100, 10000)
+WINDOW_LENGTH_RANGE = (100, MICROPHONE_SAMPLING_RATE*10)
+LUMP_TH_RANGE = (0, 50)
+BOTTOM_TH_MIN_VAL = 0
 
-EVENT_DIR = "./perceptio_data/perceptio_controlled_fuzz/perceptio_controlled_event_fuzz_snr"
-
-FUZZING_DIR = "perceptio_controlled_fuzz"
-FUZZING_STUB = "perceptio_controlled_fuzz"
+FUZZING_DIR = "iotcupid_controlled_fuzz"
+FUZZING_STUB = "iotcupid_controlled_event_fuzz"
 
 
 def main(
@@ -54,48 +51,33 @@ def main(
         target_snr, wrap_around=True, wrap_around_limit=wrap_around_limit
     )
 
-    signals = [signals]
-
     def get_random_parameters():
-        cluster_size = random.randint(CLUSTER_SZ_RANGE[0], CLUSTER_SZ_RANGE[1])  # nosec
-        cluster_th = random.uniform(CLUSTER_TH_RANGE[0], CLUSTER_TH_RANGE[1])  # nosec
-        event_dir, params = load_random_events(EVENT_DIR + str(target_snr))
-        top_th = params["top_th"]
-        bottom_th = params["bottom_th"]
-        lump_th = params["lump_th"]
-        a = params["a"]
-
+        top_th = random.uniform(TOP_TH_RANGE[0], TOP_TH_RANGE[1])  # nosec
+        bottom_th = random.uniform(BOTTOM_TH_MIN_VAL, top_th)  # nosec
+        window_sz = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1]) # nosec
+        lump_th = random.randint(LUMP_TH_RANGE[0], LUMP_TH_RANGE[1]*window_sz)  # nosec
+        a = random.uniform(A_LENGTH_RANGE[0], A_LENGTH_RANGE[1])  # nosec
+        print(f"top_th: {top_th}, bottom_th: {bottom_th}, lump_th: {lump_th}, a: {a}, window_size: {window_sz}")
+        # Calculating the number of samples needed
         return (
             top_th,
             bottom_th,
             lump_th,
             a,
-            cluster_size,
-            cluster_th,
-            MICROPHONE_SAMPLING_RATE,
-            EVENT_NUM_DEFAULT,
-            event_dir,
+            window_sz
         )
 
     def log(params, file_name_stub):
-        names = ["top_th", "bottom_th", "lump_th", "a", "cluster_size", "cluster_th", "sampling_rate", "number_of_events", "event_dir"]
-        param_list = [params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8]]
+        names = ["top_th", "bottom_th", "lump_th", "a", "window_sz"]
+        param_list = [params[0], params[1], params[2], params[3]]
         log_parameters(file_name_stub, names, param_list)
-
-    def func(signals, *params):
-        key_size = params[0]
-        cluster_sizes_to_check = params[5]
-        cluster_th = params[6]
-        Fs = params[7]
-        number_of_events = params[8]
-        return calc_all_event_bits(signals, process_events, number_of_events, key_size, cluster_sizes_to_check, cluster_th, Fs)
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
-        func,
+        extract_all_events,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
-        event_bit_gen=True,
+        event_gen=True,
         change_and_log_seed=True,
     )
     evaluator.fuzzing_evaluation(

@@ -79,7 +79,7 @@ def process_events(events, event_signals, key_size, cluster_sizes_to_check, clus
 
     grouped_events = PerceptioProcessing.group_events(events, labels, k)
 
-    fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size, Fs)
+    fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size // 8, Fs)
 
     return fps
 

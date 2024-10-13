@@ -200,6 +200,13 @@ def load_signal_buffers(
         sbs.append(sb)
     return sbs
 
+def load_real_signal_groups(data_dir, group_ids, sensor_type, times):
+    sf_groups = []
+    for group in group_ids:
+        sf_group = load_real_signal_files(data_dir, group, sensor_type, times)
+        sf_groups.append(sf_groups)
+    return sf_groups
+
 def load_real_signal_files(data_dir, dev_ids, sensor_type, times):
     file_stubs = []
     for id in dev_ids:
@@ -349,8 +356,12 @@ def log_bit_gen_outcomes(file_name_stub, byte_list, extra_list, key_length):
     log_extras(file_name_stub, extra_list)
 
 def log_event_gen_outcomes(file_name_stub, event_timestamps):
-    start_times = [x[0] for x in event_timestamps]
-    end_times = [x[1] for x in event_timestamps]
+    if event_timestamps is None:
+        start_times = [None]
+        end_times = [None]
+    else:
+        start_times = [x[0] for x in event_timestamps]
+        end_times = [x[1] for x in event_timestamps]
     csv_dict = {"start_times": start_times, "end_times": end_times}
     timestamps_file_name = f"{file_name_stub}_time_stamps.csv"
     timestamps_df = pd.DataFrame(csv_dict)
