@@ -14,7 +14,7 @@ sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
     get_fuzzing_command_line_args,
     load_random_events,
-    load_controlled_signal_files,
+    load_real_signal_groups,
     log_parameters,
     calc_all_event_bits,
     make_dirs,
@@ -55,7 +55,7 @@ def main(
     number_of_choices=NUMBER_OF_CHOICES_DEFAULT,
     data_dir=SENSOR_DATA_DIR,
     sensor_type=DEFAULT_SENSOR_TYPE,
-    dev_groups=DEFAULT_GROUPS,
+    dev_groups=DEVICE_GROUPS,
     timestamp=DEFAULT_TIMESTAMP,
 ):
     make_dirs(DATA_DIRECTORY, FUZZING_DIR, FUZZING_STUB)
@@ -67,7 +67,7 @@ def main(
     def get_random_parameters():
         cluster_size = random.randint(CLUSTER_SZ_RANGE[0], CLUSTER_SZ_RANGE[1])  # nosec
         cluster_th = random.uniform(CLUSTER_TH_RANGE[0], CLUSTER_TH_RANGE[1])  # nosec
-        event_dir, params = load_random_events(EVENT_DIR + str(target_snr))
+        event_dir, params = load_random_events(EVENT_DIR)
         top_th = params["top_th"]
         bottom_th = params["bottom_th"]
         lump_th = params["lump_th"]
