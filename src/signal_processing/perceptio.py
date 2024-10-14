@@ -115,7 +115,7 @@ class PerceptioProcessing:
 
         return events
 
-    def generate_features(self, signal):
+    def generate_features(signal):
         length = len(signal)
         if length == 1:
             max_amplitude = signal[0]
