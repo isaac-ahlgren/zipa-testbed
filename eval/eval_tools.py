@@ -466,15 +466,33 @@ def load_controlled_signal_seeds(dir, signals):
         seeds.append(df_dict["seed_used"][0])
     return seeds
 
+def get_max_files(files, event_dir):
+    max_length = 0
+    for file in files:
+        contents = glob.glob("*", root_dir=f"{event_dir}/{file}")
+        if len(contents) > max_length:
+            max_length = len(contents)
+    return max_length
+
+def filter_files(files, event_dir, max_file_contents):
+    output = []
+    for file in files:
+        contents = glob.glob("*", root_dir=f"{event_dir}/{file}")
+        if len(contents) == max_file_contents:
+            output.append(file)
+    return output
+
 def load_random_events(event_dir):
     all_files = glob.glob("*", root_dir=event_dir)
 
     if len(all_files) == 0:
         raise Exception("load_random_events: No files found")
 
-    rand_index = random.randint(0, len(all_files)-1)
+    max_file_contents = get_max_files(all_files, event_dir)
 
-    chosen_events = all_files[rand_index]
+    filtered_files = filter_files(all_files, event_dir, max_file_contents)
+
+    chosen_events = random.choice(filtered_files)
 
     path_to_events = f"{event_dir}/{chosen_events}"
 
