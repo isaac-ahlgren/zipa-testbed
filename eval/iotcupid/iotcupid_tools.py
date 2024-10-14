@@ -39,6 +39,34 @@ def adversary_signal(sample_num):
     """
     return adv_rng.integers(0, 10, size=sample_num)
 
+def process_events(events, event_signals, key_size, feature_dim, 
+                   m_start, m_end, m_searches, mem_thresh, 
+                   quantization_factor, cluster_sizes_to_check, cluster_th, Fs):
+
+    event_features = IoTCupidProcessing.get_event_features(
+            event_signals, feature_dim
+        )
+
+    cntr, u, optimal_clusters, fpcs = (
+        IoTCupidProcessing.fuzzy_cmeans_w_elbow_method(
+            event_features.T,
+            cluster_sizes_to_check,
+            cluster_th,
+            m_start,
+            m_end,
+            m_searches,
+            mem_thresh,
+        )
+    )
+
+    grouped_events = IoTCupidProcessing.group_events(events, u, mem_thresh)
+
+    inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(
+        grouped_events, Fs, quantization_factor, key_size
+    )
+
+    return inter_event_timings
+
 def get_events(chunk, prev_chunk, top_th, bottom_th, a):
     proc_chunk = IoTCupidProcessing.ewma(chunk, prev_chunk, a)
     deriv = IoTCupidProcessing.compute_derivative(proc_chunk)

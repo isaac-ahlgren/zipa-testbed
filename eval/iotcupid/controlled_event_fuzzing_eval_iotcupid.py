@@ -68,7 +68,7 @@ def main(
 
     def log(params, file_name_stub):
         names = ["top_th", "bottom_th", "lump_th", "a", "window_sz"]
-        param_list = [params[0], params[1], params[2], params[3]]
+        param_list = [params[0], params[1], params[2], params[3], params[4]]
         log_parameters(file_name_stub, names, param_list)
 
     # Creating an evaluator object with the bit generation algorithm
