@@ -141,7 +141,6 @@ def load_signal_files(
 
 def load_events(file):
     df = pd.read_csv(file)  
-    df = df.to_dict()
     if "start_times" in df:
         output = [(df["start_times"][i], df["end_times"][i]) for i in range(len(df))]
     else:
