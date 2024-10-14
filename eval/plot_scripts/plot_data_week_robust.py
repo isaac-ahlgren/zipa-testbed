@@ -12,19 +12,35 @@ sys.path.insert(1, os.path.join(os.getcwd(), "eval"))
 from eval_tools import load_parameters  # noqa: E402
 from utils import load_bytes
 
-PLOTTING_DIR = "./eval/plot_scripts/plot_data/schurmann_real_full_week"
+# Define plotting directories for both datasets
+SCHURMANN_PLOTTING_DIR = "./eval/plot_scripts/plot_data/schurmann_real_full_week"
+MIETTINEN_PLOTTING_DIR = "./eval/plot_scripts/plot_data/miettinen_real_full_week"
 
-if not os.path.exists(PLOTTING_DIR):
-   os.makedirs(PLOTTING_DIR)
+# Ensure the directories exist
+if not os.path.exists(SCHURMANN_PLOTTING_DIR):
+    os.makedirs(SCHURMANN_PLOTTING_DIR)
 
-# Update the groupings dynamically
-DEVICE_GROUPS = [
-   ("10.0.0.227", "10.0.0.229", "10.0.0.237"),
-   ("10.0.0.234", "10.0.0.239", "10.0.0.237"),
-   ("10.0.0.231", "10.0.0.232", "10.0.0.239"),
-   ("10.0.0.235", "10.0.0.237", "10.0.0.239"),
-   ("10.0.0.233", "10.0.0.236", "10.0.0.239"),
-   ("10.0.0.238", "10.0.0.228", "10.0.0.239")
+if not os.path.exists(MIETTINEN_PLOTTING_DIR):
+    os.makedirs(MIETTINEN_PLOTTING_DIR)
+
+# Device groups for Schurmann
+SCHURMANN_DEVICE_GROUPS = [
+    ("10.0.0.227", "10.0.0.229", "10.0.0.237"),
+    ("10.0.0.234", "10.0.0.239", "10.0.0.237"),
+    ("10.0.0.231", "10.0.0.232", "10.0.0.239"),
+    ("10.0.0.235", "10.0.0.237", "10.0.0.239"),
+    ("10.0.0.233", "10.0.0.236", "10.0.0.239"),
+    ("10.0.0.238", "10.0.0.228", "10.0.0.239")
+]
+
+# Device groups for Miettinen
+MIETTINEN_DEVICE_GROUPS = [
+    ("10.0.0.227", "10.0.0.229", "10.0.0.237"),
+    ("10.0.0.234", "10.0.0.239", "10.0.0.237"),
+    ("10.0.0.231", "10.0.0.232", "10.0.0.239"),
+    ("10.0.0.235", "10.0.0.237", "10.0.0.239"),
+    ("10.0.0.233", "10.0.0.236", "10.0.0.239"),
+    ("10.0.0.238", "10.0.0.228", "10.0.0.239")
 ]
 
 def get_block_err(bits1, bits2, block_size):
@@ -61,7 +77,7 @@ def process_device_data(week_data, block_size):
 
     return legit_comparison, adversarial_comparison
 
-def plot_ber_comparisons(legit_comparison, adv_comparison, custom_plot_filename):
+def plot_ber_comparisons(legit_comparison, adv_comparison, custom_plot_filename, plotting_dir):
     hours = np.arange(1, 169)
 
     plt.figure(figsize=(10, 7))
@@ -76,12 +92,12 @@ def plot_ber_comparisons(legit_comparison, adv_comparison, custom_plot_filename)
     plt.legend()
     plt.tight_layout()
 
-    custom_plot_path = os.path.abspath(os.path.join(PLOTTING_DIR, custom_plot_filename))
+    custom_plot_path = os.path.abspath(os.path.join(plotting_dir, custom_plot_filename))
     print(f"Saving combined comparison plot to: {custom_plot_path}")
     plt.savefig(custom_plot_path)
     plt.show()
 
-def save_to_csv(legit_comparison, adv_comparison, custom_csv_filename):
+def save_to_csv(legit_comparison, adv_comparison, custom_csv_filename, plotting_dir):
     hours = np.arange(1, 169)
     data = {
         "Hour": hours,
@@ -90,16 +106,16 @@ def save_to_csv(legit_comparison, adv_comparison, custom_csv_filename):
     }
     df = pd.DataFrame(data)
 
-    custom_csv_path = os.path.abspath(os.path.join(PLOTTING_DIR, custom_csv_filename))
+    custom_csv_path = os.path.abspath(os.path.join(plotting_dir, custom_csv_filename))
     df.to_csv(custom_csv_path, index=False)
     print(f"BER data saved to: {custom_csv_path}")
 
-# Main execution loop to process all device groupings
+# Main execution loop to process device groupings for both datasets
 if __name__ == "__main__":
     block_size = 1  # Define the block size
 
-    for group in DEVICE_GROUPS:
-        # Loading the new bit files into the week_data list for each group
+    # Process Schurmann data
+    for group in SCHURMANN_DEVICE_GROUPS:
         week_data = [
             load_bytes(f"local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_{group[0]}_{group[1]}_{group[2]}/schurmann_real_eval_full_two_weeks_{group[0]}_bits.txt"),
             load_bytes(f"local_data/schurmann_real_full/schurmann_real_eval_full_two_weeks_{group[0]}_{group[1]}_{group[2]}/schurmann_real_eval_full_two_weeks_{group[1]}_bits.txt"),
@@ -108,13 +124,28 @@ if __name__ == "__main__":
 
         legit_comparison, adv_comparison = process_device_data(week_data, block_size)
 
-        # Generate plot and CSV filenames dynamically
-        plot_filename = f"{group[0]}_{group[1]}_{group[2]}_ber_comparison_plot_week.pdf"
-        csv_filename = f"{group[0]}_{group[1]}_{group[2]}_ber_comparison_data_week.csv"
+        # Generate plot and CSV filenames dynamically for Schurmann
+        plot_filename = f"{group[0]}_{group[1]}_{group[2]}_ber_comparison_plot_schurmann_week.pdf"
+        csv_filename = f"{group[0]}_{group[1]}_{group[2]}_ber_comparison_data_schurmann_week.csv"
 
-        # Plot combined comparisons for hourly data over the week
-        plot_ber_comparisons(legit_comparison, adv_comparison, custom_plot_filename=plot_filename)
+        # Plot and save Schurmann comparisons
+        plot_ber_comparisons(legit_comparison, adv_comparison, custom_plot_filename=plot_filename, plotting_dir=SCHURMANN_PLOTTING_DIR)
+        save_to_csv(legit_comparison, adv_comparison, custom_csv_filename=csv_filename, plotting_dir=SCHURMANN_PLOTTING_DIR)
 
-        # Save the BER data to a CSV file
-        save_to_csv(legit_comparison, adv_comparison, custom_csv_filename=csv_filename)
+    # Process Miettinen data
+    for group in MIETTINEN_DEVICE_GROUPS:
+        week_data = [
+            load_bytes(f"local_data/miettinen_real_full/miettinen_real_eval_full_two_weeks_{group[0]}_{group[1]}_{group[2]}/miettinen_real_eval_full_two_weeks_{group[0]}_bits.txt"),
+            load_bytes(f"local_data/miettinen_real_full/miettinen_real_eval_full_two_weeks_{group[0]}_{group[1]}_{group[2]}/miettinen_real_eval_full_two_weeks_{group[1]}_bits.txt"),
+            load_bytes(f"local_data/miettinen_real_full/miettinen_real_eval_full_two_weeks_{group[0]}_{group[1]}_{group[2]}/miettinen_real_eval_full_two_weeks_{group[2]}_bits.txt")
+        ]
 
+        legit_comparison, adv_comparison = process_device_data(week_data, block_size)
+
+        # Generate plot and CSV filenames dynamically for Miettinen
+        plot_filename = f"{group[0]}_{group[1]}_{group[2]}_ber_comparison_plot_miettinen_week.pdf"
+        csv_filename = f"{group[0]}_{group[1]}_{group[2]}_ber_comparison_data_miettinen_week.csv"
+
+        # Plot and save Miettinen comparisons
+        plot_ber_comparisons(legit_comparison, adv_comparison, custom_plot_filename=plot_filename, plotting_dir=MIETTINEN_PLOTTING_DIR)
+        save_to_csv(legit_comparison, adv_comparison, custom_csv_filename=csv_filename, plotting_dir=MIETTINEN_PLOTTING_DIR)
