@@ -74,8 +74,7 @@ def main(
         lump_th = params["lump_th"]
         a = params["a"]
         window_sz = params["window_sz"]
-        print(f"feature_dim: {feature_dim},mem_thresh: {mem_thresh},
-              quant_factor: {quant_factor}, cluster_th: {cluster_th},")
+        print(f"feature_dim: {feature_dim},mem_thresh: {mem_thresh}, quant_factor: {quant_factor}, cluster_th: {cluster_th},")
 
         return (
             top_th,
