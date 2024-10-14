@@ -120,8 +120,7 @@ def main(
         cluster_th = params[13]
         Fs = params[14]
         number_of_events = params[15]
-        print(f"key_size: {key_size}, feature_dim: {feature_dim}, m_start: {m_start}, m_end: {m_end}, m_searches: {m_searches}, mem_thresh: {mem_thresh},
-              quant_factor: {quant_factor}, cluster_sizes_to_check: {cluster_sizes_to_check}, cluster_th: {cluster_th}, Fs: {Fs}, number_of_events: {number_of_events}")
+        print(f"key_size: {key_size}, feature_dim: {feature_dim}, m_start: {m_start}, m_end: {m_end}, m_searches: {m_searches}, mem_thresh: {mem_thresh}, quant_factor: {quant_factor}, cluster_sizes_to_check: {cluster_sizes_to_check}, cluster_th: {cluster_th}, Fs: {Fs}, number_of_events: {number_of_events}")
         return calc_all_event_bits(signals, process_events, number_of_events, 
                                    key_size, feature_dim, m_start, m_end, 
                                    m_searches, mem_thresh, quant_factor, 
