@@ -109,6 +109,8 @@ def main(
 
     def func(signals, *params):
         key_size = params[0]
+        a = params[4]
+        window_size = params[5]
         feature_dim = params[6]
         m_start = params[7]
         m_end = params[8]
@@ -121,7 +123,7 @@ def main(
         number_of_events = params[15]
         print(f"key_size: {key_size}, feature_dim: {feature_dim}, m_start: {m_start}, m_end: {m_end}, m_searches: {m_searches}, mem_thresh: {mem_thresh}, quant_factor: {quant_factor}, cluster_sizes_to_check: {cluster_sizes_to_check}, cluster_th: {cluster_th}, Fs: {Fs}, number_of_events: {number_of_events}")
         return calc_all_event_bits(signals, process_events, number_of_events, 
-                                   key_size, feature_dim, m_start, m_end, 
+                                   key_size, window_size, a, feature_dim, m_start, m_end, 
                                    m_searches, mem_thresh, quant_factor, 
                                    cluster_sizes_to_check, cluster_th, Fs)
 
