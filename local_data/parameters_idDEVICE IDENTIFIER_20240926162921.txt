@@ -1,7 +1,0 @@
-protocol: Shurmann_Siggs_Protocol is_host: False
-sensor: test_sensor
-key_length: 8
-parity_symbols: 4
-window_length: 12000
-band_length: 1000
-time_length: 204000

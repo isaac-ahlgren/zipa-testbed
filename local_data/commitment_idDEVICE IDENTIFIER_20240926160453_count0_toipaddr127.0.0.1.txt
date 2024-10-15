@@ -1,1 +1,0 @@
-bytearray(b's\x03\xd9')
