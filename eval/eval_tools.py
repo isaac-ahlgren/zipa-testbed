@@ -206,7 +206,7 @@ def load_real_signal_groups(data_dir, group_ids, sensor_type, times):
     sf_groups = []
     for group in group_ids:
         sf_group = load_real_signal_files(data_dir, group, sensor_type, times)
-        sf_groups.append(sf_groups)
+        sf_groups.append(sf_group)
     return sf_groups
 
 def load_real_signal_files(data_dir, dev_ids, sensor_type, times):
