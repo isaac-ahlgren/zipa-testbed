@@ -85,9 +85,10 @@ def calc_all_event_bits(signals, event_bit_gen_algo_wrapper, number_of_events, *
         legit2.sync(legit1)
         adv.sync(legit1)
 
-        legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
-        legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
-        adv_events, adv_event_sigs = adv.get_events(number_of_events)
+        if not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
+            legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
+            legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
+            adv_events, adv_event_sigs = adv.get_events(number_of_events)
     return legit1_total_bits, legit2_total_bits, adv_total_bits
 
 def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
