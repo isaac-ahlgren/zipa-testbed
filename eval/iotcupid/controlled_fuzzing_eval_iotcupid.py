@@ -67,7 +67,7 @@ def main(
         cluster_th = random.uniform(CLUSTER_TH_RANGE[0], CLUSTER_TH_RANGE[1])  # nosec
         feature_dim = random.randint(FEATURE_DIM_RANGE[0], FEATURE_DIM_RANGE[1]) # nosec
         quant_factor = random.randint(QUANT_FACTOR_RANGE[0], QUANT_FACTOR_RANGE[1]) # nosec
-        mem_thresh = random.randint(MEM_THRESH_RANGE[0], MEM_THRESH_RANGE[1]) # nosec
+        mem_thresh = random.uniform(MEM_THRESH_RANGE[0], MEM_THRESH_RANGE[1]) # nosec
         event_dir, params = load_random_events(EVENT_DIR + str(target_snr))
         top_th = params["top_th"]
         bottom_th = params["bottom_th"]
