@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from utils import extract_from_contents, get_avg_ber_list, parse_eval_directory, bit_err_vs_parameter_plot, make_plot_dir, find_best_parameter_choice
+from utils import extract_from_contents, get_avg_ber_list, parse_eval_directory, parameter_plot, make_plot_dir, find_best_parameter_choice
 
 
 def create_plots(data_dir, controlled_fuzzing_stub, fig_dir_name_stub, plot_func, savefigs=True):
@@ -42,14 +42,14 @@ def plot_schurmann(savefigs=True):
         band_lengths = extract_from_contents(params, "band_length")
         band_portions = np.divide(band_lengths, window_lengths)
 
-        bit_err_vs_parameter_plot(legit_ber, window_lengths, "Window Length Parameter Sweep Bit Error Plot for Legit", "Window Length",
+        parameter_plot(legit_ber, window_lengths, "Window Length Parameter Sweep Bit Error Plot for Legit", "Window Length",
                                   savefig=savefigs, file_name=f"{file_name_stub}_winlen_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, window_lengths, "Window Length Parameter Sweep Bit Error Plot for Adversary", "Window Length",
+        parameter_plot(adv_ber, window_lengths, "Window Length Parameter Sweep Bit Error Plot for Adversary", "Window Length",
                                   savefig=savefigs, file_name=f"{file_name_stub}_winlen_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, band_portions, "Band Length Parameter Sweep Bit Error Plot for Legit", "Band Portion",
+        parameter_plot(legit_ber, band_portions, "Band Length Parameter Sweep Bit Error Plot for Legit", "Band Portion",
                                   savefig=savefigs, file_name=f"{file_name_stub}_bandlen_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, band_portions, "Band Length Parameter Sweep Bit Error Plot for Adversary", "Band Portion",
+        parameter_plot(adv_ber, band_portions, "Band Length Parameter Sweep Bit Error Plot for Adversary", "Band Portion",
                                   savefig=savefigs, file_name=f"{file_name_stub}_bandlen_adv", fig_dir=fig_dir)
         
     create_plots(SCHURMANN_DATA_DIRECTORY, SCHURMANN_CONTROLLED_FUZZING_STUB, FIG_DIR_NAME_STUB, plot_func, savefigs=savefigs)
@@ -65,24 +65,24 @@ def plot_miettinen(savefigs=True):
         rel_thr = extract_from_contents(params, "rel_thr")
         abs_thr = extract_from_contents(params, "abs_thr")
 
-        bit_err_vs_parameter_plot(legit_ber, f_samples, "f Samples Parameter Sweep Bit Error Plot for Legit", "f Samples",
+        parameter_plot(legit_ber, f_samples, "f Samples Parameter Sweep Bit Error Plot for Legit", "f Samples",
                                   savefig=savefigs, file_name=f"{file_name_stub}_fsamp_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, w_samples, "f Samples Parameter Sweep Bit Error Plot for Adversary", "f Samples",
+        parameter_plot(adv_ber, w_samples, "f Samples Parameter Sweep Bit Error Plot for Adversary", "f Samples",
                                   savefig=savefigs, file_name=f"{file_name_stub}_fsamp_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, f_samples, "w Samples Parameter Sweep Bit Error Plot for Legit", "w Samples",
+        parameter_plot(legit_ber, f_samples, "w Samples Parameter Sweep Bit Error Plot for Legit", "w Samples",
                                   savefig=savefigs, file_name=f"{file_name_stub}_wsamp_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, w_samples, "w Samples Parameter Sweep Bit Error Plot for Adversary", "w Samples",
+        parameter_plot(adv_ber, w_samples, "w Samples Parameter Sweep Bit Error Plot for Adversary", "w Samples",
                                   savefig=savefigs, file_name=f"{file_name_stub}_wsamp_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, rel_thr, "Relative Threshold Parameter Sweep Bit Error Plot for Legit", "Relative Threshold",
+        parameter_plot(legit_ber, rel_thr, "Relative Threshold Parameter Sweep Bit Error Plot for Legit", "Relative Threshold",
                                   savefig=savefigs, file_name=f"{file_name_stub}_relthr_legit", fig_dir=fig_dir, range=(0,100))
-        bit_err_vs_parameter_plot(adv_ber, rel_thr, "Relative Threshold Parameter Sweep Bit Error Plot for Adversary", "Relative Threshold",
+        parameter_plot(adv_ber, rel_thr, "Relative Threshold Parameter Sweep Bit Error Plot for Adversary", "Relative Threshold",
                                   savefig=savefigs, file_name=f"{file_name_stub}_relthr_adv", fig_dir=fig_dir, range=(0,100))
         
-        bit_err_vs_parameter_plot(legit_ber, abs_thr, "Absolute Threshold Parameter Sweep Bit Error Plot for Legit", "Absolute Threshold",
+        parameter_plot(legit_ber, abs_thr, "Absolute Threshold Parameter Sweep Bit Error Plot for Legit", "Absolute Threshold",
                                   savefig=savefigs, file_name=f"{file_name_stub}_absthr_legit", fig_dir=fig_dir, range=(0,100))
-        bit_err_vs_parameter_plot(adv_ber, abs_thr, "Absolute Threshold Parameter Sweep Bit Error Plot for Adversary", "Absolute Threshold",
+        parameter_plot(adv_ber, abs_thr, "Absolute Threshold Parameter Sweep Bit Error Plot for Adversary", "Absolute Threshold",
                                   savefig=savefigs, file_name=f"{file_name_stub}_absthr_adv", fig_dir=fig_dir, range=(0,100))
 
     create_plots(MIETTINEN_DATA_DIRECTORY, MIETTINEN_CONTROLLED_FUZZING_STUB, FIG_DIR_NAME_STUB, plot_func, savefigs=savefigs)
@@ -104,54 +104,54 @@ def plot_fastzip(savefigs=True):
         power_th = extract_from_contents(params, "power_th")
         snr_th = extract_from_contents(params, "snr_th")
 
-        bit_err_vs_parameter_plot(legit_ber, window_size, "Window Size Parameter Sweep Bit Error Plot for Legit", "Window Size",
+        parameter_plot(legit_ber, window_size, "Window Size Parameter Sweep Bit Error Plot for Legit", "Window Size",
                                   savefig=savefigs, file_name=f"{file_name_stub}_winsize_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, window_size, "Window Size Parameter Sweep Bit Error Plot for Adversary", "Window Size",
+        parameter_plot(adv_ber, window_size, "Window Size Parameter Sweep Bit Error Plot for Adversary", "Window Size",
                                   savefig=savefigs, file_name=f"{file_name_stub}_winsize_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, overlap_size, "Overlap Size Parameter Sweep Bit Error Plot for Legit", "Overlap Size",
+        parameter_plot(legit_ber, overlap_size, "Overlap Size Parameter Sweep Bit Error Plot for Legit", "Overlap Size",
                                   savefig=savefigs, file_name=f"{file_name_stub}_overlapsize_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, overlap_size, "Overlap Size Parameter Sweep Bit Error Plot for Adversary", "Overlap Size",
+        parameter_plot(adv_ber, overlap_size, "Overlap Size Parameter Sweep Bit Error Plot for Adversary", "Overlap Size",
                                   savefig=savefigs, file_name=f"{file_name_stub}_overlapsize_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, n_bits, "Number of Bits Parameter Sweep Bit Error Plot for Legit", "Number of Bits",
+        parameter_plot(legit_ber, n_bits, "Number of Bits Parameter Sweep Bit Error Plot for Legit", "Number of Bits",
                                   savefig=savefigs, file_name=f"{file_name_stub}_nbits_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, n_bits, "Number of Bits Parameter Sweep Bit Error Plot for Adversary", "Number of Bits",
+        parameter_plot(adv_ber, n_bits, "Number of Bits Parameter Sweep Bit Error Plot for Adversary", "Number of Bits",
                                   savefig=savefigs, file_name=f"{file_name_stub}_nbits_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, eqd_delta, "Equidistance Delta Parameter Sweep Bit Error Plot for Legit", "Equidistance Delta",
+        parameter_plot(legit_ber, eqd_delta, "Equidistance Delta Parameter Sweep Bit Error Plot for Legit", "Equidistance Delta",
                                   savefig=savefigs, file_name=f"{file_name_stub}_eqddelta_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, eqd_delta, "Equidistance Delta Parameter Sweep Bit Error Plot for Adversary", "Equidistance Delta",
+        parameter_plot(adv_ber, eqd_delta, "Equidistance Delta Parameter Sweep Bit Error Plot for Adversary", "Equidistance Delta",
                                   savefig=savefigs, file_name=f"{file_name_stub}_eqddelta_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, ewma, "Use EWMA Parameter Sweep Bit Error Plot for Legit", "Used EWMA",
+        parameter_plot(legit_ber, ewma, "Use EWMA Parameter Sweep Bit Error Plot for Legit", "Used EWMA",
                                   savefig=savefigs, file_name=f"{file_name_stub}_ewmause_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, ewma, "Use EWMA Parameter Sweep Bit Error Plot for Adversary", "Used EWMA",
+        parameter_plot(adv_ber, ewma, "Use EWMA Parameter Sweep Bit Error Plot for Adversary", "Used EWMA",
                                   savefig=savefigs, file_name=f"{file_name_stub}_ewmause_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, alpha, "Alpha Parameter Sweep Bit Error Plot for Legit", "Alpha",
+        parameter_plot(legit_ber, alpha, "Alpha Parameter Sweep Bit Error Plot for Legit", "Alpha",
                                   savefig=savefigs, file_name=f"{file_name_stub}_alpha_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, alpha, "Alpha Threshold Parameter Sweep Bit Error Plot for Adversary", "Alpha",
+        parameter_plot(adv_ber, alpha, "Alpha Threshold Parameter Sweep Bit Error Plot for Adversary", "Alpha",
                                   savefig=savefigs, file_name=f"{file_name_stub}_alpha_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, remove_noise, "Use Remove Noise Parameter Sweep Bit Error Plot for Legit", "Used Remove Noise",
+        parameter_plot(legit_ber, remove_noise, "Use Remove Noise Parameter Sweep Bit Error Plot for Legit", "Used Remove Noise",
                                   savefig=savefigs, file_name=f"{file_name_stub}_rmnoiseuse_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, remove_noise, "Use Remove Noise Parameter Sweep Bit Error Plot for Adversary", "Used Remove Noise",
+        parameter_plot(adv_ber, remove_noise, "Use Remove Noise Parameter Sweep Bit Error Plot for Adversary", "Used Remove Noise",
                                   savefig=savefigs, file_name=f"{file_name_stub}_rmnoiseuse_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, normalize, "Use Normalize Parameter Sweep Bit Error Plot for Legit", "Used Normalize",
+        parameter_plot(legit_ber, normalize, "Use Normalize Parameter Sweep Bit Error Plot for Legit", "Used Normalize",
                                   savefig=savefigs, file_name=f"{file_name_stub}_normuse_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, normalize, "Use Normalize Parameter Sweep Bit Error Plot for Adversary", "Used Normalize",
+        parameter_plot(adv_ber, normalize, "Use Normalize Parameter Sweep Bit Error Plot for Adversary", "Used Normalize",
                                   savefig=savefigs, file_name=f"{file_name_stub}_normuse_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, power_th, "Power Threshold Parameter Sweep Bit Error Plot for Legit", "Power Threshold",
+        parameter_plot(legit_ber, power_th, "Power Threshold Parameter Sweep Bit Error Plot for Legit", "Power Threshold",
                                   savefig=savefigs, file_name=f"{file_name_stub}_powth_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, power_th, "Power Threshold Parameter Sweep Bit Error Plot for Adversary", "Power Threshold",
+        parameter_plot(adv_ber, power_th, "Power Threshold Parameter Sweep Bit Error Plot for Adversary", "Power Threshold",
                                   savefig=savefigs, file_name=f"{file_name_stub}_powth_adv", fig_dir=fig_dir)
         
-        bit_err_vs_parameter_plot(legit_ber, snr_th, "SNR Threshold Parameter Sweep Bit Error Plot for Legit", "SNR Threshold",
+        parameter_plot(legit_ber, snr_th, "SNR Threshold Parameter Sweep Bit Error Plot for Legit", "SNR Threshold",
                                   savefig=savefigs, file_name=f"{file_name_stub}_snrth_legit", fig_dir=fig_dir)
-        bit_err_vs_parameter_plot(adv_ber, snr_th, "SNR Threshold Parameter Sweep Bit Error Plot for Adversary", "SNR Threshold",
+        parameter_plot(adv_ber, snr_th, "SNR Threshold Parameter Sweep Bit Error Plot for Adversary", "SNR Threshold",
                                   savefig=savefigs, file_name=f"{file_name_stub}_snrth_adv", fig_dir=fig_dir)
 
     create_plots(FASTZIP_DATA_DIRECTORY, FASTZIP_CONTROLLED_FUZZING_STUB, FIG_DIR_NAME_STUB, plot_func, savefigs=savefigs)

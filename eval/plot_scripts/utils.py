@@ -86,6 +86,12 @@ def get_avg_ber_list(byte_list1, byte_list2):
         avg_ber_list.append(avg_ber)
     return avg_ber_list
 
+def get_min_entropy_list(byte_list, key_length, symbol_size):
+    min_entropy_list = []
+    for contents in byte_list:
+        min_entropy = get_min_entropy(contents, key_length, symbol_size)
+        min_entropy_list.append(min_entropy)
+    return min_entropy_list
 
 def extract_from_contents(contents, key_word):
     extracted_content = []
@@ -134,7 +140,7 @@ def condense_list(ziped_list):
     return outcome
 
 
-def bit_err_vs_parameter_plot(ber_list, param_list, plot_name, param_label, savefig=False, file_name=None, fig_dir=None, range=None):
+def parameter_plot(ber_list, param_list, plot_name, param_label, savefig=False, file_name=None, fig_dir=None, range=None, ylabel="Bit Error"):
     ziped_list = list(zip(ber_list, param_list))
 
     if range is not None:
@@ -150,7 +156,7 @@ def bit_err_vs_parameter_plot(ber_list, param_list, plot_name, param_label, save
     plt.plot(ord_param_list, ord_ber_list)
     plt.title(plot_name)
     plt.xlabel(param_label)
-    plt.ylabel("Bit Error")
+    plt.ylabel(ylabel)
     if savefig:
         plt.savefig(fig_dir + "/" + file_name + ".pdf")
         plt.clf()
