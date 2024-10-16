@@ -88,7 +88,7 @@ def main(
         cluster_th = params[6]
         Fs = params[7]
         number_of_events = params[8]
-        return calc_all_event_bits(signals, process_events, number_of_events, key_size, cluster_sizes_to_check, cluster_th, Fs)
+        return calc_all_event_bits(signals, process_events, number_of_events, key_size // 8, cluster_sizes_to_check, cluster_th, Fs)
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(

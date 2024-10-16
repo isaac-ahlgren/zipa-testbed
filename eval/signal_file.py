@@ -12,8 +12,6 @@ class Noisy_File(Signal_File_Interface):
         self.sf = sf
         self.target_snr = target_snr
 
-        self.prev_random_num = np.array([])
-
         self.seed = seed
         if seed is not None:
             self.rng = np.random.default_rng(self.seed)

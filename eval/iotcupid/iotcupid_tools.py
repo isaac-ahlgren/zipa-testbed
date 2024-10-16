@@ -84,6 +84,8 @@ def process_events(events, event_signals, key_size, window_size, a, feature_dim,
         grouped_events, Fs, quantization_factor, key_size
     )
 
+    
+
     return inter_event_timings
 
 def get_events(chunk, prev_chunk, top_th, bottom_th, a):
