@@ -63,11 +63,13 @@ def main(
         power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
         snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
         peak_status = False
+        peak_th = 0
         return (
             window_size,
             overlap_size,
             power_th,
             snr_th,
+            peak_th,
             MICROPHONE_SAMPLING_RATE,
             peak_status,
             normalize,
@@ -75,8 +77,28 @@ def main(
         )
 
     def log(params, file_name_stub):
-        names = ["top_th", "bottom_th", "lump_th", "a", "window_sz"]
-        param_list = [params[0], params[1], params[2], params[3], params[4]]
+        names = [
+            "window_size",
+            "overlap_size",
+            "power_th",
+            "snr_th",
+            "peak_th",
+            "sample_rate",
+            "peak_status",
+            "normalize",
+            "alpha",
+        ]
+        param_list = [
+            params[0],
+            params[1],
+            params[2],
+            params[3],
+            params[4],
+            params[5],
+            params[6],
+            params[7],
+            params[8],
+        ]
         log_parameters(file_name_stub, names, param_list)
 
     # Creating an evaluator object with the bit generation algorithm

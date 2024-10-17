@@ -38,15 +38,17 @@ POWER_TH_RANGE = (30, 200)
 
 SNR_TH_RANGE = (0.5, 10)
 
-FUZZING_DIR = "fastzip_event_real_fuzz"
-FUZZING_STUB = "fastzip_event_real_fuzz_day1"
+PEAK_TH_RANGE = (0, 400)
+
+FUZZING_DIR = "fastzip_real_fuzz"
+FUZZING_STUB = "fastzip_event_real_fuzz"
 
 DEFAULT_IDS = ["10.0.0.238","10.0.0.228",
-            "10.0.0.231","10.0.0.232",
-            "10.0.0.233","10.0.0.236",
-            "10.0.0.227","10.0.0.229",
-            "10.0.0.235","10.0.0.237",
-            "10.0.0.234","10.0.0.239"]
+               "10.0.0.231","10.0.0.232",
+               "10.0.0.233","10.0.0.236",
+               "10.0.0.227","10.0.0.229",
+               "10.0.0.235","10.0.0.237",
+               "10.0.0.234","10.0.0.239"]
 
 DEFAULT_SENSOR_TYPE = "mic"
 
@@ -67,17 +69,18 @@ def main(
     fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}"
 
     signals = load_real_signal_files(data_dir, dev_ids, sensor_type, timestamp)
+    
     def get_random_parameters():
         window_size = random.randint(
             WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]
         )  # nosec
         overlap_size = random.randint(MIN_OVERLAP_DEFAULT, window_size // 2)  # nosec
-        alpha = None #random.uniform(0, 1)  # nosec
+        alpha = random.uniform(0, 1)  # nosec
         normalize = random.choice([True, False])  # nosec
         power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
         snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
-        peak_th = 0
-        peak_status = False
+        peak_status = random.choice([True, False])
+        peak_th = random.randint(PEAK_TH_RANGE[0], PEAK_TH_RANGE[1])
         return (
             window_size,
             overlap_size,
@@ -95,9 +98,9 @@ def main(
             "window_size",
             "overlap_size",
             "power_th",
-            "snr_thr",
+            "snr_th",
             "peak_th",
-            "sampling_rate",
+            "sample_rate",
             "peak_status",
             "normalize",
             "alpha",

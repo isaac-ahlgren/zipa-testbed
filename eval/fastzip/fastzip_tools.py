@@ -39,7 +39,7 @@ def fastzip_event_detection_wrapper_func(signal, chunk_size, overlap_size, power
     end_timestamp = None
     events = []
     chunk = signal.read(chunk_size)
-    while not signal.get_finished_reading:
+    while not signal.get_finished_reading():
         if normalize:
             chunk = FastZIPProcessing.normalize_signal(chunk)
         activity = FastZIPProcessing.activity_filter(
