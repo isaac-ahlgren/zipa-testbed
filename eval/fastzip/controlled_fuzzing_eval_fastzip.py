@@ -13,6 +13,7 @@ from fastzip_tools import (
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
     get_fuzzing_command_line_args,
+    load_random_events,
     load_controlled_signal_files,
     log_parameters,
     make_dirs,
@@ -51,6 +52,8 @@ PEAK_STATUS_DEFAULT = None
 NUM_PEAKS_DEFAULT = 0
 BIAS_DEFAULT = 0
 
+EVENT_DIR = "./fastzip_data/fastzip_controlled_fuzz/fastzip_controlled_event_fuzz_snr"
+
 FUZZING_DIR = "fastzip_controlled_fuzz"
 FUZZING_STUB = "fastzip_controlled_fuzz"
 
@@ -70,20 +73,23 @@ def main(
     )
 
     def get_random_parameters():
-        window_size = random.randint(
-            WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]
-        )  # nosec
-        overlap_size = random.randint(MIN_OVERLAP_DEFAULT, window_size // 2)  # nosec
+        event_dir, params = load_random_events(EVENT_DIR + str(target_snr))
+        window_size = params[0]
+        overlap_size = params[1]
+        power_th = params[2]
+        snr_th = params[3]
+        peak_th = params[4]
+        sample_rate = params[5]
+        peak_status = params[6]
+        normalize = params[7]
+        alpha = params[8]
         max_bits = key_length if window_size // 2 > key_length else window_size // 2
         n_bits = random.randint(MIN_N_BITS_DEFAULT, max_bits)  # nosec
-        max_eqd_delta = 1 #np.ceil(window_size / n_bits)
-        eqd_delta = 1 #random.randint(MIN_EQD_DELTA_DEFAULT, max_eqd_delta)  # nosec
+        max_eqd_delta = 1
+        eqd_delta = 1
         ewma = False #random.choice([True, False])  # nosec
         alpha = 0.5 #random.uniform(0, 1)  # nosec
         remove_noise = False #random.choice([True, False])  # nosec
-        normalize = random.choice([True, False])  # nosec
-        power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
-        snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
         return (
             window_size,
             overlap_size,

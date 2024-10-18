@@ -71,6 +71,83 @@ def fastzip_event_detection_wrapper_func(signal, chunk_size, overlap_size, power
 
     return events
 
+def fastzip_bit_gen_wrapper(chunk, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta):
+    if remove_noise:
+        chunk = FastZIPProcessing.remove_noise(chunk)
+    if ewma_filter:
+        chunk = FastZIPProcessing.ewma_filter(abs(chunk), alpha)
+
+    qs_thr = FastZIPProcessing.compute_qs_thr(chunk, bias)
+
+    pts = FastZIPProcessing.generate_equidist_points(
+        len(chunk), np.ceil(len(chunk) / n_bits), eqd_delta
+    )
+
+    fp = ""
+    for pt in pts:
+        for index in pt:
+            if chunk[index] > qs_thr:
+                fp += "1"
+            else:
+                fp += "0"
+    return fp
+
+def disassemble_into_chunks(signal, window_size, overlap_size):
+    number_of_chunks = ((len(signal) - window_size) // overlap_size) + 1
+    chunks = []
+    for i in range(number_of_chunks):
+        chunk = signal[i*overlap_size:i*overlap_size + window_size]
+        chunks.append(chunk)
+    return chunks
+
+def calc_bits(event_file, key_size, window_size, overlap_size, *args):
+    key = ""
+    while not event_file.get_finished_reading() and len(key) < key_size:
+        events, event_sigs = event_file.get_events(1)
+        chunks = disassemble_into_chunks(event_sigs[0], window_size, overlap_size)
+        for chunk in chunks:
+            key += fastzip_bit_gen_wrapper(chunk, *args)
+    return key
+
+
+def calc_all_event_bits_fastzip(signals, , *argv):
+    legit1 = signals[0]
+    legit2 = signals[1]
+    adv = signals[2]
+    
+    legit1_total_bits = []
+    legit2_total_bits = []
+    adv_total_bits = []
+
+    legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
+    legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
+    adv_events, adv_event_sigs = adv.get_events(number_of_events)
+
+    while not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
+        legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
+        legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
+        adv_events, adv_event_sigs = adv.get_events(number_of_events)
+        legit1_bits = event_bit_gen_algo_wrapper(legit1_events, legit1_event_sigs, *argv)
+        legit2_bits = event_bit_gen_algo_wrapper(legit2_events, legit2_event_sigs, *argv)
+        adv_bits = event_bit_gen_algo_wrapper(adv_events, adv_event_sigs, *argv)
+        
+        legit1_total_bits.append(legit1_bits)
+        legit2_total_bits.append(legit2_bits)
+        
+        adv_total_bits.append(adv_bits)
+        legit2.sync(legit1)
+        adv.sync(legit1)
+
+        if not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
+            legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
+            legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
+            adv_events, adv_event_sigs = adv.get_events(number_of_events)
+    return legit1_total_bits, legit2_total_bits, adv_total_bits
+
+
+def fastzip_event_bit_gen_wrapper(events, event_signals, key_size, n_bits, ):
+            i
+
 
 def fastzip_wrapper_function(
     sensor,
