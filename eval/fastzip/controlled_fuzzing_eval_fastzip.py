@@ -7,7 +7,7 @@ import numpy as np
 from fastzip_tools import (
     DATA_DIRECTORY,
     MICROPHONE_SAMPLING_RATE,
-    fastzip_wrapper_function,
+    calc_all_event_bits_fastzip,
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
@@ -90,6 +90,7 @@ def main(
         ewma = False #random.choice([True, False])  # nosec
         alpha = 0.5 #random.uniform(0, 1)  # nosec
         remove_noise = False #random.choice([True, False])  # nosec
+        bias = BIAS_DEFAULT
         return (
             window_size,
             overlap_size,
@@ -98,11 +99,13 @@ def main(
             ewma,
             alpha,
             remove_noise,
+            bias,
             normalize,
             power_th,
             snr_th,
         )
 
+    # FIX THIS
     def log(params, file_name_stub):
         names = [
             "window_size",
@@ -130,36 +133,15 @@ def main(
         ]
         log_parameters(file_name_stub, names, param_list)
 
-    def bit_gen_algo(signal: Signal_File, *args: List) -> np.ndarray:
-        """
-        Generates bits based on the analysis of overlapping chunks from a signal.
-
-        :param signal: The signal buffer to process.
-        :type signal: Signal_Buffer
-        :return: A byte string of the generated bits up to the specified key length.
-        :rtype: ByteString
-        """
-        output, samples_read = fastzip_wrapper_function(
-            signal,
-            args[2],
-            args[0],
-            args[1],
-            args[8],
-            args[9],
-            NUM_PEAKS_DEFAULT,
-            BIAS_DEFAULT,
-            args[3],
-            MICROPHONE_SAMPLING_RATE,
-            KEY_LENGTH_DEFAULT,
-            PEAK_STATUS_DEFAULT,
-            args[4],
-            args[5],
-            args[6],
-            args[7],
-        )
-        if len(output) != KEY_LENGTH_DEFAULT // 8:
-            output = None
-        return output, samples_read
+    def func(signals, *args: List) -> np.ndarray:
+        key_size = params[0]
+        remove_noise = params[7]
+        ewma_filter = params[5]
+        alpha = params[6]
+        bias = params[8]
+        n_bits = params[3]
+        eqd_delta = params[]
+        return calc_all_event_bits_fastzip(signals, key_size, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta)
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(

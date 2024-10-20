@@ -102,6 +102,7 @@ class Evaluator:
         return calc_all_bits(signal, self.func, *params)
 
     def eval_event_gen_func(self, signal: Signal_File_Interface, key_length, file_stub, params):
+        print(params)
         event_timestamps = self.func(signal, *params)
         file_stub = file_stub + "_" + signal.get_id()
 
