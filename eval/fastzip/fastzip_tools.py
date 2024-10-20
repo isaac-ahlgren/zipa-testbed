@@ -59,10 +59,6 @@ def fastzip_event_detection_wrapper_func(signal, chunk_size, overlap_size, power
             new_chunk = signal.read(chunk_size - overlap_size)
             chunk = manage_overlapping_chunks(new_chunk, chunk)
 
-    if found_event:
-        end_timestamp = signal.get_global_index()
-        events.append((start_timestamp, end_timestamp))
-
     return events
 
 def fastzip_bit_gen_wrapper(chunk, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta):
