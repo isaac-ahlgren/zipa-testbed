@@ -50,7 +50,7 @@ def fastzip_event_detection_wrapper_func(signal, chunk_size, overlap_size, power
         
         if activity:
             start_timestamp = signal.get_global_index()
-            end_time_stamp = start_timestamp + chunk_size
+            end_timestamp = start_timestamp + chunk_size
             events.append((start_timestamp, end_timestamp))
         
         if signal.get_finished_reading():
@@ -91,7 +91,7 @@ def calc_bits(event_file, key_size, *args):
     return key
 
 
-def calc_all_event_bits_fastzip(signals, key_size, *argv):
+def calc_all_event_bits_fastzip(signals, key_size, *args):
     legit1 = signals[0]
     legit2 = signals[1]
     adv = signals[2]
