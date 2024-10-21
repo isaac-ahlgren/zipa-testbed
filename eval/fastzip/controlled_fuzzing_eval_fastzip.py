@@ -85,7 +85,6 @@ def main(
         alpha = params[8]
         max_bits = key_length if window_size // 2 > key_length else window_size // 2
         n_bits = random.randint(MIN_N_BITS_DEFAULT, max_bits)  # nosec
-        max_eqd_delta = 1
         eqd_delta = 1
         ewma = False #random.choice([True, False])  # nosec
         alpha = 0.5 #random.uniform(0, 1)  # nosec
@@ -103,6 +102,10 @@ def main(
             normalize,
             power_th,
             snr_th,
+            peak_th,
+            peak_status,
+            sample_rate,
+            event_dir,
         )
 
     # FIX THIS
@@ -118,6 +121,10 @@ def main(
             "normalize",
             "power_th",
             "snr_th",
+            "peak_th",
+            "peak_status",
+            "sample_rate",
+            "event_dir",
         ]
         param_list = [
             params[0],
@@ -133,7 +140,7 @@ def main(
         ]
         log_parameters(file_name_stub, names, param_list)
 
-    def func(signals, *args: List) -> np.ndarray:
+    def func(signals, *params) -> np.ndarray:
         key_size = params[0]
         remove_noise = params[7]
         ewma_filter = params[5]
@@ -145,7 +152,7 @@ def main(
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
-        bit_gen_algo,
+        func,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_driven=False,
