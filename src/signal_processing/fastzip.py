@@ -339,7 +339,7 @@ class FastZIPProcessing:
             fp = ""
             for pt in pts:
                 for index in pt:
-                    if chunk[index] > qs_thr:
+                    if chunk[int(index)] > qs_thr:
                         fp += "1"
                     else:
                         fp += "0"
