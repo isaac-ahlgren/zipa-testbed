@@ -88,7 +88,7 @@ def calc_bits(event_file, key_size, *args):
         events, event_sigs = event_file.get_events(1)
         chunk = event_sigs[0]
         key += fastzip_bit_gen_wrapper(chunk, *args)
-    return key
+    return key[:key_size]
 
 
 def calc_all_event_bits_fastzip(signals, key_size, *args):
@@ -101,7 +101,6 @@ def calc_all_event_bits_fastzip(signals, key_size, *args):
     adv_total_bits = []
 
     while not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
-        print("calculating bits")
         legit1_bits = calc_bits(legit1, key_size, *args)
         legit2_bits = calc_bits(legit2, key_size, *args)
         adv_bits = calc_bits(adv, key_size, *args)
