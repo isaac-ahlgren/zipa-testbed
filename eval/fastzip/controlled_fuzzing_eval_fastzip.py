@@ -119,6 +119,7 @@ def main(
             "ewma",
             "alpha",
             "remove_noise",
+            "bias",
             "normalize",
             "power_th",
             "snr_th",
@@ -142,6 +143,7 @@ def main(
             params[11],
             params[12],
             params[13],
+            params[14],
         ]
         for param, name in zip(param_list, names):
             print(f"{name}: {param} ; ", end="")
