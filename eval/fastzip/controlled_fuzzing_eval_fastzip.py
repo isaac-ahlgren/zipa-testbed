@@ -72,6 +72,8 @@ def main(
         target_snr, wrap_around=True, wrap_around_limit=wrap_around_limit
     )
 
+    signals = [signals]
+
     def get_random_parameters():
         event_dir, params = load_random_events(EVENT_DIR + str(target_snr))
         window_size = params["window_size"]
