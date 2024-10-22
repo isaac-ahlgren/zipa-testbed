@@ -108,7 +108,6 @@ def main(
             event_dir,
         )
 
-    # FIX THIS
     def log(params, file_name_stub):
         names = [
             "window_size",
@@ -137,6 +136,10 @@ def main(
             params[7],
             params[8],
             params[9],
+            params[10],
+            params[11],
+            params[12],
+            params[13],
         ]
         log_parameters(file_name_stub, names, param_list)
 
@@ -147,7 +150,7 @@ def main(
         alpha = params[6]
         bias = params[8]
         n_bits = params[3]
-        eqd_delta = params[]
+        eqd_delta = params[4]
         return calc_all_event_bits_fastzip(signals, key_size, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta)
 
     # Creating an evaluator object with the bit generation algorithm
@@ -155,7 +158,8 @@ def main(
         func,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
-        event_driven=False,
+        event_bit_gen=True,
+        change_and_log_seed=True,
     )
     evaluator.fuzzing_evaluation(
         signals,
@@ -165,6 +169,7 @@ def main(
         f"{FUZZING_STUB}_snr{target_snr}",
         multithreaded=True,
     )
+
 
 
 if __name__ == "__main__":
