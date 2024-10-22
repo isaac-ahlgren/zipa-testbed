@@ -76,7 +76,7 @@ def fastzip_bit_gen_wrapper(chunk, remove_noise, ewma_filter, alpha, bias, n_bit
     fp = ""
     for pt in pts:
         for index in pt:
-            if chunk[index] > qs_thr:
+            if chunk[int(index)] > qs_thr:
                 fp += "1"
             else:
                 fp += "0"
