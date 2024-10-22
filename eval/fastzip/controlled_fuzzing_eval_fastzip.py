@@ -74,15 +74,15 @@ def main(
 
     def get_random_parameters():
         event_dir, params = load_random_events(EVENT_DIR + str(target_snr))
-        window_size = params[0]
-        overlap_size = params[1]
-        power_th = params[2]
-        snr_th = params[3]
-        peak_th = params[4]
-        sample_rate = params[5]
-        peak_status = params[6]
-        normalize = params[7]
-        alpha = params[8]
+        window_size = params["window_size"]
+        overlap_size = params["overlap_size"]
+        power_th = params["power_th"]
+        snr_th = params["snr_th"]
+        peak_th = params["peak_th"]
+        sample_rate = params["sample_rate"]
+        peak_status = params["peak_status"]
+        normalize = params["normalize"]
+        alpha = params["alpha"]
         max_bits = key_length if window_size // 2 > key_length else window_size // 2
         n_bits = random.randint(MIN_N_BITS_DEFAULT, max_bits)  # nosec
         eqd_delta = 1
@@ -141,6 +141,9 @@ def main(
             params[12],
             params[13],
         ]
+        for param, name in zip(param_list, names):
+            print(f"{name}: {param} ; ", end="")
+        print("\n")
         log_parameters(file_name_stub, names, param_list)
 
     def func(signals, *params) -> np.ndarray:
@@ -151,6 +154,7 @@ def main(
         bias = params[8]
         n_bits = params[3]
         eqd_delta = params[4]
+        print(f"key_size: {key_size} ; remove_noise: {remove_noise} ; ewma_filter: {ewma_filter} ; alpha: {alpha} ; bias: {bias} ; n_bits: {n_bits} ; eqd_delta: {eqd_delta}")
         return calc_all_event_bits_fastzip(signals, key_size, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta)
 
     # Creating an evaluator object with the bit generation algorithm
