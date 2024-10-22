@@ -12,15 +12,15 @@ from iotcupid_tools import (
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
-    get_fuzzing_command_line_args,
-    load_random_events,
-    load_controlled_signal_files,
-    log_parameters,
     calc_all_event_bits,
+    get_fuzzing_command_line_args,
+    load_controlled_signal_files,
+    load_random_events,
+    log_parameters,
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Signal_File, Event_File  # noqa: E402
+from signal_file import Event_File, Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
@@ -40,7 +40,9 @@ MEM_THRESH_RANGE = (0.5, 1)
 CLUSTER_SZ_RANGE = (1, 5)
 CLUSTER_TH_RANGE = (0.1, 0.2)
 
-EVENT_DIR = "./iotcupid_data/iotcupid_controlled_fuzz/iotcupid_controlled_event_fuzz_snr"
+EVENT_DIR = (
+    "./iotcupid_data/iotcupid_controlled_fuzz/iotcupid_controlled_event_fuzz_snr"
+)
 
 FUZZING_DIR = "iotcupid_controlled_fuzz"
 FUZZING_STUB = "iotcupid_controlled_fuzz"
@@ -65,16 +67,22 @@ def main(
     def get_random_parameters():
         cluster_size = random.randint(CLUSTER_SZ_RANGE[0], CLUSTER_SZ_RANGE[1])  # nosec
         cluster_th = random.uniform(CLUSTER_TH_RANGE[0], CLUSTER_TH_RANGE[1])  # nosec
-        feature_dim = random.randint(FEATURE_DIM_RANGE[0], FEATURE_DIM_RANGE[1]) # nosec
-        quant_factor = random.randint(QUANT_FACTOR_RANGE[0], QUANT_FACTOR_RANGE[1]) # nosec
-        mem_thresh = random.uniform(MEM_THRESH_RANGE[0], MEM_THRESH_RANGE[1]) # nosec
+        feature_dim = random.randint(
+            FEATURE_DIM_RANGE[0], FEATURE_DIM_RANGE[1]
+        )  # nosec
+        quant_factor = random.randint(
+            QUANT_FACTOR_RANGE[0], QUANT_FACTOR_RANGE[1]
+        )  # nosec
+        mem_thresh = random.uniform(MEM_THRESH_RANGE[0], MEM_THRESH_RANGE[1])  # nosec
         event_dir, params = load_random_events(EVENT_DIR + str(target_snr))
         top_th = params["top_th"]
         bottom_th = params["bottom_th"]
         lump_th = params["lump_th"]
         a = params["a"]
         window_sz = params["window_sz"]
-        print(f"feature_dim: {feature_dim},mem_thresh: {mem_thresh}, quant_factor: {quant_factor}, cluster_th: {cluster_th},")
+        print(
+            f"feature_dim: {feature_dim},mem_thresh: {mem_thresh}, quant_factor: {quant_factor}, cluster_th: {cluster_th},"
+        )
 
         return (
             top_th,
@@ -96,15 +104,42 @@ def main(
         )
 
     def log(params, file_name_stub):
-        names = ["top_th", "bottom_th", "lump_th", "a", 
-                 "window_sz", "feature_dim", "m_start", 
-                 "m_end", "m_searches", "mem_thresh", 
-                 "quant_factor", "cluster_size", "cluster_th", 
-                 "sampling_rate", "number_of_events", "event_dir"]
-        param_list = [params[0], params[1], params[2], params[3], params[4], 
-                      params[5], params[6], params[7], params[8], params[9], 
-                      params[10], params[11], params[12], params[13], params[14], 
-                      params[15]]
+        names = [
+            "top_th",
+            "bottom_th",
+            "lump_th",
+            "a",
+            "window_sz",
+            "feature_dim",
+            "m_start",
+            "m_end",
+            "m_searches",
+            "mem_thresh",
+            "quant_factor",
+            "cluster_size",
+            "cluster_th",
+            "sampling_rate",
+            "number_of_events",
+            "event_dir",
+        ]
+        param_list = [
+            params[0],
+            params[1],
+            params[2],
+            params[3],
+            params[4],
+            params[5],
+            params[6],
+            params[7],
+            params[8],
+            params[9],
+            params[10],
+            params[11],
+            params[12],
+            params[13],
+            params[14],
+            params[15],
+        ]
         log_parameters(file_name_stub, names, param_list)
 
     def func(signals, *params):
@@ -121,11 +156,26 @@ def main(
         cluster_th = params[13]
         Fs = params[14]
         number_of_events = params[15]
-        print(f"key_size: {key_size}, feature_dim: {feature_dim}, m_start: {m_start}, m_end: {m_end}, m_searches: {m_searches}, mem_thresh: {mem_thresh}, quant_factor: {quant_factor}, cluster_sizes_to_check: {cluster_sizes_to_check}, cluster_th: {cluster_th}, Fs: {Fs}, number_of_events: {number_of_events}")
-        return calc_all_event_bits(signals, process_events, number_of_events, 
-                                   key_size // 8, window_size, a, feature_dim, m_start, m_end, 
-                                   m_searches, mem_thresh, quant_factor, 
-                                   cluster_sizes_to_check, cluster_th, Fs)
+        print(
+            f"key_size: {key_size}, feature_dim: {feature_dim}, m_start: {m_start}, m_end: {m_end}, m_searches: {m_searches}, mem_thresh: {mem_thresh}, quant_factor: {quant_factor}, cluster_sizes_to_check: {cluster_sizes_to_check}, cluster_th: {cluster_th}, Fs: {Fs}, number_of_events: {number_of_events}"
+        )
+        return calc_all_event_bits(
+            signals,
+            process_events,
+            number_of_events,
+            key_size // 8,
+            window_size,
+            a,
+            feature_dim,
+            m_start,
+            m_end,
+            m_searches,
+            mem_thresh,
+            quant_factor,
+            cluster_sizes_to_check,
+            cluster_th,
+            Fs,
+        )
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
@@ -143,6 +193,7 @@ def main(
         f"{FUZZING_STUB}_snr{target_snr}",
         multithreaded=True,
     )
+
 
 if __name__ == "__main__":
     main()

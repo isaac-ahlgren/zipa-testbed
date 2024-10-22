@@ -39,6 +39,7 @@ def adversary_signal(sample_num):
     """
     return adv_rng.integers(0, 10, size=sample_num)
 
+
 def preprocess_event_signals(event_signals, window_size, a):
     preprocessed_ev_sig = []
     for ev_sig in event_signals:
@@ -47,35 +48,44 @@ def preprocess_event_signals(event_signals, window_size, a):
         fully_processed_ev_sig = np.zeros(chunks, dtype=np.float64)
         prev_chunk = None
         for i in range(chunks):
-            chunk = ev_sig[i*window_size : (i+1)*window_size]
+            chunk = ev_sig[i * window_size : (i + 1) * window_size]
             proc_chunk = IoTCupidProcessing.ewma(chunk, prev_chunk, a)
             deriv = IoTCupidProcessing.compute_derivative(proc_chunk)
             fully_processed_ev_sig[i] = deriv
             prev_chunk = proc_chunk
         preprocessed_ev_sig.append(fully_processed_ev_sig)
     return preprocessed_ev_sig
-        
 
-def process_events(events, event_signals, key_size, window_size, a, feature_dim, 
-                   m_start, m_end, m_searches, mem_thresh, 
-                   quantization_factor, cluster_sizes_to_check, cluster_th, Fs):
+
+def process_events(
+    events,
+    event_signals,
+    key_size,
+    window_size,
+    a,
+    feature_dim,
+    m_start,
+    m_end,
+    m_searches,
+    mem_thresh,
+    quantization_factor,
+    cluster_sizes_to_check,
+    cluster_th,
+    Fs,
+):
 
     event_signals = preprocess_event_signals(event_signals, window_size, a)
 
-    event_features = IoTCupidProcessing.get_event_features(
-            event_signals, feature_dim
-        )
+    event_features = IoTCupidProcessing.get_event_features(event_signals, feature_dim)
 
-    cntr, u, optimal_clusters, fpcs = (
-        IoTCupidProcessing.fuzzy_cmeans_w_elbow_method(
-            event_features.T,
-            cluster_sizes_to_check,
-            cluster_th,
-            m_start,
-            m_end,
-            m_searches,
-            mem_thresh,
-        )
+    cntr, u, optimal_clusters, fpcs = IoTCupidProcessing.fuzzy_cmeans_w_elbow_method(
+        event_features.T,
+        cluster_sizes_to_check,
+        cluster_th,
+        m_start,
+        m_end,
+        m_searches,
+        mem_thresh,
     )
 
     grouped_events = IoTCupidProcessing.group_events(events, u, mem_thresh)
@@ -84,9 +94,8 @@ def process_events(events, event_signals, key_size, window_size, a, feature_dim,
         grouped_events, Fs, quantization_factor, key_size
     )
 
-    
-
     return inter_event_timings
+
 
 def get_events(chunk, prev_chunk, top_th, bottom_th, a):
     proc_chunk = IoTCupidProcessing.ewma(chunk, prev_chunk, a)
@@ -97,6 +106,7 @@ def get_events(chunk, prev_chunk, top_th, bottom_th, a):
     else:
         output = []
     return output, proc_chunk
+
 
 def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
     events = None
@@ -109,11 +119,14 @@ def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
 
         new_events, last_chunk = get_events(chunk, last_chunk, top_th, bottom_th, a)
         if events is not None:
-            events = IoTCupidProcessing.merge_events(events, new_events, lump_th, window_size, iteration)
+            events = IoTCupidProcessing.merge_events(
+                events, new_events, lump_th, window_size, iteration
+            )
         else:
             events = new_events
         iteration += 1
     return events
+
 
 def gen_min_events(
     signal: Any,

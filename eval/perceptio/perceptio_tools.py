@@ -43,12 +43,13 @@ def adversary_signal(sample_num: int) -> np.ndarray:
 def get_events(arr, top_th, bottom_th, lump_th, a):
     return PerceptioProcessing.get_events(arr, a, bottom_th, top_th, lump_th)
 
+
 def merge_events(first_event_list, second_event_list, lump_th, chunk_size, iteration):
     for i in range(len(second_event_list)):
         second_event_list[i] = (
-                second_event_list[i][0] + iteration*chunk_size,
-                second_event_list[i][1] + iteration*chunk_size,
-            )
+            second_event_list[i][0] + iteration * chunk_size,
+            second_event_list[i][1] + iteration * chunk_size,
+        )
 
     event_list = []
     if len(first_event_list) != 0 and len(second_event_list) != 0:
@@ -66,10 +67,13 @@ def merge_events(first_event_list, second_event_list, lump_th, chunk_size, itera
     else:
         event_list.extend(first_event_list)
         event_list.extend(second_event_list)
-    
+
     return event_list
 
-def process_events(events, event_signals, key_size, cluster_sizes_to_check, cluster_th, Fs):
+
+def process_events(
+    events, event_signals, key_size, cluster_sizes_to_check, cluster_th, Fs
+):
 
     event_features = [PerceptioProcessing.generate_features(x) for x in event_signals]
 
@@ -83,6 +87,7 @@ def process_events(events, event_signals, key_size, cluster_sizes_to_check, clus
 
     return fps
 
+
 def extract_all_events(signal, top_th, bottom_th, lump_th, a, chunk_size=10000):
     events = None
     iteration = 0
@@ -95,6 +100,7 @@ def extract_all_events(signal, top_th, bottom_th, lump_th, a, chunk_size=10000):
             events = new_events
         iteration += 1
     return events
+
 
 def extract_events(
     arr: np.ndarray, top_th: float, bottom_th: float, lump_th: int, a: float
@@ -113,6 +119,7 @@ def extract_events(
     event_features = PerceptioProcessing.get_event_features(events, arr)
 
     return events, event_features
+
 
 def gen_min_events(
     signal: np.ndarray,

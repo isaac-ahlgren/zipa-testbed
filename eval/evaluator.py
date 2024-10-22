@@ -6,14 +6,14 @@ from eval_tools import (
     calc_all_bits,
     calc_all_event_bits,
     cmp_bits,
-    load_event_files,
-    load_controlled_signal_seeds,
     events_cmp_bits,
     gen_id,
+    load_controlled_signal_seeds,
+    load_event_files,
     log_bit_gen_outcomes,
+    log_event_bits,
     log_event_gen_outcomes,
     log_seed,
-    log_event_bits,
 )
 from signal_file_interface import Signal_File_Interface
 
@@ -101,7 +101,9 @@ class Evaluator:
     def evaluate_device_bit_gen(self, signal: Signal_File_Interface, params: Tuple):
         return calc_all_bits(signal, self.func, *params)
 
-    def eval_event_gen_func(self, signal: Signal_File_Interface, key_length, file_stub, params):
+    def eval_event_gen_func(
+        self, signal: Signal_File_Interface, key_length, file_stub, params
+    ):
         print(params)
         event_timestamps = self.func(signal, *params)
         file_stub = file_stub + "_" + signal.get_id()
@@ -115,7 +117,7 @@ class Evaluator:
         event_dir = params[-1]
 
         if self.change_and_log_seed:
-            seeds = load_controlled_signal_seeds(event_dir, signals)   
+            seeds = load_controlled_signal_seeds(event_dir, signals)
             for signal, seed in zip(signals, seeds):
                 signal.set_seed(seed)
 
@@ -125,7 +127,7 @@ class Evaluator:
 
         for b, signal in zip(bits, signals):
             new_file_stub = file_stub + "_" + signal.get_id()
-            log_event_bits(new_file_stub, b, key_length)           
+            log_event_bits(new_file_stub, b, key_length)
 
     def eval_bit_gen_func(self, signal, key_length, file_stub, params):
         outcome, extras = self.evaluate_device_bit_gen(signal, params)
@@ -158,7 +160,9 @@ class Evaluator:
         for thread in threads:
             thread.join()
 
-    def best_parameter_evaluation(self, group_signals, group_params, key_length, dir, file_stub):
+    def best_parameter_evaluation(
+        self, group_signals, group_params, key_length, dir, file_stub
+    ):
         threads = []
         for signal_group, params in zip(group_signals, group_params):
             id1 = signal_group[0].get_id()
@@ -170,10 +174,12 @@ class Evaluator:
 
             stub = f"{dir_path}/{file_stub}"
             for signal in signal_group:
-                p = Process(target=self.eval_func, args=(signal, key_length, stub, params))
+                p = Process(
+                    target=self.eval_func, args=(signal, key_length, stub, params)
+                )
                 p.start()
                 threads.append(p)
-        
+
         for thread in threads:
             thread.join()
 
@@ -194,7 +200,7 @@ class Evaluator:
             if not os.path.isdir(file_dir):
                 os.mkdir(file_dir)
             file_stub = file_dir + "/" + choice_file_stub
-            self.parameter_log_func(params, file_stub) 
+            self.parameter_log_func(params, file_stub)
 
             if multithreaded:
                 self.eval_multithreaded(signals, key_length, file_stub, params)

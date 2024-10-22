@@ -1,14 +1,16 @@
+import inspect
 import json
 import os
+import pkgutil
 import select
 import socket
-import pkgutil
-import inspect
 from multiprocessing import Process
 
 import netifaces as ni
 import yaml
 
+import protocols
+import sensors
 from networking.browser import ZIPA_Service_Browser
 from networking.network import *
 from networking.nfs import NFSLogger
@@ -16,8 +18,6 @@ from protocols.protocol_interface import ProtocolInterface
 from sensors.sensor_collector import Sensor_Collector
 from sensors.sensor_interface import SensorInterface
 from sensors.sensor_reader import Sensor_Reader
-import protocols
-import sensors
 
 # Used to initiate and begin protocol
 HOST = "host    "
@@ -55,8 +55,8 @@ class ZIPA_System:
         )
 
         # Set up sensors
-        sensor_configs = (
-            self.get_sensor_configs(os.getcwd() + "/src/sensors/sensor_config.yaml")
+        sensor_configs = self.get_sensor_configs(
+            os.getcwd() + "/src/sensors/sensor_config.yaml"
         )
         self.create_sensors(
             sensor_configs,
@@ -238,33 +238,37 @@ class ZIPA_System:
         # Iterate through each sensor in the YAML file, extracting necessary information
         for sensor_name, settings in config.items():
             sensor_configs[sensor_name] = {
-                'sample_rate': settings.get('sample_rate', None),
-                'chunk_size': settings.get('chunk_size', None),
-                'is_used': settings.get('is_used', False),
-                'time_collected': settings.get('time_collected', None),
-                'rms_enabled': settings.get('rms_enabled', False),
-                'antialias_sample_rate': settings.get('antialias_sample_rate', None)  # Optional parameter
+                "sample_rate": settings.get("sample_rate", None),
+                "chunk_size": settings.get("chunk_size", None),
+                "is_used": settings.get("is_used", False),
+                "time_collected": settings.get("time_collected", None),
+                "rms_enabled": settings.get("rms_enabled", False),
+                "antialias_sample_rate": settings.get(
+                    "antialias_sample_rate", None
+                ),  # Optional parameter
             }
         print("Sensor configs:", sensor_configs)
 
         return sensor_configs
 
-
-
     def create_sensors(self, sensor_configs, collection_mode=False):
         self.devices = {}
         self.sensors = {}
         for sensor_name, config in sensor_configs.items():
-            if config['is_used']:
+            if config["is_used"]:
                 try:
-                    module = __import__(f"sensors.{sensor_name.lower()}", fromlist=[sensor_name])
+                    module = __import__(
+                        f"sensors.{sensor_name.lower()}", fromlist=[sensor_name]
+                    )
                     sensor_class = getattr(module, sensor_name)
                     if issubclass(sensor_class, SensorInterface):
                         # Pass the entire configuration dictionary to the sensor
                         self.devices[sensor_name] = sensor_class(config)
                 except (ImportError, AttributeError) as e:
                     if self.logger:
-                        self.logger.error(f"Error loading sensor module {sensor_name}: {e}")
+                        self.logger.error(
+                            f"Error loading sensor module {sensor_name}: {e}"
+                        )
                     continue
 
                 # Set up data collectors or readers based on the collection mode
@@ -274,4 +278,3 @@ class ZIPA_System:
                     )
                 else:
                     self.sensors[sensor_name] = Sensor_Reader(self.devices[sensor_name])
-

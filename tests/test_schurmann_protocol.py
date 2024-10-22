@@ -37,12 +37,15 @@ DUMMY_LOGGER = NFSLogger(
     use_local_dir=True,
 )  # nosec
 
+
 def test_protocol_interaction():
     print("In test")
     test_sensor = TestSensor(SENSOR_DUMMY_PARAMETERS, signal_type="random")
     test_sensor.antialias_sample_rate = test_sensor.sample_rate // 2
     test_reader = SensorReader(test_sensor)
-    test_protocol = Shurmann_Siggs_Protocol(PROTOCOL_DUMMY_PARAMETERS, test_reader, DUMMY_LOGGER)
+    test_protocol = Shurmann_Siggs_Protocol(
+        PROTOCOL_DUMMY_PARAMETERS, test_reader, DUMMY_LOGGER
+    )
 
     print("Creating processes")
     host_process = Process(target=host, args=[test_protocol], name="[HOST]")
@@ -59,6 +62,7 @@ def test_protocol_interaction():
 
     assert host_process.exitcode == 0  # nosec
     assert device_process.exitcode == 0  # nosec
+
 
 def host(protocol):
     host_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

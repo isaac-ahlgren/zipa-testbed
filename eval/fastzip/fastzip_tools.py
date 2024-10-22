@@ -33,26 +33,39 @@ def manage_overlapping_chunks(
     overlap_size = len(new_chunk)
     return np.concatenate((previous_chunk[-overlap_size:], new_chunk))
 
-def fastzip_event_detection_wrapper_func(signal, chunk_size, overlap_size, power_thresh, snr_thresh, peak_thresh, sample_rate, peak_status, normalize, alpha):
+
+def fastzip_event_detection_wrapper_func(
+    signal,
+    chunk_size,
+    overlap_size,
+    power_thresh,
+    snr_thresh,
+    peak_thresh,
+    sample_rate,
+    peak_status,
+    normalize,
+    alpha,
+):
     events = []
     chunk = signal.read(chunk_size)
     while not signal.get_finished_reading():
         if normalize:
             chunk = FastZIPProcessing.normalize_signal(chunk)
         activity = FastZIPProcessing.activity_filter(
-                                                chunk,
-                                                power_thresh,
-                                                snr_thresh,
-                                                peak_thresh,
-                                                sample_rate,
-                                                peak_status,
-                                                alpha)
-        
+            chunk,
+            power_thresh,
+            snr_thresh,
+            peak_thresh,
+            sample_rate,
+            peak_status,
+            alpha,
+        )
+
         if activity:
             start_timestamp = signal.get_global_index()
             end_timestamp = start_timestamp + chunk_size
             events.append((start_timestamp, end_timestamp))
-        
+
         if signal.get_finished_reading():
             break
         else:
@@ -61,7 +74,10 @@ def fastzip_event_detection_wrapper_func(signal, chunk_size, overlap_size, power
 
     return events
 
-def fastzip_bit_gen_wrapper(chunk, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta):
+
+def fastzip_bit_gen_wrapper(
+    chunk, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta
+):
     if remove_noise:
         chunk = FastZIPProcessing.remove_noise(chunk)
     if ewma_filter:
@@ -82,6 +98,7 @@ def fastzip_bit_gen_wrapper(chunk, remove_noise, ewma_filter, alpha, bias, n_bit
                 fp += "0"
     return fp
 
+
 def calc_bits(event_file, key_size, *args):
     key = ""
     while not event_file.get_finished_reading() and len(key) < key_size:
@@ -95,12 +112,16 @@ def calc_all_event_bits_fastzip(signals, key_size, *args):
     legit1 = signals[0]
     legit2 = signals[1]
     adv = signals[2]
-    
+
     legit1_total_bits = []
     legit2_total_bits = []
     adv_total_bits = []
 
-    while not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
+    while (
+        not legit1.get_finished_reading()
+        and not legit2.get_finished_reading()
+        and not adv.get_finished_reading()
+    ):
         legit1_bits = calc_bits(legit1, key_size, *args)
         legit2_bits = calc_bits(legit2, key_size, *args)
         adv_bits = calc_bits(adv, key_size, *args)
@@ -109,11 +130,16 @@ def calc_all_event_bits_fastzip(signals, key_size, *args):
         legit2_total_bits.append(legit2_bits)
         adv_total_bits.append(adv_bits)
 
-        if not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
+        if (
+            not legit1.get_finished_reading()
+            and not legit2.get_finished_reading()
+            and not adv.get_finished_reading()
+        ):
             legit2.sync(legit1)
             adv.sync(legit1)
 
     return legit1_total_bits, legit2_total_bits, adv_total_bits
+
 
 def fastzip_wrapper_function(
     sensor,

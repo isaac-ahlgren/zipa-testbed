@@ -39,6 +39,7 @@ SNR_TH_RANGE = (0.5, 2)
 FUZZING_DIR = "fastzip_controlled_fuzz"
 FUZZING_STUB = "fastzip_controlled_event_fuzz"
 
+
 def main(
     key_length=KEY_LENGTH_DEFAULT,
     target_snr=TARGET_SNR_DEFAULT,
@@ -58,7 +59,7 @@ def main(
             WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]
         )  # nosec
         overlap_size = random.randint(MIN_OVERLAP_DEFAULT, window_size // 2)  # nosec
-        alpha = 0.5 #random.uniform(0, 1)  # nosec
+        alpha = 0.5  # random.uniform(0, 1)  # nosec
         normalize = random.choice([True, False])  # nosec
         power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
         snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
@@ -117,6 +118,7 @@ def main(
         f"{FUZZING_STUB}_snr{target_snr}",
         multithreaded=True,
     )
+
 
 if __name__ == "__main__":
     main()

@@ -40,7 +40,7 @@ class MiettinenProcessing:
         for i in range(len(c) - 1):
             feature1 = np.abs((c[i] / c[i - 1]) - 1)
             feature2 = np.abs(c[i] - c[i - 1])
-            #print(f"{feature1} > {rel_thresh} and {feature2} > {abs_thresh}")
+            # print(f"{feature1} > {rel_thresh} and {feature2} > {abs_thresh}")
             if feature1 > rel_thresh and feature2 > abs_thresh:
                 bits += "1"
             else:
@@ -66,5 +66,5 @@ class MiettinenProcessing:
 
         signal = MiettinenProcessing.signal_preprocessing(x, f, w)
         key = MiettinenProcessing.gen_key(signal, rel_thresh, abs_thresh)
-        
+
         return bitstring_to_bytes(key)

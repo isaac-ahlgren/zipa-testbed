@@ -13,8 +13,8 @@ from fastzip_tools import (
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
     get_fuzzing_command_line_args,
-    load_random_events,
     load_controlled_signal_files,
+    load_random_events,
     log_parameters,
     make_dirs,
 )
@@ -88,9 +88,9 @@ def main(
         max_bits = key_length if window_size // 2 > key_length else window_size // 2
         n_bits = random.randint(MIN_N_BITS_DEFAULT, max_bits)  # nosec
         eqd_delta = 1
-        ewma = False #random.choice([True, False])  # nosec
-        alpha = 0.5 #random.uniform(0, 1)  # nosec
-        remove_noise = False #random.choice([True, False])  # nosec
+        ewma = False  # random.choice([True, False])  # nosec
+        alpha = 0.5  # random.uniform(0, 1)  # nosec
+        remove_noise = False  # random.choice([True, False])  # nosec
         bias = BIAS_DEFAULT
         return (
             window_size,
@@ -158,8 +158,12 @@ def main(
         bias = params[8]
         n_bits = params[3]
         eqd_delta = params[4]
-        print(f"key_size: {key_size} ; remove_noise: {remove_noise} ; ewma_filter: {ewma_filter} ; alpha: {alpha} ; bias: {bias} ; n_bits: {n_bits} ; eqd_delta: {eqd_delta}")
-        return calc_all_event_bits_fastzip(signals, key_size, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta)
+        print(
+            f"key_size: {key_size} ; remove_noise: {remove_noise} ; ewma_filter: {ewma_filter} ; alpha: {alpha} ; bias: {bias} ; n_bits: {n_bits} ; eqd_delta: {eqd_delta}"
+        )
+        return calc_all_event_bits_fastzip(
+            signals, key_size, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta
+        )
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
@@ -177,7 +181,6 @@ def main(
         f"{FUZZING_STUB}_snr{target_snr}",
         multithreaded=True,
     )
-
 
 
 if __name__ == "__main__":

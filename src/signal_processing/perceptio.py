@@ -77,7 +77,7 @@ class PerceptioProcessing:
         # Get events that are within the threshold
         events = []
         found_event = False
-        beg_event_num = None        
+        beg_event_num = None
         for i in range(len(signal)):
             if not found_event and signal[i] >= bottom_th and signal[i] <= top_th:
                 found_event = True

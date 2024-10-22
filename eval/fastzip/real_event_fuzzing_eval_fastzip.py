@@ -30,7 +30,7 @@ WRAP_AROUND_LIMIT_DEFAULT = 10
 WINDOW_SIZE_RANGE = (50, 10000)
 
 MIN_OVERLAP_DEFAULT = 0
- 
+
 ALPHA_DEFAULT = None  # between 0 and 1
 NORMALIZE_DEFAULT = True
 
@@ -43,18 +43,27 @@ PEAK_TH_RANGE = (0, 400)
 FUZZING_DIR = "fastzip_real_fuzz"
 FUZZING_STUB = "fastzip_event_real_fuzz"
 
-DEFAULT_IDS = ["10.0.0.238","10.0.0.228",
-               "10.0.0.231","10.0.0.232",
-               "10.0.0.233","10.0.0.236",
-               "10.0.0.227","10.0.0.229",
-               "10.0.0.235","10.0.0.237",
-               "10.0.0.234","10.0.0.239"]
+DEFAULT_IDS = [
+    "10.0.0.238",
+    "10.0.0.228",
+    "10.0.0.231",
+    "10.0.0.232",
+    "10.0.0.233",
+    "10.0.0.236",
+    "10.0.0.227",
+    "10.0.0.229",
+    "10.0.0.235",
+    "10.0.0.237",
+    "10.0.0.234",
+    "10.0.0.239",
+]
 
 DEFAULT_SENSOR_TYPE = "mic"
 
 DEFAULT_TIMESTAMP = "20240813*"
 
 SENSOR_DATA_DIR = "/mnt/nas"
+
 
 def main(
     key_length=KEY_LENGTH_DEFAULT,
@@ -69,7 +78,7 @@ def main(
     fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}"
 
     signals = load_real_signal_files(data_dir, dev_ids, sensor_type, timestamp)
-    
+
     def get_random_parameters():
         window_size = random.randint(
             WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]
@@ -79,8 +88,8 @@ def main(
         normalize = random.choice([True, False])  # nosec
         power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
         snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
-        peak_status = random.choice([True, False])
-        peak_th = random.randint(PEAK_TH_RANGE[0], PEAK_TH_RANGE[1])
+        peak_status = random.choice([True, False])  # nosec
+        peak_th = random.randint(PEAK_TH_RANGE[0], PEAK_TH_RANGE[1])  # nosec
         return (
             window_size,
             overlap_size,
@@ -118,7 +127,6 @@ def main(
         ]
         log_parameters(file_name_stub, names, param_list)
 
-
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
         fastzip_event_detection_wrapper_func,
@@ -136,6 +144,6 @@ def main(
         multithreaded=True,
     )
 
+
 if __name__ == "__main__":
     main()
-

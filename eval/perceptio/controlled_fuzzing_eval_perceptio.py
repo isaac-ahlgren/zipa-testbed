@@ -12,15 +12,15 @@ from perceptio_tools import (
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
-    get_fuzzing_command_line_args,
-    load_random_events,
-    load_controlled_signal_files,
-    log_parameters,
     calc_all_event_bits,
+    get_fuzzing_command_line_args,
+    load_controlled_signal_files,
+    load_random_events,
+    log_parameters,
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Signal_File, Event_File  # noqa: E402
+from signal_file import Event_File, Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
@@ -34,7 +34,9 @@ EVENT_NUM_DEFAULT = 16
 CLUSTER_SZ_RANGE = (1, 5)
 CLUSTER_TH_RANGE = (0.1, 0.2)
 
-EVENT_DIR = "./perceptio_data/perceptio_controlled_fuzz/perceptio_controlled_event_fuzz_snr"
+EVENT_DIR = (
+    "./perceptio_data/perceptio_controlled_fuzz/perceptio_controlled_event_fuzz_snr"
+)
 
 FUZZING_DIR = "perceptio_controlled_fuzz"
 FUZZING_STUB = "perceptio_controlled_fuzz"
@@ -78,8 +80,28 @@ def main(
         )
 
     def log(params, file_name_stub):
-        names = ["top_th", "bottom_th", "lump_th", "a", "cluster_size", "cluster_th", "sampling_rate", "number_of_events", "event_dir"]
-        param_list = [params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8]]
+        names = [
+            "top_th",
+            "bottom_th",
+            "lump_th",
+            "a",
+            "cluster_size",
+            "cluster_th",
+            "sampling_rate",
+            "number_of_events",
+            "event_dir",
+        ]
+        param_list = [
+            params[0],
+            params[1],
+            params[2],
+            params[3],
+            params[4],
+            params[5],
+            params[6],
+            params[7],
+            params[8],
+        ]
         log_parameters(file_name_stub, names, param_list)
 
     def func(signals, *params):
@@ -88,7 +110,15 @@ def main(
         cluster_th = params[6]
         Fs = params[7]
         number_of_events = params[8]
-        return calc_all_event_bits(signals, process_events, number_of_events, key_size // 8, cluster_sizes_to_check, cluster_th, Fs)
+        return calc_all_event_bits(
+            signals,
+            process_events,
+            number_of_events,
+            key_size // 8,
+            cluster_sizes_to_check,
+            cluster_th,
+            Fs,
+        )
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
@@ -106,6 +136,7 @@ def main(
         f"{FUZZING_STUB}_snr{target_snr}",
         multithreaded=True,
     )
+
 
 if __name__ == "__main__":
     main()

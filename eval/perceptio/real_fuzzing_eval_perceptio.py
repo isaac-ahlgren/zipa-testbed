@@ -12,15 +12,15 @@ from perceptio_tools import (
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
+    calc_all_event_bits,
     get_fuzzing_command_line_args,
     load_random_events,
     load_real_signal_groups,
     log_parameters,
-    calc_all_event_bits,
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Signal_File, Event_File  # noqa: E402
+from signal_file import Event_File, Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
@@ -37,18 +37,21 @@ EVENT_DIR = "./perceptio_data/perceptio_real_fuzz/perceptio_real_event_fuzz"
 FUZZING_DIR = "perceptio_real_fuzz"
 FUZZING_STUB = "perceptio_real_fuzz"
 
-DEVICE_GROUPS = [["10.0.0.238", "10.0.0.228", "10.0.0.239"],
-                 ["10.0.0.231", "10.0.0.232", "10.0.0.239"],
-                 ["10.0.0.233", "10.0.0.236", "10.0.0.239"],
-                 ["10.0.0.227", "10.0.0.229", "10.0.0.237"],
-                 ["10.0.0.235", "10.0.0.237", "10.0.0.239"],
-                 ["10.0.0.234", "10.0.0.239", "10.0.0.237"]]
+DEVICE_GROUPS = [
+    ["10.0.0.238", "10.0.0.228", "10.0.0.239"],
+    ["10.0.0.231", "10.0.0.232", "10.0.0.239"],
+    ["10.0.0.233", "10.0.0.236", "10.0.0.239"],
+    ["10.0.0.227", "10.0.0.229", "10.0.0.237"],
+    ["10.0.0.235", "10.0.0.237", "10.0.0.239"],
+    ["10.0.0.234", "10.0.0.239", "10.0.0.237"],
+]
 
 DEFAULT_SENSOR_TYPE = "mic"
 
 DEFAULT_TIMESTAMP = "20240813*"
 
 SENSOR_DATA_DIR = "/mnt/nas"
+
 
 def main(
     key_length=KEY_LENGTH_DEFAULT,
@@ -86,8 +89,28 @@ def main(
         )
 
     def log(params, file_name_stub):
-        names = ["top_th", "bottom_th", "lump_th", "a", "cluster_size", "cluster_th", "sampling_rate", "number_of_events", "event_dir"]
-        param_list = [params[0], params[1], params[2], params[3], params[4], params[5], params[6], params[7], params[8]]
+        names = [
+            "top_th",
+            "bottom_th",
+            "lump_th",
+            "a",
+            "cluster_size",
+            "cluster_th",
+            "sampling_rate",
+            "number_of_events",
+            "event_dir",
+        ]
+        param_list = [
+            params[0],
+            params[1],
+            params[2],
+            params[3],
+            params[4],
+            params[5],
+            params[6],
+            params[7],
+            params[8],
+        ]
         log_parameters(file_name_stub, names, param_list)
 
     def func(signals, *params):
@@ -96,7 +119,15 @@ def main(
         cluster_th = params[6]
         Fs = params[7]
         number_of_events = params[8]
-        return calc_all_event_bits(signals, process_events, number_of_events, key_size // 8, cluster_sizes_to_check, cluster_th, Fs)
+        return calc_all_event_bits(
+            signals,
+            process_events,
+            number_of_events,
+            key_size // 8,
+            cluster_sizes_to_check,
+            cluster_th,
+            Fs,
+        )
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
@@ -113,6 +144,7 @@ def main(
         FUZZING_STUB,
         multithreaded=True,
     )
+
 
 if __name__ == "__main__":
     main()

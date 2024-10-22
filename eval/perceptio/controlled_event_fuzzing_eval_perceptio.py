@@ -4,10 +4,7 @@ import sys
 from typing import List
 
 import numpy as np
-from perceptio_tools import (
-    DATA_DIRECTORY,
-    extract_all_events,
-)
+from perceptio_tools import DATA_DIRECTORY, extract_all_events
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
@@ -83,6 +80,7 @@ def main(
         f"{FUZZING_STUB}_snr{target_snr}",
         multithreaded=True,
     )
+
 
 if __name__ == "__main__":
     main()

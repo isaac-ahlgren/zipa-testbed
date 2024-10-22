@@ -2,14 +2,15 @@ import glob
 import os
 import sys
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import load_parameters  # noqa: E402
 
 PLOTTING_DIR = "./plot_data"
+
 
 def load_bytes(byte_file):
     with open(byte_file, "r") as file:
@@ -41,9 +42,9 @@ def parse_eval_directory(data_dir, file_stub):
             signal_id = df[i1:i2]
             dir_content[signal_id] = data
         output.append(dir_content)
-        if len(dir_content.keys()) > max_key_length: 
+        if len(dir_content.keys()) > max_key_length:
             max_key_length = len(dir_content.keys())
-    
+
     filtered_output = []
     for content in output:
         if len(content.keys()) == max_key_length:
@@ -86,12 +87,14 @@ def get_avg_ber_list(byte_list1, byte_list2):
         avg_ber_list.append(avg_ber)
     return avg_ber_list
 
+
 def get_min_entropy_list(byte_list, key_length, symbol_size):
     min_entropy_list = []
     for contents in byte_list:
         min_entropy = get_min_entropy(contents, key_length, symbol_size)
         min_entropy_list.append(min_entropy)
     return min_entropy_list
+
 
 def extract_from_contents(contents, key_word):
     extracted_content = []
@@ -120,6 +123,7 @@ def get_min_entropy(bits, key_length: int, symbol_size: int) -> float:
     max_prob = np.max(pdf)
     return -np.log2(max_prob)
 
+
 def condense_list(ziped_list):
     outcome = []
 
@@ -127,20 +131,30 @@ def condense_list(ziped_list):
     count = dict()
     for ber, param in ziped_list:
         if param in total_ber:
-            count[param] += 1 
+            count[param] += 1
             total_ber[param] += ber
         else:
             count[param] = 1
             total_ber[param] = ber
-    
+
     for param in total_ber.keys():
         ber = total_ber[param] / count[param]
         outcome.append((ber, param))
-    
+
     return outcome
 
 
-def parameter_plot(ber_list, param_list, plot_name, param_label, savefig=False, file_name=None, fig_dir=None, range=None, ylabel="Bit Error"):
+def parameter_plot(
+    ber_list,
+    param_list,
+    plot_name,
+    param_label,
+    savefig=False,
+    file_name=None,
+    fig_dir=None,
+    range=None,
+    ylabel="Bit Error",
+):
     ziped_list = list(zip(ber_list, param_list))
 
     if range is not None:
@@ -164,7 +178,8 @@ def parameter_plot(ber_list, param_list, plot_name, param_label, savefig=False, 
         df = pd.DataFrame({"x_axis": ord_param_list, "y_axis": ord_ber_list})
         df.to_csv(fig_data_name)
     else:
-       plt.show()
+        plt.show()
+
 
 def make_plot_dir(dir_name):
     dir = PLOTTING_DIR + "/" + dir_name
@@ -172,13 +187,14 @@ def make_plot_dir(dir_name):
         os.mkdir(dir)
     return dir
 
+
 def find_best_parameter_choice(legit_ber, adv_ber, params, file_stub, fig_dir):
     best_score = 200
     best_legit_ber = None
     best_adv_ber = None
     best_param = None
     for legit, adv, param in zip(legit_ber, adv_ber, params):
-        adv_ber_score = 2*abs(50 - adv)
+        adv_ber_score = 2 * abs(50 - adv)
         score = adv_ber_score + legit
         if score < best_score:
             best_param = param
@@ -194,5 +210,3 @@ def find_best_parameter_choice(legit_ber, adv_ber, params, file_stub, fig_dir):
         file_name = fig_dir + "/" + file_stub + "_bestparam.csv"
         df = pd.DataFrame(copy_best_param)
         df.to_csv(file_name)
-
-

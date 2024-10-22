@@ -5,8 +5,8 @@ from typing import List
 import numpy as np
 from schurmann_tools import (
     ANTIALIASING_FILTER,
-    MICROPHONE_SAMPLING_RATE,
     DATA_DIRECTORY,
+    MICROPHONE_SAMPLING_RATE,
     schurmann_wrapper_func,
     unpack_parameters,
 )
@@ -22,12 +22,14 @@ KEY_LENGTH_DEFAULT = 128
 
 DATA_FILE_STUB = "schurmann_real_eval_full_two_weeks"
 
-DEFAULT_GROUPS = [["10.0.0.238", "10.0.0.228", "10.0.0.239"],
-                  ["10.0.0.231", "10.0.0.232", "10.0.0.239"],
-                  ["10.0.0.233", "10.0.0.236", "10.0.0.239"],
-                  ["10.0.0.227", "10.0.0.229", "10.0.0.237"],
-                  ["10.0.0.235", "10.0.0.237", "10.0.0.239"],
-                  ["10.0.0.234", "10.0.0.239", "10.0.0.237"]]
+DEFAULT_GROUPS = [
+    ["10.0.0.238", "10.0.0.228", "10.0.0.239"],
+    ["10.0.0.231", "10.0.0.232", "10.0.0.239"],
+    ["10.0.0.233", "10.0.0.236", "10.0.0.239"],
+    ["10.0.0.227", "10.0.0.229", "10.0.0.237"],
+    ["10.0.0.235", "10.0.0.237", "10.0.0.239"],
+    ["10.0.0.234", "10.0.0.239", "10.0.0.237"],
+]
 
 SENSOR_TYPE_DEFAULT = "mic"
 
@@ -37,23 +39,29 @@ SENSOR_DATA_DIR_DEFAULT = "/mnt/nas"
 
 PARAM_DIR = "../plot_scripts/plot_data/schurmann_real_fuzz"
 PARAM_FILE_STUB = "schurmann_real_fuzz_day1"
-        
+
 
 def main(
-    key_length=KEY_LENGTH_DEFAULT, # has to stay 128 
+    key_length=KEY_LENGTH_DEFAULT,  # has to stay 128
     groups=DEFAULT_GROUPS,
     signal_data_dir=SENSOR_DATA_DIR_DEFAULT,
     parameter_data_dir=PARAM_DIR,
     parameter_file_stub=PARAM_FILE_STUB,
     sensor_type=SENSOR_TYPE_DEFAULT,
     timestamp=TIMESTAMP_DEFAULT,
-
 ):
     if not os.path.isdir(DATA_DIRECTORY):
         os.mkdir(DATA_DIRECTORY)
 
-    group_signals, group_params = load_signal_groups(groups, sensor_type, timestamp, signal_data_dir, 
-                                                         parameter_data_dir, parameter_file_stub, unpack_parameters)
+    group_signals, group_params = load_signal_groups(
+        groups,
+        sensor_type,
+        timestamp,
+        signal_data_dir,
+        parameter_data_dir,
+        parameter_file_stub,
+        unpack_parameters,
+    )
 
     # Defining thcontrolled_signal_fuzzinge bit generation algorithm
     def bit_gen_algo(signal: Signal_File, *argv: List) -> np.ndarray:
@@ -69,7 +77,11 @@ def main(
         signal_chunk = signal.read(read_length)  # Reading a chunk of the signal
         if len(signal_chunk) == read_length:
             output = schurmann_wrapper_func(
-                signal_chunk, argv[0], argv[1], MICROPHONE_SAMPLING_RATE, ANTIALIASING_FILTER
+                signal_chunk,
+                argv[0],
+                argv[1],
+                MICROPHONE_SAMPLING_RATE,
+                ANTIALIASING_FILTER,
             )
         else:
             output = None
@@ -78,7 +90,10 @@ def main(
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(bit_gen_algo)
     # Evaluating the signals with the specified number of trials
-    evaluator.best_parameter_evaluation(group_signals, group_params, key_length, DATA_DIRECTORY, DATA_FILE_STUB)
+    evaluator.best_parameter_evaluation(
+        group_signals, group_params, key_length, DATA_DIRECTORY, DATA_FILE_STUB
+    )
+
 
 if __name__ == "__main__":
     main()

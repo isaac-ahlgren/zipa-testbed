@@ -126,5 +126,6 @@ def get_command_line_args(
 
     return window_length, band_length, key_length, target_snr, trials
 
+
 def unpack_parameters(params):
     return [params["window_length"], params["band_length"], params["sample_num"]]

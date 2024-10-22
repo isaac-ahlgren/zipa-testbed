@@ -286,6 +286,7 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
 
     return nonce
 
+
 def ack_standby(connection: socket.socket, timeout: int) -> bool:
     """
     Waits for an acknowledgement within a specified timeout period.
@@ -303,7 +304,7 @@ def ack_standby(connection: socket.socket, timeout: int) -> bool:
 
     if command == ACKN.encode():
         acknowledged = True
-    
+
     return acknowledged
 
 

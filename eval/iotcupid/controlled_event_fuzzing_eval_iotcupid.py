@@ -29,7 +29,7 @@ WRAP_AROUND_LIMIT_DEFAULT = 10
 # Random Parameter Ranges
 A_LENGTH_RANGE = (0, 1)
 TOP_TH_RANGE = (0.00001, 0.1)
-WINDOW_LENGTH_RANGE = (100, MICROPHONE_SAMPLING_RATE*10)
+WINDOW_LENGTH_RANGE = (100, MICROPHONE_SAMPLING_RATE * 10)
 LUMP_TH_RANGE = (0, 50)
 BOTTOM_TH_MIN_VAL = 0
 
@@ -54,17 +54,15 @@ def main(
     def get_random_parameters():
         top_th = random.uniform(TOP_TH_RANGE[0], TOP_TH_RANGE[1])  # nosec
         bottom_th = random.uniform(BOTTOM_TH_MIN_VAL, top_th)  # nosec
-        window_sz = random.randint(WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1]) # nosec
-        lump_th = random.randint(LUMP_TH_RANGE[0], LUMP_TH_RANGE[1]*window_sz)  # nosec
+        window_sz = random.randint(
+            WINDOW_LENGTH_RANGE[0], WINDOW_LENGTH_RANGE[1]
+        )  # nosec
+        lump_th = random.randint(
+            LUMP_TH_RANGE[0], LUMP_TH_RANGE[1] * window_sz
+        )  # nosec
         a = random.uniform(A_LENGTH_RANGE[0], A_LENGTH_RANGE[1])  # nosec
         # Calculating the number of samples needed
-        return (
-            top_th,
-            bottom_th,
-            lump_th,
-            a,
-            window_sz
-        )
+        return (top_th, bottom_th, lump_th, a, window_sz)
 
     def log(params, file_name_stub):
         names = ["top_th", "bottom_th", "lump_th", "a", "window_sz"]
@@ -87,6 +85,7 @@ def main(
         f"{FUZZING_STUB}_snr{target_snr}",
         multithreaded=True,
     )
+
 
 if __name__ == "__main__":
     main()

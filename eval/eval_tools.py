@@ -1,17 +1,17 @@
 import argparse
+import glob
 import os
 import random
-import glob
 from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
 from signal_file import (
+    Event_File,
     Noisy_File,
     Signal_Buffer,
     Signal_File,
-    Event_File,
     Wrap_Around_File,
 )
 
@@ -64,7 +64,7 @@ def calc_all_event_bits(signals, event_bit_gen_algo_wrapper, number_of_events, *
     legit1 = signals[0]
     legit2 = signals[1]
     adv = signals[2]
-    
+
     legit1_total_bits = []
     legit2_total_bits = []
     adv_total_bits = []
@@ -73,23 +73,36 @@ def calc_all_event_bits(signals, event_bit_gen_algo_wrapper, number_of_events, *
     legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
     adv_events, adv_event_sigs = adv.get_events(number_of_events)
 
-    while not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
-        legit1_bits = event_bit_gen_algo_wrapper(legit1_events, legit1_event_sigs, *argv)
-        legit2_bits = event_bit_gen_algo_wrapper(legit2_events, legit2_event_sigs, *argv)
+    while (
+        not legit1.get_finished_reading()
+        and not legit2.get_finished_reading()
+        and not adv.get_finished_reading()
+    ):
+        legit1_bits = event_bit_gen_algo_wrapper(
+            legit1_events, legit1_event_sigs, *argv
+        )
+        legit2_bits = event_bit_gen_algo_wrapper(
+            legit2_events, legit2_event_sigs, *argv
+        )
         adv_bits = event_bit_gen_algo_wrapper(adv_events, adv_event_sigs, *argv)
-        
+
         legit1_total_bits.append(legit1_bits)
         legit2_total_bits.append(legit2_bits)
-        
+
         adv_total_bits.append(adv_bits)
         legit2.sync(legit1)
         adv.sync(legit1)
 
-        if not legit1.get_finished_reading() and not legit2.get_finished_reading() and not adv.get_finished_reading():
+        if (
+            not legit1.get_finished_reading()
+            and not legit2.get_finished_reading()
+            and not adv.get_finished_reading()
+        ):
             legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
             legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
             adv_events, adv_event_sigs = adv.get_events(number_of_events)
     return legit1_total_bits, legit2_total_bits, adv_total_bits
+
 
 def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     """
@@ -103,7 +116,12 @@ def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
 
 
 def wrap_signal_file(
-    sf, noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None, seed=None
+    sf,
+    noise=False,
+    target_snr=None,
+    wrap_around=False,
+    wrap_around_limit=None,
+    seed=None,
 ):
     if wrap_around:
         sf = Wrap_Around_File(sf, wrap_around_limit=wrap_around_limit)
@@ -121,7 +139,7 @@ def load_signal_files(
     target_snr=None,
     wrap_around=False,
     wrap_around_limit=None,
-    seeds = None,
+    seeds=None,
 ):
     if seeds is None:
         seeds = [None for i in range(len(files))]
@@ -140,13 +158,15 @@ def load_signal_files(
         sfs.append(sf)
     return sfs
 
+
 def load_events(file):
-    df = pd.read_csv(file)  
+    df = pd.read_csv(file)
     if "start_times" in df:
         output = [(df["start_times"][i], df["end_times"][i]) for i in range(len(df))]
     else:
         output = None
     return output
+
 
 def load_event_file(
     event_file_dir,
@@ -177,6 +197,7 @@ def load_event_files(
         efs.append(ef)
     return efs
 
+
 def load_signal_buffers(
     buffers,
     ids,
@@ -184,7 +205,7 @@ def load_signal_buffers(
     target_snr=None,
     wrap_around=False,
     wrap_around_limit=None,
-    seeds=None
+    seeds=None,
 ):
     if seeds is None:
         seeds = [None for i in range(len(buffers))]
@@ -203,6 +224,7 @@ def load_signal_buffers(
         sbs.append(sb)
     return sbs
 
+
 def load_real_signal_groups(data_dir, group_ids, sensor_type, times):
     sf_groups = []
     for group in group_ids:
@@ -210,14 +232,20 @@ def load_real_signal_groups(data_dir, group_ids, sensor_type, times):
         sf_groups.append(sf_group)
     return sf_groups
 
+
 def load_real_signal_files(data_dir, dev_ids, sensor_type, times):
     file_stubs = []
     for id in dev_ids:
         stubs = f"{sensor_type}_id_{id}_date_{times}.csv"
         file_stubs.append(stubs)
-    return load_signal_files(data_dir + "/", file_stubs, dev_ids, noise=False, wrap_around=False)
+    return load_signal_files(
+        data_dir + "/", file_stubs, dev_ids, noise=False, wrap_around=False
+    )
 
-def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limit=None, seeds=[None,None,None]):
+
+def load_controlled_signal_files(
+    target_snr, wrap_around=False, wrap_around_limit=None, seeds=[None, None, None]
+):
     return load_signal_files(
         "../../data/",
         [
@@ -358,6 +386,7 @@ def log_bit_gen_outcomes(file_name_stub, byte_list, extra_list, key_length):
     log_bytes(file_name_stub, byte_list, key_length)
     log_extras(file_name_stub, extra_list)
 
+
 def log_event_gen_outcomes(file_name_stub, event_timestamps):
     if event_timestamps is None:
         start_times = [None]
@@ -368,7 +397,7 @@ def log_event_gen_outcomes(file_name_stub, event_timestamps):
     csv_dict = {"start_times": start_times, "end_times": end_times}
     timestamps_file_name = f"{file_name_stub}_time_stamps.csv"
     timestamps_df = pd.DataFrame(csv_dict)
-    timestamps_df.to_csv(timestamps_file_name)    
+    timestamps_df.to_csv(timestamps_file_name)
 
 
 def log_parameters(file_name_stub, name_list, parameter_list):
@@ -380,6 +409,7 @@ def log_parameters(file_name_stub, name_list, parameter_list):
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name)
 
+
 def log_seed(file_name_stub, seed):
     csv_file = dict()
 
@@ -389,6 +419,7 @@ def log_seed(file_name_stub, seed):
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name)
 
+
 def log_event_bits(file_name_stub, event_bits, key_length):
     file_name = file_name_stub + "_eventbits.txt"
     with open(file_name, "w") as file:
@@ -397,7 +428,7 @@ def log_event_bits(file_name_stub, event_bits, key_length):
             for b in bits:
                 bit_string += bytes_to_bitstring(b, key_length)
             file.write(bit_string + "\n")
-        
+
 
 def get_fuzzing_command_line_args(
     key_length_default: int = None,
@@ -442,6 +473,7 @@ def make_dirs(data_dir, fuzzing_dir, fuzzing_stub_dir):
     if not os.path.isdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}"):
         os.mkdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}")
 
+
 def fix_dict(d):
     new_d = dict()
     for k in d.keys():
@@ -452,11 +484,13 @@ def fix_dict(d):
         new_d[k] = ext_val
     return new_d
 
+
 def load_parameters(param_file):
     df = pd.read_csv(param_file)
     df_dict = df.to_dict()
     params = fix_dict(df_dict)
     return params
+
 
 def load_controlled_signal_seeds(dir, signals):
     seeds = []
@@ -467,6 +501,7 @@ def load_controlled_signal_seeds(dir, signals):
         seeds.append(df_dict["seed_used"][0])
     return seeds
 
+
 def get_max_files(files, event_dir):
     max_length = 0
     for file in files:
@@ -475,6 +510,7 @@ def get_max_files(files, event_dir):
             max_length = len(contents)
     return max_length
 
+
 def filter_files(files, event_dir, max_file_contents):
     output = []
     for file in files:
@@ -482,6 +518,7 @@ def filter_files(files, event_dir, max_file_contents):
         if len(contents) == max_file_contents:
             output.append(file)
     return output
+
 
 def load_random_events(event_dir):
     all_files = glob.glob("*", root_dir=event_dir)
@@ -493,7 +530,7 @@ def load_random_events(event_dir):
 
     filtered_files = filter_files(all_files, event_dir, max_file_contents)
 
-    chosen_events = random.choice(filtered_files)
+    chosen_events = random.choice(filtered_files)  # nosec
 
     path_to_events = f"{event_dir}/{chosen_events}"
 
@@ -501,12 +538,21 @@ def load_random_events(event_dir):
 
     return path_to_events, params
 
-def load_signal_groups(groups, sensor_type, timestamp, signal_data_dir, best_param_dir, param_file_stub, param_unpack_func):
+
+def load_signal_groups(
+    groups,
+    sensor_type,
+    timestamp,
+    signal_data_dir,
+    best_param_dir,
+    param_file_stub,
+    param_unpack_func,
+):
     group_signals = []
     group_parameters = []
     for group in groups:
         signals = load_real_signal_files(signal_data_dir, group, sensor_type, timestamp)
-        
+
         id1 = group[0]
         id2 = group[1]
         id3 = group[2]

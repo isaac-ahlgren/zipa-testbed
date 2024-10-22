@@ -127,5 +127,12 @@ def get_command_line_args(
         trials,
     )
 
+
 def unpack_parameters(params):
-    return [params["f_samples"], params["w_samples"], params["rel_thr"], params["abs_thr"], params["sample_num"]]
+    return [
+        params["f_samples"],
+        params["w_samples"],
+        params["rel_thr"],
+        params["abs_thr"],
+        params["sample_num"],
+    ]

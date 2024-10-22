@@ -28,25 +28,34 @@ WRAP_AROUND_LIMIT_DEFAULT = 10
 
 # Random Parameter Ranges
 A_LENGTH_RANGE = (0, 1)
-TOP_TH_RANGE = (100, 2*133300224)
+TOP_TH_RANGE = (100, 2 * 133300224)
 BOTTOM_TH_MIN_VAL = 0
-LUMP_TH = (0, 15*MICROPHONE_SAMPLING_RATE)
+LUMP_TH = (0, 15 * MICROPHONE_SAMPLING_RATE)
 
 FUZZING_DIR = "perceptio_real_fuzz"
 FUZZING_STUB = "perceptio_real_event_fuzz"
 
-DEFAULT_IDS = ["10.0.0.238","10.0.0.228",
-            "10.0.0.231","10.0.0.232",
-            "10.0.0.233","10.0.0.236",
-            "10.0.0.227","10.0.0.229",
-            "10.0.0.235","10.0.0.237",
-            "10.0.0.234","10.0.0.239"]
+DEFAULT_IDS = [
+    "10.0.0.238",
+    "10.0.0.228",
+    "10.0.0.231",
+    "10.0.0.232",
+    "10.0.0.233",
+    "10.0.0.236",
+    "10.0.0.227",
+    "10.0.0.229",
+    "10.0.0.235",
+    "10.0.0.237",
+    "10.0.0.234",
+    "10.0.0.239",
+]
 
 DEFAULT_SENSOR_TYPE = "mic"
 
 DEFAULT_TIMESTAMP = "20240813*"
 
 SENSOR_DATA_DIR = "/mnt/nas"
+
 
 def main(
     key_length=KEY_LENGTH_DEFAULT,

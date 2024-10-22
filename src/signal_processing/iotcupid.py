@@ -68,11 +68,13 @@ class IoTCupidProcessing:
 
         return inter_event_timings, grouped_events
 
-    def ewma(signal_window: np.ndarray, prev_signal_window: np.ndarray, a: float) -> np.ndarray:
+    def ewma(
+        signal_window: np.ndarray, prev_signal_window: np.ndarray, a: float
+    ) -> np.ndarray:
         if prev_signal_window is None:
             return signal_window
         else:
-            return a*signal_window + (1-a)*prev_signal_window
+            return a * signal_window + (1 - a) * prev_signal_window
 
     """
     Comments potentially for the paper: This algorithm doesn't seem like it was designed for live testing in mind.
@@ -85,19 +87,21 @@ class IoTCupidProcessing:
 
     def compute_derivative(signal):
         return (signal[-1] - signal[0]) / len(signal)
-    
+
     def detect_event(derivative, bottom_th, top_th):
         event_detected = False
         if derivative >= bottom_th and derivative <= top_th:
             event_detected = True
         return event_detected
 
-    def merge_events(first_event_list, second_event_list, lump_th, chunk_size, iteration):
+    def merge_events(
+        first_event_list, second_event_list, lump_th, chunk_size, iteration
+    ):
         for i in range(len(second_event_list)):
             second_event_list[i] = (
-                    second_event_list[i][0] + iteration*chunk_size,
-                    second_event_list[i][1] + iteration*chunk_size,
-                )
+                second_event_list[i][0] + iteration * chunk_size,
+                second_event_list[i][1] + iteration * chunk_size,
+            )
 
         event_list = []
         if len(first_event_list) != 0 and len(second_event_list) != 0:
@@ -115,7 +119,7 @@ class IoTCupidProcessing:
         else:
             event_list.extend(first_event_list)
             event_list.extend(second_event_list)
-        
+
         return event_list
 
     # EVENTUALLY GET RID OF THIS FUNCTION
