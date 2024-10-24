@@ -1,14 +1,9 @@
 import os
 import random
 import sys
-from typing import List
 
 import numpy as np
-from fastzip_tools import (
-    DATA_DIRECTORY,
-    MICROPHONE_SAMPLING_RATE,
-    calc_all_event_bits_fastzip,
-)
+from fastzip_tools import DATA_DIRECTORY, calc_all_event_bits_fastzip
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
@@ -19,7 +14,6 @@ from eval_tools import (  # noqa: E402
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128

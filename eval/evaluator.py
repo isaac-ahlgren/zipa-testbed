@@ -4,7 +4,6 @@ from typing import Any, Callable, List, Tuple
 
 from eval_tools import (
     calc_all_bits,
-    calc_all_event_bits,
     cmp_bits,
     events_cmp_bits,
     gen_id,

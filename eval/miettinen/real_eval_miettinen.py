@@ -5,18 +5,15 @@ from typing import List
 import numpy as np
 from miettinen_tools import (
     DATA_DIRECTORY,
-    MICROPHONE_SAMPLING_RATE,
     miettinen_wrapper_func,
     unpack_parameters,
 )
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_signal_groups, make_dirs  # noqa: E402
+from eval_tools import load_signal_groups  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 from signal_file import Signal_File  # noqa: E402
 
-WINDOW_LENGTH_DEFAULT = 461598
-BAND_LENGTH_DEFAULT = 21460
 KEY_LENGTH_DEFAULT = 128
 
 DATA_FILE_STUB = "miettinen_real_eval_full_two_weeks"

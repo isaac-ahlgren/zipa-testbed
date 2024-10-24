@@ -91,7 +91,7 @@ def process_events(
     grouped_events = IoTCupidProcessing.group_events(events, u, mem_thresh)
 
     inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(
-        grouped_events, Fs, quantization_factor, key_size
+        grouped_events, window_size, Fs, quantization_factor, key_size
     )
 
     return inter_event_timings
@@ -154,44 +154,20 @@ def gen_min_events(
     events = []
     event_signals = []
     iteration = 0
-    while len(events) < min_events:
+    last_chunk = None
+    while not signal.get_finished_reading() and len(events) < min_events:
         chunk = signal.read(chunk_size)
 
-        smoothed_data = IoTCupidProcessing.ewma(chunk, a)
+        if len(chunk) != window_size:
+            continue
 
-        derivatives = IoTCupidProcessing.compute_derivative(smoothed_data, window_size)
-
-        received_events = IoTCupidProcessing.detect_events(
-            abs(derivatives), bottom_th, top_th, agg_th
-        )
-
-        if len(received_events) != 0:
-            received_event_signals = IoTCupidProcessing.get_event_signals(
-                received_events, smoothed_data
+        new_events, last_chunk = get_events(chunk, last_chunk, top_th, bottom_th, a)
+        if events is not None:
+            events = IoTCupidProcessing.merge_events(
+                events, new_events, agg_th, window_size, iteration
             )
-
-            for i in range(len(received_events)):
-                received_events[i] = (
-                    received_events[i][0] + chunk_size * iteration,
-                    received_events[i][1] + chunk_size * iteration,
-                )
-
-            # Reconciling lumping adjacent events across windows
-            if (
-                len(received_events) != 0
-                and len(events) != 0
-                and received_events[0][0] - events[-1][1] <= agg_th
-            ):
-                events[-1] = (events[-1][0], received_events[0][1])
-                event_signals[-1] = np.append(
-                    event_signals[-1][1], received_event_signals
-                )
-
-                events.extend(received_events[1:])
-                event_signals.extend(received_event_signals[1:])
-            else:
-                events.extend(received_events)
-                event_signals.extend(received_event_signals)
+        else:
+            events = new_events
         iteration += 1
     return events, event_signals
 

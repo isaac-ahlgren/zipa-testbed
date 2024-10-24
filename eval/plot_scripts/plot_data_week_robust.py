@@ -1,4 +1,3 @@
-import glob
 import os
 import sys
 
@@ -10,8 +9,7 @@ import pandas as pd
 matplotlib.use("Agg")
 sys.path.insert(1, os.path.join(os.getcwd(), "eval"))
 
-from eval_tools import load_parameters  # noqa: E402
-from utils import load_bytes
+from utils import load_bytes  # noqa: E402
 
 # Define plotting directories for both datasets
 SCHURMANN_PLOTTING_DIR = "./eval/plot_scripts/plot_data/schurmann_real_full_week"

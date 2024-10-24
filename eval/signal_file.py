@@ -3,7 +3,6 @@ import os
 from typing import Callable
 
 import numpy as np
-import pandas as pd
 from signal_file_interface import Signal_File_Interface
 
 

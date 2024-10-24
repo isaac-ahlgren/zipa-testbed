@@ -1,20 +1,16 @@
 import os
 import random
 import sys
-from typing import List
 
-import numpy as np
 from perceptio_tools import DATA_DIRECTORY, extract_all_events
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
-    get_fuzzing_command_line_args,
     load_controlled_signal_files,
     log_parameters,
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128

@@ -1,9 +1,7 @@
 import os
 import random
 import sys
-from typing import List
 
-import numpy as np
 from perceptio_tools import (
     DATA_DIRECTORY,
     MICROPHONE_SAMPLING_RATE,
@@ -13,14 +11,12 @@ from perceptio_tools import (
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
     calc_all_event_bits,
-    get_fuzzing_command_line_args,
     load_controlled_signal_files,
     load_random_events,
     log_parameters,
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Event_File, Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128

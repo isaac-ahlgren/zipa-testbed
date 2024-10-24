@@ -1,8 +1,5 @@
-import matplotlib.pyplot as plt
-import numpy as np
 from utils import (
     extract_from_contents,
-    find_best_parameter_choice,
     get_min_entropy_list,
     make_plot_dir,
     parameter_plot,
@@ -24,9 +21,6 @@ def min_entropy_devices(
 
         params = extract_from_contents(contents, "params")
         param_list = extract_from_contents(params, param_label)
-
-        if savefig:
-            file_name = f"{file_name_stub}_{device}"
 
         parameter_plot(
             min_entropy_list,
