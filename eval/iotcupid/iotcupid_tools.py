@@ -130,7 +130,6 @@ def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
 
 def gen_min_events(
     signal: Any,
-    chunk_size: int,
     min_events: int,
     top_th: float,
     bottom_th: float,
@@ -156,7 +155,7 @@ def gen_min_events(
     iteration = 0
     last_chunk = None
     while not signal.get_finished_reading() and len(events) < min_events:
-        chunk = signal.read(chunk_size)
+        chunk = signal.read(window_size)
 
         if len(chunk) != window_size:
             continue
