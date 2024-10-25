@@ -28,22 +28,23 @@ class IoTCupidProcessing:
         m_searches: int,
         mem_thresh: float,
     ):
-        
+
         chunks = IoTCupidProcessing.chunk_signal(signal, window_size)
 
         chunks = IoTCupidProcessing.ewma_on_chunks(chunks, a)
 
         derivatives = IoTCupidProcessing.compute_derivative_on_chunks(chunks)
 
-        received_events = IoTCupidProcessing.detect_events(
-            abs(derivatives), bottom_th, top_th, agg_th
+        received_events = IoTCupidProcessing.detect_event_on_chunks(
+            abs(derivatives), bottom_th, top_th, agg_th, window_size
         )
 
         received_event_signals = IoTCupidProcessing.get_event_signals(
-            received_events, derivatives
+            received_events, derivatives, window_size
         )
+
         if len(received_events) < 2:
-            # Needs two events in order to calculate inte6revent timings
+            # Needs two events in order to calculate interevent timings
             print("Error: Less than two events detected")
             return ([], received_events)
 
@@ -75,7 +76,7 @@ class IoTCupidProcessing:
         output = []
         chunk_num = len(signal) // window_len
         for i in range(chunk_num):
-            chunk = signal[i*window_len:(i+1)*window_len]
+            chunk = signal[i * window_len : (i + 1) * window_len]
             output.append(chunk)
         return output
 
@@ -117,16 +118,27 @@ class IoTCupidProcessing:
         if derivative >= bottom_th and derivative <= top_th:
             event_detected = True
         return event_detected
-    
-    # Fix this!!
+
     def detect_event_on_chunks(derivatives, bottom_th, top_th, agg_th, window_size):
-        if events is not None:
-            events = IoTCupidProcessing.merge_events(
-                events, new_events, lump_th, window_size, iteration
+        events = None
+        for i in range(len(derivatives)):
+            derivative = derivatives[i]
+            event_detected = IoTCupidProcessing.detect_event(
+                derivative, bottom_th, top_th
             )
-        else:
-            events = new_events
-        iteration += 1
+
+            if event_detected:
+                new_events = [(0, window_size)]
+            else:
+                new_events = []
+
+            if events is not None:
+                events = IoTCupidProcessing.merge_events(
+                    events, new_events, agg_th, window_size, i
+                )
+            else:
+                events = new_events
+        return events
 
     def merge_events(
         first_event_list, second_event_list, lump_th, chunk_size, iteration
@@ -142,7 +154,7 @@ class IoTCupidProcessing:
             end_event = first_event_list[-1]
             beg_event = second_event_list[0]
 
-            if beg_event[0] - end_event[1] < lump_th:
+            if beg_event[0] - end_event[1] <= lump_th:
                 new_event = (end_event[0], beg_event[1])
                 event_list.extend(first_event_list[:-1])
                 event_list.append(new_event)
@@ -159,6 +171,7 @@ class IoTCupidProcessing:
     def get_event_signals(
         events: List[Tuple[int, int]],
         sensor_data: np.ndarray,
+        window_size,
     ) -> np.ndarray:
         """
         Extract signal segments from sensor data based on provided events.
@@ -170,7 +183,9 @@ class IoTCupidProcessing:
 
         event_signals = []
         for i, (start, end) in enumerate(events):
-            event_signals.append(sensor_data[start:end])
+            deriv_start = start // window_size
+            deriv_end = end // window_size
+            event_signals.append(sensor_data[deriv_start:deriv_end])
 
         return event_signals
 

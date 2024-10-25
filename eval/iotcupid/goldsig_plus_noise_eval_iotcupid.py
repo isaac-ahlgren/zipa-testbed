@@ -79,7 +79,6 @@ def main(
         """
         signal_events, signal_event_signals = gen_min_events(
             signal,
-            chunk_size,
             min_events,
             top_th,
             bottom_th,

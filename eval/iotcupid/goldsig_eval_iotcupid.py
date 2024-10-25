@@ -77,7 +77,6 @@ def main(
         """
         signal_events, signal_event_signals = gen_min_events(
             signal,
-            chunk_size,
             min_events,
             top_th,
             bottom_th,
@@ -85,6 +84,8 @@ def main(
             a,
             window_size,
         )
+        print(signal_events)
+        print(signal_event_signals)
         bits, grouped_events = generate_bits(
             signal_events,
             signal_event_signals,

@@ -105,7 +105,7 @@ def get_events(chunk, prev_chunk, top_th, bottom_th, a):
         output = [(0, len(chunk))]
     else:
         output = []
-    return output, proc_chunk
+    return output, proc_chunk, deriv
 
 
 def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
@@ -117,7 +117,9 @@ def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
         if len(chunk) != window_size:
             continue
 
-        new_events, last_chunk = get_events(chunk, last_chunk, top_th, bottom_th, a)
+        new_events, last_chunk, deriv = get_events(
+            chunk, last_chunk, top_th, bottom_th, a
+        )
         if events is not None:
             events = IoTCupidProcessing.merge_events(
                 events, new_events, lump_th, window_size, iteration
@@ -150,8 +152,8 @@ def gen_min_events(
     :param window_size: Window size for computing derivatives.
     :return: A tuple of event indices and their corresponding signal data.
     """
+    total_signal = np.array([])
     events = []
-    event_signals = []
     iteration = 0
     last_chunk = None
     while not signal.get_finished_reading() and len(events) < min_events:
@@ -160,7 +162,10 @@ def gen_min_events(
         if len(chunk) != window_size:
             continue
 
-        new_events, last_chunk = get_events(chunk, last_chunk, top_th, bottom_th, a)
+        new_events, last_chunk, deriv = get_events(
+            chunk, last_chunk, top_th, bottom_th, a
+        )
+        total_signal = np.append(total_signal, deriv)
         if events is not None:
             events = IoTCupidProcessing.merge_events(
                 events, new_events, agg_th, window_size, iteration
@@ -168,6 +173,9 @@ def gen_min_events(
         else:
             events = new_events
         iteration += 1
+    event_signals = IoTCupidProcessing.get_event_signals(
+        events, total_signal, window_size
+    )
     return events, event_signals
 
 

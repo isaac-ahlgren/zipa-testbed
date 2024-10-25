@@ -24,11 +24,13 @@ def test_iotcupid_derivative():
     window_size = 10
     signal = np.zeros(1000)
     signal[::window_size] = 1
+    signal[9::window_size] = 1
 
-    output = IoTCupidProcessing.compute_derivative(signal, window_size)
+    chunks = IoTCupidProcessing.chunk_signal(signal, window_size)
+    output = IoTCupidProcessing.compute_derivative_on_chunks(chunks)
 
     assert np.sum(output) == 0  # nosec
-    assert len(output) == 990  # nosec
+    assert len(output) == 100  # nosec
 
 
 def test_detect_events():
@@ -39,20 +41,20 @@ def test_detect_events():
     signal[77] = 1
     signal[97:100] = 1
 
-    events = IoTCupidProcessing.detect_events(signal, 0.1, 1, 2)
+    events = IoTCupidProcessing.detect_event_on_chunks(signal, 0.1, 1, 20, 10)
 
     assert len(events) == 4  # nosec
-    assert events[0][0] == 0 and events[0][1] == 14  # nosec
-    assert events[1][0] == 17 and events[1][1] == 19  # nosec
-    assert events[2][0] == 77 and events[2][1] == 78  # nosec
-    assert events[3][0] == 97 and events[3][1] == 100  # nosec
+    assert events[0][0] == 0 and events[0][1] == 140  # nosec
+    assert events[1][0] == 170 and events[1][1] == 190  # nosec
+    assert events[2][0] == 770 and events[2][1] == 780  # nosec
+    assert events[3][0] == 970 and events[3][1] == 1000  # nosec
 
 
 def test_get_event_signals():
     signal = [4, 4, 4, 4, 2, 2, 2, 2, 3, 3, 4, 4, 5]
-    events = IoTCupidProcessing.detect_events(signal, 4, 5, 1)
+    events = IoTCupidProcessing.detect_event_on_chunks(signal, 4, 5, 1, 10)
 
-    event_signals = IoTCupidProcessing.get_event_signals(events, signal)
+    event_signals = IoTCupidProcessing.get_event_signals(events, signal, 10)
 
     assert len(event_signals) == 2  # nosec
     assert set(event_signals[0]) == set([4, 4, 4, 4])  # nosec
@@ -61,7 +63,7 @@ def test_get_event_signals():
 
 def test_group_events():
     signal = [4, 4, 4, 4, 2, 2, 2, 4, 4, 2, 2, 3, 3, 4, 4, 5]
-    events = IoTCupidProcessing.detect_events(signal, 4, 5, 1)
+    events = IoTCupidProcessing.detect_event_on_chunks(signal, 4, 5, 1, 1)
 
     u = np.zeros((4, 3))
     u[0, 0] = 0.6
