@@ -264,7 +264,7 @@ def test_event_file():
     assert np.array_equal(
         event[0], np.concatenate((ref_signal1[boundary - 48000 :], ref_signal2[:48000]))
     )  # nosec
-    assert ef.get_finished_reading() == True  # nosec
+    assert ef.get_finished_reading() is True  # nosec
 
     sf1 = Signal_File(
         "./data/", "adv*.wav", load_func=load_controlled_signal, id="test"

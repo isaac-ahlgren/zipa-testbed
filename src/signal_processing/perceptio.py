@@ -136,7 +136,7 @@ class PerceptioProcessing:
         event_features = []
         for i in range(len(events)):
             event_signal = signal[events[i][0] : events[i][1]]
-            length, max_amplitude = self.generate_features(event_signal)
+            length, max_amplitude = PerceptioProcessing.generate_features(event_signal)
             event_features.append((length, max_amplitude))
         return event_features
 

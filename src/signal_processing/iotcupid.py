@@ -28,16 +28,19 @@ class IoTCupidProcessing:
         m_searches: int,
         mem_thresh: float,
     ):
-        smoothed_data = IoTCupidProcessing.ewma(signal, a)
+        
+        chunks = IoTCupidProcessing.chunk_signal(signal, window_size)
 
-        derivatives = IoTCupidProcessing.compute_derivative(smoothed_data, window_size)
+        chunks = IoTCupidProcessing.ewma_on_chunks(chunks, a)
+
+        derivatives = IoTCupidProcessing.compute_derivative_on_chunks(chunks)
 
         received_events = IoTCupidProcessing.detect_events(
             abs(derivatives), bottom_th, top_th, agg_th
         )
 
         received_event_signals = IoTCupidProcessing.get_event_signals(
-            received_events, smoothed_data
+            received_events, derivatives
         )
         if len(received_events) < 2:
             # Needs two events in order to calculate inte6revent timings
@@ -68,6 +71,14 @@ class IoTCupidProcessing:
 
         return inter_event_timings, grouped_events
 
+    def chunk_signal(signal, window_len):
+        output = []
+        chunk_num = len(signal) // window_len
+        for i in range(chunk_num):
+            chunk = signal[i*window_len:(i+1)*window_len]
+            output.append(chunk)
+        return output
+
     def ewma(
         signal_window: np.ndarray, prev_signal_window: np.ndarray, a: float
     ) -> np.ndarray:
@@ -75,6 +86,13 @@ class IoTCupidProcessing:
             return signal_window
         else:
             return a * signal_window + (1 - a) * prev_signal_window
+
+    def ewma_on_chunks(chunks, a):
+        prev = None
+        for i in range(len(chunks)):
+            chunks[i] = IoTCupidProcessing.ewma(chunks[i], prev, a)
+            prev = chunks[i]
+        return chunks
 
     """
     Comments potentially for the paper: This algorithm doesn't seem like it was designed for live testing in mind.
@@ -88,11 +106,27 @@ class IoTCupidProcessing:
     def compute_derivative(signal):
         return (signal[-1] - signal[0]) / len(signal)
 
+    def compute_derivative_on_chunks(chunks):
+        output = np.zeros(len(chunks))
+        for i in range(len(chunks)):
+            output[i] = IoTCupidProcessing.compute_derivative(chunks[i])
+        return output
+
     def detect_event(derivative, bottom_th, top_th):
         event_detected = False
         if derivative >= bottom_th and derivative <= top_th:
             event_detected = True
         return event_detected
+    
+    # Fix this!!
+    def detect_event_on_chunks(derivatives, bottom_th, top_th, agg_th, window_size):
+        if events is not None:
+            events = IoTCupidProcessing.merge_events(
+                events, new_events, lump_th, window_size, iteration
+            )
+        else:
+            events = new_events
+        iteration += 1
 
     def merge_events(
         first_event_list, second_event_list, lump_th, chunk_size, iteration
@@ -121,52 +155,6 @@ class IoTCupidProcessing:
             event_list.extend(second_event_list)
 
         return event_list
-
-    # EVENTUALLY GET RID OF THIS FUNCTION
-    def detect_events(
-        derivatives: np.ndarray, bottom_th: float, top_th: float, agg_th: int
-    ) -> List[Tuple[int, int]]:
-        """
-        Detects events based on derivative thresholds and aggregation criteria.
-
-        :param derivatives: DataFrame containing derivative data.
-        :param bottom_th: Lower threshold for derivative to consider an event.
-        :param top_th: Upper threshold for derivative to consider an event.
-        :param agg_th: Minimum length of an event to be considered significant.
-        :return: A list of tuples representing the start and end indices of detected events.
-        """
-        # Get events that are within the threshold
-        events = []
-        found_event = False
-        beg_event_num = None
-        for i in range(len(derivatives)):
-            if (
-                not found_event
-                and derivatives[i] >= bottom_th
-                and derivatives[i] <= top_th
-            ):
-                found_event = True
-                beg_event_num = i
-            elif found_event and (
-                derivatives[i] < bottom_th or derivatives[i] > top_th
-            ):
-                found_event = False
-                found_event = None
-                events.append((beg_event_num, i))
-        if found_event:
-            events.append((beg_event_num, len(derivatives)))
-
-        i = 0
-        while i < len(events) - 1:
-            if events[i + 1][0] - events[i][1] <= agg_th:
-                new_element = (events[i][0], events[i + 1][1])
-                events.pop(i)
-                events.pop(i)
-                events.insert(i, new_element)
-            else:
-                i += 1
-
-        return events
 
     def get_event_signals(
         events: List[Tuple[int, int]],

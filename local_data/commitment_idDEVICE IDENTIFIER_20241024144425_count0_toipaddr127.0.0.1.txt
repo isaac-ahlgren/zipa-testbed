@@ -1,0 +1,1 @@
+bytearray(b'\xe9\xf7\xe9')
