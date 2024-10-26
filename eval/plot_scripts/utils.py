@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_parameters  # noqa: E402
+from eval_tools import load_parameters, load_events  # noqa: E402
 
 PLOTTING_DIR = "./plot_data"
 
@@ -19,7 +19,7 @@ def load_bytes(byte_file):
     return output
 
 
-def parse_eval_directory(data_dir, file_stub):
+def parse_eval_directory(data_dir, file_stub, parse_string="bits"):
     output = []
     files = glob.glob(f"{file_stub}*", root_dir=f"{data_dir}/{file_stub}")
     max_key_length = 0
@@ -31,7 +31,7 @@ def parse_eval_directory(data_dir, file_stub):
         dir_content["params"] = params
 
         data_files = glob.glob(
-            f"{dir_name}*_bits.txt", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
+            f"{dir_name}*_{parse_string}.txt", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
         )
         for df in data_files:
             data = load_bytes(f"{data_dir}/{file_stub}/{dir_name}/{df}")
@@ -51,6 +51,32 @@ def parse_eval_directory(data_dir, file_stub):
             filtered_output.append(content)
 
     return filtered_output
+
+def parse_eval_directory_time_stamps(data_dir, file_stub):
+    output = []
+    files = glob.glob(f"{file_stub}*", root_dir=f"{data_dir}/{file_stub}")
+    max_key_length = 0
+    for dir_name in files:
+        dir_content = dict()
+
+        param_file = f"{data_dir}/{file_stub}/{dir_name}/{dir_name}_params.csv"
+        params = load_parameters(param_file)
+        dir_content["params"] = params
+
+        data_files = glob.glob(
+            f"{dir_name}*_time_stamps.txt", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
+        )
+        for df in data_files:
+            data = load_events(f"{data_dir}/{file_stub}/{dir_name}/{df}")
+
+            idi = df.find("id")
+            i1 = df.find("_", idi, len(df)) + 1
+            i2 = df.find(".txt")
+            signal_id = df[i1:i2]
+            dir_content[signal_id] = data
+        output.append(dir_content)
+    
+    return output
 
 
 def get_block_err(bits1, bits2, block_size):
@@ -95,6 +121,12 @@ def get_min_entropy_list(byte_list, key_length, symbol_size):
         min_entropy_list.append(min_entropy)
     return min_entropy_list
 
+def get_num_events_list(event_list):
+    event_num_list = []
+    for contents in event_list:
+        event_num = len(contents)
+        event_num_list.append(event_num)
+    return event_num_list
 
 def extract_from_contents(contents, key_word):
     extracted_content = []
