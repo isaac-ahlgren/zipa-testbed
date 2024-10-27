@@ -52,7 +52,7 @@ def plot_perceptio(savefigs=True):
         "10.0.0.239",
     ]
 
-    contents = parse_eval_directory(
+    contents = parse_eval_directory_time_stamps(
         f"{PERCEPTIO_DATA_DIRECTORY}",
         f"{PERCEPTIO_REAL_FUZZING_STUB}",
     )
@@ -86,7 +86,7 @@ def plot_iotcupid(savefigs=True):
         "10.0.0.239",
     ]
 
-    contents = parse_eval_directory(
+    contents = parse_eval_directory_time_stamps(
         f"{IOTCUPID_DATA_DIRECTORY}",
         f"{IOTCUPID_REAL_FUZZING_STUB}",
     )
