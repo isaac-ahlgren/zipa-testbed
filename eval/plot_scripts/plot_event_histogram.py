@@ -2,11 +2,9 @@ import matplotlib.pyplot as plt
 
 from utils import parse_eval_directory_time_stamps, make_plot_dir, extract_from_contents, get_num_events_list
 
-def event_hist_plot(devices, contents, param1, param2, param1_range, param2_range, savefigs=True, fig_dir=None, file_name=None):
+def event_hist_plot(devices, contents, param1, param2, param1_range, param2_range, file_name_stub, savefigs=True, fig_dir=None, file_name=None):
     for device in devices:
         device_id = device + "_time_stamps"
-
-        device_file_stub = f"{file_name_stub}_{device}_event_histogram"
 
         device_event_list = extract_from_contents(contents, device_id)
 
@@ -24,7 +22,7 @@ def event_hist_plot(devices, contents, param1, param2, param1_range, param2_rang
         ax.set_ylabel(param2)
 
         if savefig:
-            plt.savefig(fig_dir + "/" + file_name + ".pdf")
+            plt.savefig(fig_dir + "/" + file_name + "_" + device + ".pdf")
             plt.clf()
             fig_data_name = fig_dir + "/" + file_name + ".csv"
             df = pd.DataFrame({"x_axis": param1_list, "y_axis": param2_list, "z_axis": event_num_list})
