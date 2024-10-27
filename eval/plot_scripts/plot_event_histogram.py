@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
+import numpy as np
 
 from utils import parse_eval_directory_time_stamps, make_plot_dir, extract_from_contents, get_num_events_list
 
