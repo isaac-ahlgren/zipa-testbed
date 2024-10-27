@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
+from scipy.interpolate import griddata
 
 from utils import parse_eval_directory_time_stamps, make_plot_dir, extract_from_contents, get_num_events_list
 
-def event_hist_plot(devices, contents, param1, param2, param1_range, param2_range, savefigs=True, fig_dir=None, file_name=None):
+def event_hist_plot(devices, contents, param1, param2, param1_range, param2_range, savefigs=True, fig_dir=None, file_name=None, grid_resolution=100):
     for device in devices:
         device_id = device + "_time_stamps"
 
@@ -14,8 +15,13 @@ def event_hist_plot(devices, contents, param1, param2, param1_range, param2_rang
         param1_list = extract_from_contents(params, param1)
         param2_list = extract_from_contents(params, param2)
         
+        grid_x, grid_y = np.linspace(min(param1_list), max(param1_list), grid_resolution), np.linspace(min(param2_list), max(param2_list), grid_resolution)
+        grid_x, grid_y = np.meshgrid(grid_x, grid_y)
+
+        grid_z = griddata((param1_list, param2_list), event_num_list, (grid_x, grid_y), method='cubic')
+
         fig, ax = plt.subplots()
-        c = ax.pcolormesh(param1_list, param2_list, event_num_list)
+        c = ax.pcolormesh(grid_z)
         ax.set_title(f'Heat Map of Events {device}')
         ax.axis([param1_range[0], param1_range[1], param2_range[0], param2_range[1]])
         ax.set_xlabel(param1)
