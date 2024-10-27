@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 from utils import parse_eval_directory_time_stamps, make_plot_dir, extract_from_contents, get_num_events_list
 
-def event_hist_plot(devices, contents, param1, param2, param1_range, param2_range, file_name_stub, savefigs=True, fig_dir=None, file_name=None):
+def event_hist_plot(devices, contents, param1, param2, param1_range, param2_range, savefigs=True, fig_dir=None, file_name=None):
     for device in devices:
         device_id = device + "_time_stamps"
 
