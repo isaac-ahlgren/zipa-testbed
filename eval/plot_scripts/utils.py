@@ -64,14 +64,14 @@ def parse_eval_directory_time_stamps(data_dir, file_stub):
         dir_content["params"] = params
 
         data_files = glob.glob(
-            f"{dir_name}*_time_stamps.txt", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
+            f"{dir_name}*_time_stamps.csv", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
         )
         for df in data_files:
             data = load_events(f"{data_dir}/{file_stub}/{dir_name}/{df}")
 
             idi = df.find("id")
             i1 = df.find("_", idi, len(df)) + 1
-            i2 = df.find(".txt")
+            i2 = df.find(".csv")
             signal_id = df[i1:i2]
             dir_content[signal_id] = data
         output.append(dir_content)
