@@ -36,7 +36,7 @@ def parse_eval_directory(data_dir, file_stub, parse_string="bits"):
         for df in data_files:
             data = load_bytes(f"{data_dir}/{file_stub}/{dir_name}/{df}")
 
-            idi = df.find("id")
+            idi = df.find("_id") + 1
             i1 = df.find("_", idi, len(df)) + 1
             i2 = df.find(".txt")
             signal_id = df[i1:i2]
@@ -69,14 +69,21 @@ def parse_eval_directory_time_stamps(data_dir, file_stub):
         for df in data_files:
             data = load_events(f"{data_dir}/{file_stub}/{dir_name}/{df}")
 
-            idi = df.find("id")
+            idi = df.find("_id") + 1
             i1 = df.find("_", idi, len(df)) + 1
             i2 = df.find(".csv")
             signal_id = df[i1:i2]
             dir_content[signal_id] = data
         output.append(dir_content)
+        if len(dir_content.keys()) > max_key_length:
+            max_key_length = len(dir_content.keys())
+
+    filtered_output = []
+    for content in output:
+        if len(content.keys()) == max_key_length:
+            filtered_output.append(content)
     
-    return output
+    return filtered_output
 
 
 def get_block_err(bits1, bits2, block_size):
