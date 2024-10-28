@@ -15,7 +15,7 @@ def event_hist_plot(devices, contents, param1, param2, param1_range, param2_rang
         params = extract_from_contents(contents, "params")
         param1_list = extract_from_contents(params, param1)
         param2_list = extract_from_contents(params, param2)
-        
+
         grid_x, grid_y = np.linspace(min(param1_list), max(param1_list), grid_resolution), np.linspace(min(param2_list), max(param2_list), grid_resolution)
         grid_x, grid_y = np.meshgrid(grid_x, grid_y)
 
@@ -38,7 +38,7 @@ def event_hist_plot(devices, contents, param1, param2, param1_range, param2_rang
             plt.show()
 
 def plot_perceptio(savefigs=True):
-    PERCEPTIO_DATA_DIRECTORY = "../perceptio/perceptio_data/perceptio_real_event_fuzz"
+    PERCEPTIO_DATA_DIRECTORY = "../perceptio/perceptio_data/perceptio_real_fuzz/perceptio_real_event_fuzz"
     PERCEPTIO_REAL_FUZZING_STUB = "perceptio_real_event_fuzz"
     FIG_DIR_NAME_STUB = "perceptio_real_event_fuzz_event_histogram"
 
@@ -72,7 +72,7 @@ def plot_perceptio(savefigs=True):
                     savefigs=savefigs, fig_dir=FIG_DIR_NAME_STUB, file_name=PERCEPTIO_REAL_FUZZING_STUB)
 
 def plot_iotcupid(savefigs=True):
-    IOTCUPID_DATA_DIRECTORY = "../iotcupid/iotcupid_data/iotcupid_real_event_fuzz"
+    IOTCUPID_DATA_DIRECTORY = "../iotcupid/iotcupid_data/iotcupid_real_fuzz/iotcupid_real_event_fuzz"
     IOTCUPID_REAL_FUZZING_STUB = "iotcupid_real_event_fuzz"
     FIG_DIR_NAME_STUB = "iotcupid_real_event_fuzz_event_histogram"
 
