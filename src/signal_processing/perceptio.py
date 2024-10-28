@@ -180,7 +180,7 @@ class PerceptioProcessing:
         elif np.size(offset) == 1:
             offset = np.reshape(offset, (1,))
 
-        alpha = np.array(alpha, copy=False).astype(dtype, copy=False)
+        alpha = np.array(alpha).astype(dtype, copy=False)
 
         # calculate the moving average
         row_size = data.shape[1]
