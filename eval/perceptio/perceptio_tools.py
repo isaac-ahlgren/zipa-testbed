@@ -45,30 +45,34 @@ def get_events(arr, top_th, bottom_th, lump_th, a):
 
 
 def merge_events(first_event_list, second_event_list, lump_th, chunk_size, iteration):
-    for i in range(len(second_event_list)):
-        second_event_list[i] = (
-            second_event_list[i][0] + iteration * chunk_size,
-            second_event_list[i][1] + iteration * chunk_size,
-        )
+    # Convert input lists to NumPy arrays for vectorized operations
+    first_event_array = np.array(first_event_list)
+    second_event_array = np.array(second_event_list)
 
-    event_list = []
-    if len(first_event_list) != 0 and len(second_event_list) != 0:
-        end_event = first_event_list[-1]
-        beg_event = second_event_list[0]
+    offset = iteration * chunk_size
+    second_event_array = second_event_array + np.array([offset, offset])
 
-        if beg_event[0] - end_event[1] < lump_th:
-            new_event = (end_event[0], beg_event[1])
-            event_list.extend(first_event_list[:-1])
-            event_list.append(new_event)
-            event_list.extend(second_event_list[1:])
-        else:
-            event_list.extend(first_event_list)
-            event_list.extend(second_event_list)
+    # If either list is empty, simply concatenate them
+    if first_event_array is None or first_event_array.size == 0:
+        return second_event_array.tolist()
+    if second_event_array is None or second_event_array.size == 0:
+        return first_event_array.tolist()
+
+    # Determine whether to merge the last of first_event_array with the first of second_event_array
+    end_event = first_event_array[-1]
+    beg_event = second_event_array[0]
+    
+    if beg_event[0] - end_event[1] < lump_th:
+        # Merge the overlapping events
+        merged_event = np.array([[end_event[0], beg_event[1]]])
+        
+        # Concatenate first list (excluding the last event), merged event, and the rest of the second list
+        event_list = np.vstack((first_event_array[:-1], merged_event, second_event_array[1:]))
     else:
-        event_list.extend(first_event_list)
-        event_list.extend(second_event_list)
-
-    return event_list
+        # Simply concatenate both lists without merging
+        event_list = np.vstack((first_event_array, second_event_array))
+    
+    return event_list.tolist()
 
 
 def process_events(

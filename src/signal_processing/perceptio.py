@@ -43,6 +43,264 @@ class PerceptioProcessing:
         fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size, Fs)
 
         return fps, grouped_events
+    
+    def ewma_vectorized(data, alpha, offset=None, dtype=None, order='C', out=None):
+        """
+        Calculates the exponential moving average over a vector.
+        Will fail for large inputs.
+        :param data: Input data
+        :param alpha: scalar float in range (0,1)
+            The alpha parameter for the moving average.
+        :param offset: optional
+            The offset for the moving average, scalar. Defaults to data[0].
+        :param dtype: optional
+            Data type used for calculations. Defaults to float64 unless
+            data.dtype is float32, then it will use float32.
+        :param order: {'C', 'F', 'A'}, optional
+            Order to use when flattening the data. Defaults to 'C'.
+        :param out: ndarray, or None, optional
+            A location into which the result is stored. If provided, it must have
+            the same shape as the input. If not provided or `None`,
+            a freshly-allocated array is returned.
+        """
+        data = np.array(data, copy=False)
+
+        if dtype is None:
+            if data.dtype == np.float32:
+                dtype = np.float32
+            else:
+                dtype = np.float64
+        else:
+            dtype = np.dtype(dtype)
+
+        if data.ndim > 1:
+            # flatten input
+            data = data.reshape(-1, order)
+
+        if out is None:
+            out = np.empty_like(data, dtype=dtype)
+        else:
+            assert out.shape == data.shape
+            assert out.dtype == dtype
+
+        if data.size < 1:
+            # empty input, return empty array
+            return out
+
+        if offset is None:
+            offset = data[0]
+
+        alpha = np.array(alpha).astype(dtype, copy=False)
+
+        # scaling_factors -> 0 as len(data) gets large
+        # this leads to divide-by-zeros below
+        scaling_factors = np.power(1. - alpha, np.arange(data.size + 1, dtype=dtype),
+                                dtype=dtype)
+        # create cumulative sum array
+        np.multiply(data, (alpha * scaling_factors[-2]) / scaling_factors[:-1],
+                    dtype=dtype, out=out)
+        np.cumsum(out, dtype=dtype, out=out)
+
+        # cumsums / scaling
+        out /= scaling_factors[-2::-1]
+
+        if offset != 0:
+            offset = np.array(offset).astype(dtype, copy=False)
+            # add offsets
+            out += offset * scaling_factors[1:]
+
+        return out
+    
+    def ewma_vectorized_2d(data, alpha, axis=None, offset=None, dtype=None, order='C', out=None):
+        """
+        Calculates the exponential moving average over a given axis.
+        :param data: Input data, must be 1D or 2D array.
+        :param alpha: scalar float in range (0,1)
+            The alpha parameter for the moving average.
+        :param axis: The axis to apply the moving average on.
+            If axis==None, the data is flattened.
+        :param offset: optional
+            The offset for the moving average. Must be scalar or a
+            vector with one element for each row of data. If set to None,
+            defaults to the first value of each row.
+        :param dtype: optional
+            Data type used for calculations. Defaults to float64 unless
+            data.dtype is float32, then it will use float32.
+        :param order: {'C', 'F', 'A'}, optional
+            Order to use when flattening the data. Ignored if axis is not None.
+        :param out: ndarray, or None, optional
+            A location into which the result is stored. If provided, it must have
+            the same shape as the desired output. If not provided or `None`,
+            a freshly-allocated array is returned.
+        """
+        data = np.array(data, copy=False)
+
+        assert data.ndim <= 2
+
+        if dtype is None:
+            if data.dtype == np.float32:
+                dtype = np.float32
+            else:
+                dtype = np.float64
+        else:
+            dtype = np.dtype(dtype)
+
+        if out is None:
+            out = np.empty_like(data, dtype=dtype)
+        else:
+            assert out.shape == data.shape
+            assert out.dtype == dtype
+
+        if data.size < 1:
+            # empty input, return empty array
+            return out
+
+        if axis is None or data.ndim < 2:
+            # use 1D version
+            if isinstance(offset, np.ndarray):
+                offset = offset[0]
+            return PerceptioProcessing.ewma_vectorized(data, alpha, offset, dtype=dtype, order=order,
+                                out=out)
+
+        assert -data.ndim <= axis < data.ndim
+
+        # create reshaped data views
+        out_view = out
+        if axis < 0:
+            axis = data.ndim - int(axis)
+
+        if axis == 0:
+            # transpose data views so columns are treated as rows
+            data = data.T
+            out_view = out_view.T
+
+        if offset is None:
+            # use the first element of each row as the offset
+            offset = np.copy(data[:, 0])
+        elif np.size(offset) == 1:
+            offset = np.reshape(offset, (1,))
+
+        alpha = np.array(alpha, copy=False).astype(dtype, copy=False)
+
+        # calculate the moving average
+        row_size = data.shape[1]
+        row_n = data.shape[0]
+        scaling_factors = np.power(1. - alpha, np.arange(row_size + 1, dtype=dtype),
+                                dtype=dtype)
+        # create a scaled cumulative sum array
+        np.multiply(
+            data,
+            np.multiply(alpha * scaling_factors[-2], np.ones((row_n, 1), dtype=dtype),
+                        dtype=dtype)
+            / scaling_factors[np.newaxis, :-1],
+            dtype=dtype, out=out_view
+        )
+        np.cumsum(out_view, axis=1, dtype=dtype, out=out_view)
+        out_view /= scaling_factors[np.newaxis, -2::-1]
+
+        if not (np.size(offset) == 1 and offset == 0):
+            offset = offset.astype(dtype, copy=False)
+            # add the offsets to the scaled cumulative sums
+            out_view += offset[:, np.newaxis] * scaling_factors[np.newaxis, 1:]
+
+        return out
+
+    def ewma_vectorized_safe(data, alpha, row_size=None, dtype=None, order='C', out=None):
+        """
+        Reshapes data before calculating EWMA, then iterates once over the rows
+        to calculate the offset without precision issues
+        :param data: Input data, will be flattened.
+        :param alpha: scalar float in range (0,1)
+            The alpha parameter for the moving average.
+        :param row_size: int, optional
+            The row size to use in the computation. High row sizes need higher precision,
+            low values will impact performance. The optimal value depends on the
+            platform and the alpha being used. Higher alpha values require lower
+            row size. Default depends on dtype.
+        :param dtype: optional
+            Data type used for calculations. Defaults to float64 unless
+            data.dtype is float32, then it will use float32.
+        :param order: {'C', 'F', 'A'}, optional
+            Order to use when flattening the data. Defaults to 'C'.
+        :param out: ndarray, or None, optional
+            A location into which the result is stored. If provided, it must have
+            the same shape as the desired output. If not provided or `None`,
+            a freshly-allocated array is returned.
+        :return: The flattened result.
+        """
+        def get_max_row_size(alpha, dtype=float):
+            assert 0. <= alpha < 1.
+            # This will return the maximum row size possible on 
+            # your platform for the given dtype. I can find no impact on accuracy
+            # at this value on my machine.
+            # Might not be the optimal value for speed, which is hard to predict
+            # due to numpy's optimizations
+            # Use np.finfo(dtype).eps if you  are worried about accuracy
+            # and want to be extra safe.
+            epsilon = np.finfo(dtype).tiny
+            # If this produces an OverflowError, make epsilon larger
+            return int(np.log(epsilon)/np.log(1-alpha)) + 1
+        
+        data = np.array(data, copy=False)
+
+        if dtype is None:
+            if data.dtype == np.float32:
+                dtype = np.float32
+            else:
+                dtype = np.float64
+        else:
+            dtype = np.dtype(dtype)
+
+        row_size = int(row_size) if row_size is not None else get_max_row_size(alpha, dtype)
+
+        if data.size <= row_size:
+            # The normal function can handle this input, use that
+            return PerceptioProcessing.ewma_vectorized(data, alpha, dtype=dtype, order=order, out=out)
+
+        if data.ndim > 1:
+            # flatten input
+            data = np.reshape(data, -1, order=order)
+
+        if out is None:
+            out = np.empty_like(data, dtype=dtype)
+        else:
+            assert out.shape == data.shape
+            assert out.dtype == dtype
+
+        row_n = int(data.size // row_size)  # the number of rows to use
+        trailing_n = int(data.size % row_size)  # the amount of data leftover
+        first_offset = data[0]
+
+        if trailing_n > 0:
+            # set temporary results to slice view of out parameter
+            out_main_view = np.reshape(out[:-trailing_n], (row_n, row_size))
+            data_main_view = np.reshape(data[:-trailing_n], (row_n, row_size))
+        else:
+            out_main_view = out
+            data_main_view = data
+
+        # get all the scaled cumulative sums with 0 offset
+        PerceptioProcessing.ewma_vectorized_2d(data_main_view, alpha, axis=1, offset=0, dtype=dtype,
+                        order='C', out=out_main_view)
+
+        scaling_factors = (1 - alpha) ** np.arange(1, row_size + 1)
+        last_scaling_factor = scaling_factors[-1]
+
+        # create offset array
+        offsets = np.empty(out_main_view.shape[0], dtype=dtype)
+        offsets[0] = first_offset
+        # iteratively calculate offset for each row
+        for i in range(1, out_main_view.shape[0]):
+            offsets[i] = offsets[i - 1] * last_scaling_factor + out_main_view[i - 1, -1]
+
+        # add the offsets to the result
+        out_main_view += offsets[:, np.newaxis] * scaling_factors[np.newaxis, :]
+
+        if trailing_n > 0:
+            # process trailing data in the 2nd slice of the out parameter
+            PerceptioProcessing.ewma_vectorized(data[-trailing_n:], alpha, offset=out_main_view[-1, -1],
+                            dtype=dtype, order='C', out=out[-trailing_n:])
+        return out
 
     def ewma(signal: np.ndarray, a: float) -> np.ndarray:
         """
@@ -52,12 +310,7 @@ class PerceptioProcessing:
         :param a: The smoothing factor used in the EWMA calculation.
         :return: The EWMA of the signal as a NumPy array.
         """
-        y = np.zeros(len(signal))
-
-        y[0] = a * signal[0]
-        for i in range(1, len(signal)):
-            y[i] = a * signal[i] + (1 - a) * y[i - 1]
-        return y
+        return PerceptioProcessing.ewma_vectorized_safe(signal, a)
 
     def get_events(
         signal: np.ndarray, a: float, bottom_th: float, top_th: float, lump_th: int
@@ -73,47 +326,51 @@ class PerceptioProcessing:
         :return: A list of tuples representing the start and end indices of each detected event.
         """
         signal = PerceptioProcessing.ewma(np.abs(signal), a)
+ 
+        in_range = (signal >= bottom_th) & (signal <= top_th)
 
-        # Get events that are within the threshold
-        events = []
-        found_event = False
-        beg_event_num = None
-        for i in range(len(signal)):
-            if not found_event and signal[i] >= bottom_th and signal[i] <= top_th:
-                found_event = True
-                beg_event_num = i
-            elif found_event and (signal[i] < bottom_th or signal[i] > top_th):
-                found_event = False
-                found_event = None
-                events.append((beg_event_num, i))
-        if found_event:
-            events.append((beg_event_num, i))
+        in_range = np.insert(in_range, 0, False)
 
-        events = PerceptioProcessing.lump_events(events, lump_th)
+        # Identify the start and end of each event by finding edges in the mask
+        diff = np.diff(in_range.astype(int))
+        starts = np.where(diff == 1)[0]  # Beginning of events
+        ends = np.where(diff == -1)[0]   # End of events
 
+        # Check if the last event goes to the end of the signal
+        if in_range[-1]:
+            ends = np.append(ends, len(signal))
+        
+        # Combine starts and ends as tuples in a list
+        events = list(zip(starts, ends))
+
+        print(events)
+        if len(events) != 0:
+            events = PerceptioProcessing.lump_events(events, lump_th)
+        print(events)
         return events
 
     def lump_events(
         events: List[Tuple[int, int]], lump_th: int
     ) -> List[Tuple[int, int]]:
-        """
-        Combines closely spaced events into single events based on a lumping threshold.
+        events = np.array(events)
+    
+        # Calculate gaps between consecutive events
+        gaps = events[1:, 0] - events[:-1, 1]
+        
+        # Determine where new groups should start based on lump_th
+        group_starts = np.where(gaps > lump_th)[0] + 1
 
-        :param events: A list of tuples, where each tuple contains the start and end indices of an event.
-        :param lump_th: The threshold for lumping adjacent events. If the start of the next event minus the end of the current event is less than or equal to this threshold, they will be lumped together.
-        :return: A list of tuples with potentially fewer, larger events, where close events have been combined.
-        """
-        i = 0
-        while i < len(events) - 1:
-            if events[i + 1][0] - events[i][1] <= lump_th:
-                new_element = (events[i][0], events[i + 1][1])
-                events.pop(i)
-                events.pop(i)
-                events.insert(i, new_element)
-            else:
-                i += 1
+        # Create grouping indices for reduceat by inserting a starting index of 0
+        indices = np.insert(group_starts, 0, 0)
+        
+        # Compute minimum starts and maximum ends for each group using reduceat
+        merged_starts = np.minimum.reduceat(events[:, 0], indices)
+        merged_ends = np.maximum.reduceat(events[:, 1], indices)
 
-        return events
+        # Stack starts and ends together to form merged events
+        merged_events = np.column_stack((merged_starts, merged_ends))
+
+        return merged_events.tolist()
 
     def generate_features(signal):
         length = len(signal)
