@@ -150,17 +150,12 @@ class Wrap_Around_File(Signal_File_Interface):
         self.num_of_resets = other_sf.num_of_resets
         self.sf.sync(other_sf.sf)
 
-
-def optimized_load(name):
-    df = pd.read_csv(name, header=None)
-    return df.to_numpy().T.flatten()
-
 class Signal_File(Signal_File_Interface):
     def __init__(
         self,
         signal_directory: str,
         file_names: str,
-        load_func: Callable = optimized_load,
+        load_func: Callable = np.loadtxt,
         id: str = "",
     ):
         """

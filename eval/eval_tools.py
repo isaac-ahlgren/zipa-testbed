@@ -130,11 +130,15 @@ def wrap_signal_file(
     return sf
 
 
+def optimized_load(name):
+    df = pd.read_csv(name, header=None)
+    return df.to_numpy().T.flatten()
+
 def load_signal_files(
     dir,
     files,
     ids,
-    load_func=np.loadtxt,
+    load_func=optimized_load,
     noise=False,
     target_snr=None,
     wrap_around=False,
