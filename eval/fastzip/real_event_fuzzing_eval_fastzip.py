@@ -34,7 +34,7 @@ POWER_TH_RANGE = (30, 200)
 
 SNR_TH_RANGE = (0.5, 10)
 
-PEAK_TH_RANGE = (0, 400)
+PEAK_TH_RANGE = (0, 10)
 
 FUZZING_DIR = "fastzip_real_fuzz"
 FUZZING_STUB = "fastzip_event_real_fuzz"
