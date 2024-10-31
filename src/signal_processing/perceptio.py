@@ -343,10 +343,8 @@ class PerceptioProcessing:
         # Combine starts and ends as tuples in a list
         events = list(zip(starts, ends))
 
-        print(events)
         if len(events) != 0:
             events = PerceptioProcessing.lump_events(events, lump_th)
-        print(events)
         return events
 
     def lump_events(
