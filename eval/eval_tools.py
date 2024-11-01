@@ -111,8 +111,7 @@ def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     :param file_name: The path to the WAV file.
     :return: A tuple containing the signal data as a numpy array and the sample rate.
     """
-    sr, data = wavfile.read(file_name)
-    return data.astype(np.int64)
+    return wav_file_load(file_name)
 
 
 def wrap_signal_file(
@@ -129,6 +128,9 @@ def wrap_signal_file(
         sf = Noisy_File(sf, target_snr, seed=seed)
     return sf
 
+def wav_file_load(name):
+    sr, data = wavfile.read(name)
+    return data.astype(np.int64)
 
 def optimized_load(name):
     df = pd.read_csv(name, header=None)
@@ -237,13 +239,13 @@ def load_real_signal_groups(data_dir, group_ids, sensor_type, times):
     return sf_groups
 
 
-def load_real_signal_files(data_dir, dev_ids, sensor_type, times):
+def load_real_signal_files(data_dir, dev_ids, sensor_type, times, load_func=optimized_load):
     file_stubs = []
     for id in dev_ids:
         stubs = f"{sensor_type}_id_{id}_date_{times}.csv"
         file_stubs.append(stubs)
     return load_signal_files(
-        data_dir + "/", file_stubs, dev_ids, noise=False, wrap_around=False
+        data_dir + "/", file_stubs, dev_ids, load_func=load_func, noise=False, wrap_around=False,
     )
 
 

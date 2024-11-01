@@ -13,6 +13,7 @@ from eval_tools import (  # noqa: E402
     load_real_signal_files,
     log_parameters,
     make_dirs,
+    wav_file_load,
 )
 from evaluator import Evaluator  # noqa: E402
 
@@ -58,7 +59,7 @@ DEFAULT_SENSOR_TYPE = "mic"
 
 DEFAULT_TIMESTAMP = "20240813*"
 
-SENSOR_DATA_DIR = "/mnt/nas"
+SENSOR_DATA_DIR = "/home/isaac/test"
 
 
 def main(
@@ -73,7 +74,7 @@ def main(
 
     fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}"
 
-    signals = load_real_signal_files(data_dir, dev_ids, sensor_type, timestamp)
+    signals = load_real_signal_files(data_dir, dev_ids, sensor_type, timestamp, load_func=wav_file_load)
 
     def get_random_parameters():
         window_size = random.randint(
