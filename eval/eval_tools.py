@@ -242,7 +242,7 @@ def load_real_signal_groups(data_dir, group_ids, sensor_type, times):
 def load_real_signal_files(data_dir, dev_ids, sensor_type, times, load_func=optimized_load):
     file_stubs = []
     for id in dev_ids:
-        stubs = f"{sensor_type}_id_{id}_date_{times}.csv"
+        stubs = f"{sensor_type}_id_{id}_date_{times}"
         file_stubs.append(stubs)
     return load_signal_files(
         data_dir + "/", file_stubs, dev_ids, load_func=load_func, noise=False, wrap_around=False,
