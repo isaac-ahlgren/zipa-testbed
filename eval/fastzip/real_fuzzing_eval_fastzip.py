@@ -47,7 +47,7 @@ PEAK_STATUS_DEFAULT = None
 NUM_PEAKS_DEFAULT = 0
 BIAS_DEFAULT = 0
 
-EVENT_DIR = "./fastzip_data/fastzip_real_fuzz/fastzip_real_event_fuzz_snr"
+EVENT_DIR = "./fastzip_data/fastzip_real_fuzz/fastzip_real_event_fuzz"
 
 FUZZING_DIR = "fastzip_real_fuzz"
 FUZZING_STUB = "fastzip_real_fuzz"
