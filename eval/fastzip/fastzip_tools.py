@@ -89,13 +89,8 @@ def fastzip_bit_gen_wrapper(
         len(chunk), np.ceil(len(chunk) / n_bits), eqd_delta
     )
 
-    fp = ""
-    for pt in pts:
-        for index in pt:
-            if chunk[int(index)] > qs_thr:
-                fp += "1"
-            else:
-                fp += "0"
+    fp = FastZIPProcessing.gen_fp(pts, chunk, qs_thr)
+    
     return fp
 
 

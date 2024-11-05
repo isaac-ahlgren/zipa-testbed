@@ -519,19 +519,25 @@ class FastZIPProcessing:
             print('generate_equidist_points: "eqd_delta" must be smaller than "step"')
             return -1, 0
 
-        eqd_rand_points = []
+        # Calculate the number of rows (sequences) needed
+        num_sequences = np.ceil(chunk_len / eqd_delta).astype(int)
 
-        for i in range(0, ceil(chunk_len / eqd_delta)):
-            eqd_rand_points.append(
-                np.arange(
-                    0 + eqd_delta * i,
-                    chunk_len + eqd_delta * i,
-                    step,
-                )
-                % chunk_len
-            )
+        # Generate a 2D array where each row is a sequence with an offset
+        start_points = np.arange(0, num_sequences * eqd_delta, eqd_delta)[:, np.newaxis]
+        eqd_rand_points = (start_points + np.arange(0, chunk_len, step)) % chunk_len
 
         return eqd_rand_points
+
+    def gen_fp(pts, chunk, qs_thr):
+        # Convert pts to a flat list of indices
+        indices = np.concatenate(pts).astype(int)
+
+        # Compare chunk values at the specified indices to qs_thr
+        binary_array = (chunk[indices] > qs_thr).astype(int)
+
+        # Convert binary array to a single binary string
+        fp = ''.join(binary_array.astype(str))
+        return fp
 
     def compute_fingerprint(
         data: np.ndarray,
@@ -593,13 +599,7 @@ class FastZIPProcessing:
                 len(chunk), ceil(len(chunk) / n_bits), eqd_delta
             )
 
-            fp = ""
-            for pt in pts:
-                for index in pt:
-                    if chunk[int(index)] > qs_thr:
-                        fp += "1"
-                    else:
-                        fp += "0"
+            fp = FastZIPProcessing.gen_fp(pts, chunk, qs_thr)
 
         return fp
 

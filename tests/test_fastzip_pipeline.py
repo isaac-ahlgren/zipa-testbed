@@ -76,10 +76,61 @@ def test_compute_qs_thr():
 
 
 def test_generate_equidist_points():
+    def test_func(chunk_len: int, step: int, eqd_delta: int):
+        eqd_rand_points = []
+
+        for i in range(0, np.ceil(chunk_len / eqd_delta).astype(int)):
+            eqd_rand_points.append(
+                np.arange(
+                    0 + eqd_delta * i,
+                    chunk_len + eqd_delta * i,
+                    step,
+                )
+                % chunk_len
+            )
+
+        return eqd_rand_points
+    
     sample_rate, data = setUp()
     eqd_delta = 1
+    test_points = test_func(len(data), 10, eqd_delta)
     points = FastZIPProcessing.generate_equidist_points(len(data), 10, eqd_delta)
-    assert isinstance(points, list)  # nosec
+    assert np.array_equal(points, test_points)  # nosec
+
+def test_gen_fp():
+    def test_func(chunk, eqd_delta, step, qs_thr):
+        eqd_rand_points = []
+
+        for i in range(0, np.ceil(len(chunk) / eqd_delta).astype(int)):
+            eqd_rand_points.append(
+                np.arange(
+                    0 + eqd_delta * i,
+                    len(chunk) + eqd_delta * i,
+                    step,
+                )
+                % len(chunk)
+            )
+
+        pts = eqd_rand_points
+
+        fp = ""
+        for pt in pts:
+            for index in pt:
+                if chunk[int(index)] > qs_thr:
+                    fp += "1"
+                else:
+                    fp += "0"
+        return fp
+    
+    sample_rate, data = setUp()
+
+    eqd_delta = 1
+    ref = test_func(data, eqd_delta, 10, 0.5)
+    pts = FastZIPProcessing.generate_equidist_points(
+        len(data), 10, eqd_delta
+    )
+    fp = FastZIPProcessing.gen_fp(pts, data, 0.5)
+    assert ref == fp
 
 
 def test_compute_fingerprint():
