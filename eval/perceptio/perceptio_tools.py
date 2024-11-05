@@ -50,7 +50,8 @@ def merge_events(first_event_list, second_event_list, lump_th, chunk_size, itera
     second_event_array = np.array(second_event_list)
 
     offset = iteration * chunk_size
-    second_event_array = second_event_array + np.array([offset, offset])
+    if second_event_array.size != 0:
+        second_event_array = second_event_array + np.array([offset, offset])
 
     # If either list is empty, simply concatenate them
     if first_event_array is None or first_event_array.size == 0:
