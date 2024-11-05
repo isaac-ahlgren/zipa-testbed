@@ -26,6 +26,7 @@ class Evaluator:
         event_gen=False,
         event_bit_gen=False,
         change_and_log_seed=False,
+        convert_bytes_to_bitstring=True,
     ):
         """
         Initialize the Evaluator with a specific bit generation algorithm.
@@ -38,6 +39,7 @@ class Evaluator:
         self.event_gen = event_gen
         self.event_bit_gen = event_bit_gen
         self.change_and_log_seed = change_and_log_seed
+        self.convert_bytes_to_bitstring = convert_bytes_to_bitstring
         self.legit_bits1 = []
         self.legit_bits2 = []
         self.adv_bits = []
@@ -103,7 +105,6 @@ class Evaluator:
     def eval_event_gen_func(
         self, signal: Signal_File_Interface, key_length, file_stub, params
     ):
-        print(params)
         event_timestamps = self.func(signal, *params)
         file_stub = file_stub + "_" + signal.get_id()
 

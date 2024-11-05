@@ -178,6 +178,7 @@ def main(
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
         event_bit_gen=True,
+        convert_bytes_to_bitstring=False,
     )
     evaluator.fuzzing_evaluation(
         groups,

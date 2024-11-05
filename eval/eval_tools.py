@@ -426,13 +426,16 @@ def log_seed(file_name_stub, seed):
     df.to_csv(file_name)
 
 
-def log_event_bits(file_name_stub, event_bits, key_length):
+def log_event_bits(file_name_stub, event_bits, key_length, convert_bytes_to_bitstring=True):
     file_name = file_name_stub + "_eventbits.txt"
     with open(file_name, "w") as file:
         for bits in event_bits:
             bit_string = ""
             for b in bits:
-                bit_string += bytes_to_bitstring(b, key_length)
+                if convert_bytes_to_bitstring:
+                    bit_string += bytes_to_bitstring(b, key_length)
+                else:
+                    bit_string += b
             file.write(bit_string + "\n")
 
 
