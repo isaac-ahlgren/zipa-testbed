@@ -127,7 +127,7 @@ class Evaluator:
 
         for b, signal in zip(bits, signals):
             new_file_stub = file_stub + "_" + signal.get_id()
-            log_event_bits(new_file_stub, b, key_length)
+            log_event_bits(new_file_stub, b, key_length, convert_bytes_to_bitstring=self.convert_bytes_to_bitstring)
 
     def eval_bit_gen_func(self, signal, key_length, file_stub, params):
         outcome, extras = self.evaluate_device_bit_gen(signal, params)
