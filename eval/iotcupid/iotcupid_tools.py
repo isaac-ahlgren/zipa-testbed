@@ -7,9 +7,12 @@ import numpy as np
 
 sys.path.insert(
     1, os.getcwd() + "/../../src/"
-)  # Gives us path to Perceptio algorithm in /src
+)  # Gives us path to IoTCupid algorithm in /src
 
 from signal_processing.iotcupid import IoTCupidProcessing  # noqa: E402
+
+MICROPHONE_SAMPLING_RATE = 44100
+DATA_DIRECTORY = "./iotcupid_data"
 
 goldsig_rng = np.random.default_rng(0)
 
@@ -37,9 +40,98 @@ def adversary_signal(sample_num):
     return adv_rng.integers(0, 10, size=sample_num)
 
 
+def preprocess_event_signals(event_signals, window_size, a):
+    preprocessed_ev_sig = []
+    for ev_sig in event_signals:
+        sig_length = len(ev_sig)
+        chunks = sig_length // window_size
+        fully_processed_ev_sig = np.zeros(chunks, dtype=np.float64)
+        prev_chunk = None
+        for i in range(chunks):
+            chunk = ev_sig[i * window_size : (i + 1) * window_size]
+            proc_chunk = IoTCupidProcessing.ewma(chunk, prev_chunk, a)
+            deriv = IoTCupidProcessing.compute_derivative(proc_chunk)
+            fully_processed_ev_sig[i] = deriv
+            prev_chunk = proc_chunk
+        preprocessed_ev_sig.append(fully_processed_ev_sig)
+    return preprocessed_ev_sig
+
+
+def process_events(
+    events,
+    event_signals,
+    key_size,
+    window_size,
+    a,
+    feature_dim,
+    m_start,
+    m_end,
+    m_searches,
+    mem_thresh,
+    quantization_factor,
+    cluster_sizes_to_check,
+    cluster_th,
+    Fs,
+):
+
+    event_signals = preprocess_event_signals(event_signals, window_size, a)
+
+    event_features = IoTCupidProcessing.get_event_features(event_signals, feature_dim)
+
+    cntr, u, optimal_clusters, fpcs = IoTCupidProcessing.fuzzy_cmeans_w_elbow_method(
+        event_features.T,
+        cluster_sizes_to_check,
+        cluster_th,
+        m_start,
+        m_end,
+        m_searches,
+        mem_thresh,
+    )
+
+    grouped_events = IoTCupidProcessing.group_events(events, u, mem_thresh)
+
+    inter_event_timings = IoTCupidProcessing.calculate_inter_event_timings(
+        grouped_events, window_size, Fs, quantization_factor, key_size
+    )
+
+    return inter_event_timings
+
+
+def get_events(chunk, prev_chunk, top_th, bottom_th, a):
+    proc_chunk = IoTCupidProcessing.ewma(chunk, prev_chunk, a)
+    deriv = IoTCupidProcessing.compute_derivative(proc_chunk)
+    detected_event = IoTCupidProcessing.detect_event(abs(deriv), bottom_th, top_th)
+    if detected_event:
+        output = [(0, len(chunk))]
+    else:
+        output = []
+    return output, proc_chunk, deriv
+
+
+def extract_all_events(signal, top_th, bottom_th, lump_th, a, window_size):
+    events = None
+    last_chunk = None
+    iteration = 0
+    while not signal.get_finished_reading():
+        chunk = signal.read(window_size)
+        if len(chunk) != window_size:
+            continue
+
+        new_events, last_chunk, deriv = get_events(
+            chunk, last_chunk, top_th, bottom_th, a
+        )
+        if events is not None:
+            events = IoTCupidProcessing.merge_events(
+                events, new_events, lump_th, window_size, iteration
+            )
+        else:
+            events = new_events
+        iteration += 1
+    return events
+
+
 def gen_min_events(
     signal: Any,
-    chunk_size: int,
     min_events: int,
     top_th: float,
     bottom_th: float,
@@ -60,48 +152,30 @@ def gen_min_events(
     :param window_size: Window size for computing derivatives.
     :return: A tuple of event indices and their corresponding signal data.
     """
+    total_signal = np.array([])
     events = []
-    event_signals = []
     iteration = 0
-    while len(events) < min_events:
-        chunk = signal.read(chunk_size)
+    last_chunk = None
+    while not signal.get_finished_reading() and len(events) < min_events:
+        chunk = signal.read(window_size)
 
-        smoothed_data = IoTCupidProcessing.ewma(chunk, a)
+        if len(chunk) != window_size:
+            continue
 
-        derivatives = IoTCupidProcessing.compute_derivative(smoothed_data, window_size)
-
-        received_events = IoTCupidProcessing.detect_events(
-            abs(derivatives), bottom_th, top_th, agg_th
+        new_events, last_chunk, deriv = get_events(
+            chunk, last_chunk, top_th, bottom_th, a
         )
-
-        if len(received_events) != 0:
-            received_event_signals = IoTCupidProcessing.get_event_signals(
-                received_events, smoothed_data
+        total_signal = np.append(total_signal, deriv)
+        if events is not None:
+            events = IoTCupidProcessing.merge_events(
+                events, new_events, agg_th, window_size, iteration
             )
-
-            for i in range(len(received_events)):
-                received_events[i] = (
-                    received_events[i][0] + chunk_size * iteration,
-                    received_events[i][1] + chunk_size * iteration,
-                )
-
-            # Reconciling lumping adjacent events across windows
-            if (
-                len(received_events) != 0
-                and len(events) != 0
-                and received_events[0][0] - events[-1][1] <= agg_th
-            ):
-                events[-1] = (events[-1][0], received_events[0][1])
-                event_signals[-1] = np.append(
-                    event_signals[-1][1], received_event_signals
-                )
-
-                events.extend(received_events[1:])
-                event_signals.extend(received_event_signals[1:])
-            else:
-                events.extend(received_events)
-                event_signals.extend(received_event_signals)
+        else:
+            events = new_events
         iteration += 1
+    event_signals = IoTCupidProcessing.get_event_signals(
+        events, total_signal, window_size
+    )
     return events, event_signals
 
 

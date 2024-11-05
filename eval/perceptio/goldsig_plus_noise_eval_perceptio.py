@@ -85,7 +85,7 @@ def main(
         return bits
 
     # Creating an evaluator object with the bit generation algorithm
-    evaluator = Evaluator(bit_gen_algo, event_driven=True)
+    evaluator = Evaluator(bit_gen_algo, event_gen=True)
     # Evaluating the signals with the specified number of trials
     evaluator.evaluate_controlled_signals(signals, trials)
     # Comparing the bit errors for legitimate and adversary signals

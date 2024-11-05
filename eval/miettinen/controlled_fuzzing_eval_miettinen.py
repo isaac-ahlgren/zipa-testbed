@@ -29,8 +29,8 @@ WRAP_AROUND_LIMIT_DEFAULT = 10
 # Random Parameter Ranges
 W_LENGTH_RANGE = (5000, 2 * 48000)
 F_LENGTH_RANGE = (5000, 2 * 48000)
-REL_THR_RANGE = (-1, 10000)
-ABS_THR_RANGE = (0, 10000)
+REL_THR_RANGE = (-1, 15)
+ABS_THR_RANGE = (0, 15)
 
 FUZZING_DIR = "miettinen_controlled_fuzz"
 FUZZING_STUB = "miettinen_controlled_fuzz"
@@ -82,7 +82,7 @@ def main(
                 signal_chunk, argv[0], argv[1], argv[2], argv[3]
             )
         else:
-            output = None, None
+            output = None
         return output, None
 
     # Creating an evaluator object with the bit generation algorithm
@@ -90,7 +90,7 @@ def main(
         bit_gen_algo,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
-        event_driven=False,
+        event_gen=False,
     )
     evaluator.fuzzing_evaluation(
         signals,

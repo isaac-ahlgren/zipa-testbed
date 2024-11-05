@@ -28,17 +28,21 @@ class IoTCupidProcessing:
         m_searches: int,
         mem_thresh: float,
     ):
-        smoothed_data = IoTCupidProcessing.ewma(signal, a)
 
-        derivatives = IoTCupidProcessing.compute_derivative(smoothed_data, window_size)
+        chunks = IoTCupidProcessing.chunk_signal(signal, window_size)
 
-        received_events = IoTCupidProcessing.detect_events(
-            abs(derivatives), bottom_th, top_th, agg_th
+        chunks = IoTCupidProcessing.ewma_on_chunks(chunks, a)
+
+        derivatives = IoTCupidProcessing.compute_derivative_on_chunks(chunks)
+
+        received_events = IoTCupidProcessing.detect_event_on_chunks(
+            abs(derivatives), bottom_th, top_th, agg_th, window_size
         )
 
         received_event_signals = IoTCupidProcessing.get_event_signals(
-            received_events, smoothed_data
+            received_events, derivatives, window_size
         )
+
         if len(received_events) < 2:
             # Needs two events in order to calculate interevent timings
             print("Error: Less than two events detected")
@@ -68,20 +72,28 @@ class IoTCupidProcessing:
 
         return inter_event_timings, grouped_events
 
-    def ewma(signal: np.ndarray, a: float) -> np.ndarray:
-        """
-        Computes the exponentially weighted moving average (EWMA) of a signal.
+    def chunk_signal(signal, window_len):
+        output = []
+        chunk_num = len(signal) // window_len
+        for i in range(chunk_num):
+            chunk = signal[i * window_len : (i + 1) * window_len]
+            output.append(chunk)
+        return output
 
-        :param signal: The input signal as a NumPy array.
-        :param a: The smoothing factor used in the EWMA calculation.
-        :return: The EWMA of the signal as a NumPy array.
-        """
-        y = np.zeros(len(signal))
+    def ewma(
+        signal_window: np.ndarray, prev_signal_window: np.ndarray, a: float
+    ) -> np.ndarray:
+        if prev_signal_window is None:
+            return signal_window
+        else:
+            return a * signal_window + (1 - a) * prev_signal_window
 
-        y[0] = a * signal[0]
-        for i in range(1, len(signal)):
-            y[i] = a * signal[i] + (1 - a) * y[i - 1]
-        return y
+    def ewma_on_chunks(chunks, a):
+        prev = None
+        for i in range(len(chunks)):
+            chunks[i] = IoTCupidProcessing.ewma(chunks[i], prev, a)
+            prev = chunks[i]
+        return chunks
 
     """
     Comments potentially for the paper: This algorithm doesn't seem like it was designed for live testing in mind.
@@ -92,68 +104,74 @@ class IoTCupidProcessing:
     with is extremely computationally expensive for large buffers)
     """
 
-    def compute_derivative(signal, window_size: int) -> np.ndarray:
-        """
-        Computes the derivative of a signal based on a specified window size.
+    def compute_derivative(signal):
+        return (signal[-1] - signal[0]) / len(signal)
 
-        :param signal: Pandas DataFrame containing the signal data.
-        :param window_size: The size of the window over which to compute the derivative.
-        :return: DataFrame containing the derivatives.
-        """
-        derivative_values = []
-        for i in range(len(signal) - window_size):
-            derivative = (signal[i + window_size] - signal[i]) / window_size
-            derivative_values.append(derivative)
-        return np.array(derivative_values)
+    def compute_derivative_on_chunks(chunks):
+        output = np.zeros(len(chunks))
+        for i in range(len(chunks)):
+            output[i] = IoTCupidProcessing.compute_derivative(chunks[i])
+        return output
 
-    def detect_events(
-        derivatives: np.ndarray, bottom_th: float, top_th: float, agg_th: int
-    ) -> List[Tuple[int, int]]:
-        """
-        Detects events based on derivative thresholds and aggregation criteria.
+    def detect_event(derivative, bottom_th, top_th):
+        event_detected = False
+        if derivative >= bottom_th and derivative <= top_th:
+            event_detected = True
+        return event_detected
 
-        :param derivatives: DataFrame containing derivative data.
-        :param bottom_th: Lower threshold for derivative to consider an event.
-        :param top_th: Upper threshold for derivative to consider an event.
-        :param agg_th: Minimum length of an event to be considered significant.
-        :return: A list of tuples representing the start and end indices of detected events.
-        """
-        # Get events that are within the threshold
-        events = []
-        found_event = False
-        beg_event_num = None
+    def detect_event_on_chunks(derivatives, bottom_th, top_th, agg_th, window_size):
+        events = None
         for i in range(len(derivatives)):
-            if (
-                not found_event
-                and derivatives[i] >= bottom_th
-                and derivatives[i] <= top_th
-            ):
-                found_event = True
-                beg_event_num = i
-            elif found_event and (
-                derivatives[i] < bottom_th or derivatives[i] > top_th
-            ):
-                found_event = False
-                found_event = None
-                events.append((beg_event_num, i))
-        if found_event:
-            events.append((beg_event_num, len(derivatives)))
+            derivative = derivatives[i]
+            event_detected = IoTCupidProcessing.detect_event(
+                derivative, bottom_th, top_th
+            )
 
-        i = 0
-        while i < len(events) - 1:
-            if events[i + 1][0] - events[i][1] <= agg_th:
-                new_element = (events[i][0], events[i + 1][1])
-                events.pop(i)
-                events.pop(i)
-                events.insert(i, new_element)
+            if event_detected:
+                new_events = [(0, window_size)]
             else:
-                i += 1
+                new_events = []
 
+            if events is not None:
+                events = IoTCupidProcessing.merge_events(
+                    events, new_events, agg_th, window_size, i
+                )
+            else:
+                events = new_events
         return events
+
+    def merge_events(
+        first_event_list, second_event_list, lump_th, chunk_size, iteration
+    ):
+        for i in range(len(second_event_list)):
+            second_event_list[i] = (
+                second_event_list[i][0] + iteration * chunk_size,
+                second_event_list[i][1] + iteration * chunk_size,
+            )
+
+        event_list = []
+        if len(first_event_list) != 0 and len(second_event_list) != 0:
+            end_event = first_event_list[-1]
+            beg_event = second_event_list[0]
+
+            if beg_event[0] - end_event[1] <= lump_th:
+                new_event = (end_event[0], beg_event[1])
+                event_list.extend(first_event_list[:-1])
+                event_list.append(new_event)
+                event_list.extend(second_event_list[1:])
+            else:
+                event_list.extend(first_event_list)
+                event_list.extend(second_event_list)
+        else:
+            event_list.extend(first_event_list)
+            event_list.extend(second_event_list)
+
+        return event_list
 
     def get_event_signals(
         events: List[Tuple[int, int]],
         sensor_data: np.ndarray,
+        window_size,
     ) -> np.ndarray:
         """
         Extract signal segments from sensor data based on provided events.
@@ -165,7 +183,9 @@ class IoTCupidProcessing:
 
         event_signals = []
         for i, (start, end) in enumerate(events):
-            event_signals.append(sensor_data[start:end])
+            deriv_start = start // window_size
+            deriv_end = end // window_size
+            event_signals.append(sensor_data[deriv_start:deriv_end])
 
         return event_signals
 

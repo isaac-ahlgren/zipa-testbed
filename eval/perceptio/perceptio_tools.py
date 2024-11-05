@@ -11,6 +11,9 @@ sys.path.insert(
 
 from signal_processing.perceptio import PerceptioProcessing  # noqa: E402
 
+MICROPHONE_SAMPLING_RATE = 44100
+DATA_DIRECTORY = "./perceptio_data"
+
 goldsig_rng = np.random.default_rng(0)
 
 
@@ -37,7 +40,73 @@ def adversary_signal(sample_num: int) -> np.ndarray:
     return adv_rng.integers(0, 10, size=sample_num)
 
 
-def get_events(
+def get_events(arr, top_th, bottom_th, lump_th, a):
+    return PerceptioProcessing.get_events(arr, a, bottom_th, top_th, lump_th)
+
+
+def merge_events(first_event_list, second_event_list, lump_th, chunk_size, iteration):
+    # Convert input lists to NumPy arrays for vectorized operations
+    first_event_array = np.array(first_event_list)
+    second_event_array = np.array(second_event_list)
+
+    offset = iteration * chunk_size
+    second_event_array = second_event_array + np.array([offset, offset])
+
+    # If either list is empty, simply concatenate them
+    if first_event_array is None or first_event_array.size == 0:
+        return second_event_array.tolist()
+    if second_event_array is None or second_event_array.size == 0:
+        return first_event_array.tolist()
+
+    # Determine whether to merge the last of first_event_array with the first of second_event_array
+    end_event = first_event_array[-1]
+    beg_event = second_event_array[0]
+    
+    if beg_event[0] - end_event[1] < lump_th:
+        # Merge the overlapping events
+        merged_event = np.array([[end_event[0], beg_event[1]]])
+        
+        # Concatenate first list (excluding the last event), merged event, and the rest of the second list
+        event_list = np.vstack((first_event_array[:-1], merged_event, second_event_array[1:]))
+    else:
+        # Simply concatenate both lists without merging
+        event_list = np.vstack((first_event_array, second_event_array))
+    
+    return event_list.tolist()
+
+
+def process_events(
+    events, event_signals, key_size, cluster_sizes_to_check, cluster_th, Fs
+):
+
+    event_features = [PerceptioProcessing.generate_features(x) for x in event_signals]
+
+    labels, k, _ = PerceptioProcessing.kmeans_w_elbow_method(
+        event_features, cluster_sizes_to_check, cluster_th
+    )
+
+    grouped_events = PerceptioProcessing.group_events(events, labels, k)
+
+    fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size // 8, Fs)
+
+    return fps
+
+
+def extract_all_events(signal, top_th, bottom_th, lump_th, a, chunk_size=10000):
+    events = None
+    iteration = 0
+    while not signal.get_finished_reading():
+        chunk = signal.read(chunk_size)
+        new_events = get_events(chunk, top_th, bottom_th, lump_th, a)
+        if events is not None:
+            events = merge_events(events, new_events, lump_th, chunk_size, iteration)
+        else:
+            events = new_events
+        iteration += 1
+    return events
+
+
+def extract_events(
     arr: np.ndarray, top_th: float, bottom_th: float, lump_th: int, a: float
 ) -> Tuple[List[Tuple[int, int]], List[np.ndarray]]:
     """
@@ -83,7 +152,7 @@ def gen_min_events(
     while len(events) < min_events:
         chunk = signal.read(chunk_size)
 
-        found_events, found_event_features = get_events(
+        found_events, found_event_features = extract_events(
             chunk, top_th, bottom_th, lump_th, a
         )
 

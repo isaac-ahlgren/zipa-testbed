@@ -1,24 +1,19 @@
 import os
 import random
 import sys
-from typing import List
 
 import numpy as np
-from fastzip_tools import (
-    DATA_DIRECTORY,
-    MICROPHONE_SAMPLING_RATE,
-    fastzip_wrapper_function,
-)
+from fastzip_tools import DATA_DIRECTORY, calc_all_event_bits_fastzip
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
     get_fuzzing_command_line_args,
     load_controlled_signal_files,
+    load_random_events,
     log_parameters,
     make_dirs,
 )
 from evaluator import Evaluator  # noqa: E402
-from signal_file import Signal_File  # noqa: E402
 
 # Static default parameters
 KEY_LENGTH_DEFAULT = 128
@@ -51,6 +46,8 @@ PEAK_STATUS_DEFAULT = None
 NUM_PEAKS_DEFAULT = 0
 BIAS_DEFAULT = 0
 
+EVENT_DIR = "./fastzip_data/fastzip_controlled_fuzz/fastzip_controlled_event_fuzz_snr"
+
 FUZZING_DIR = "fastzip_controlled_fuzz"
 FUZZING_STUB = "fastzip_controlled_fuzz"
 
@@ -69,21 +66,26 @@ def main(
         target_snr, wrap_around=True, wrap_around_limit=wrap_around_limit
     )
 
+    signals = [signals]
+
     def get_random_parameters():
-        window_size = random.randint(
-            WINDOW_SIZE_RANGE[0], WINDOW_SIZE_RANGE[1]
-        )  # nosec
-        overlap_size = random.randint(MIN_OVERLAP_DEFAULT, window_size // 2)  # nosec
+        event_dir, params = load_random_events(EVENT_DIR + str(target_snr))
+        window_size = params["window_size"]
+        overlap_size = params["overlap_size"]
+        power_th = params["power_th"]
+        snr_th = params["snr_th"]
+        peak_th = params["peak_th"]
+        sample_rate = params["sample_rate"]
+        peak_status = params["peak_status"]
+        normalize = params["normalize"]
+        alpha = params["alpha"]
         max_bits = key_length if window_size // 2 > key_length else window_size // 2
         n_bits = random.randint(MIN_N_BITS_DEFAULT, max_bits)  # nosec
-        max_eqd_delta = np.ceil(window_size / n_bits)
-        eqd_delta = random.randint(MIN_EQD_DELTA_DEFAULT, max_eqd_delta)  # nosec
-        ewma = random.choice([True, False])  # nosec
-        alpha = random.uniform(0, 1)  # nosec
-        remove_noise = random.choice([True, False])  # nosec
-        normalize = random.choice([True, False])  # nosec
-        power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
-        snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
+        eqd_delta = 1
+        ewma = False  # random.choice([True, False])  # nosec
+        alpha = 0.5  # random.uniform(0, 1)  # nosec
+        remove_noise = False  # random.choice([True, False])  # nosec
+        bias = BIAS_DEFAULT
         return (
             window_size,
             overlap_size,
@@ -92,9 +94,14 @@ def main(
             ewma,
             alpha,
             remove_noise,
+            bias,
             normalize,
             power_th,
             snr_th,
+            peak_th,
+            peak_status,
+            sample_rate,
+            event_dir,
         )
 
     def log(params, file_name_stub):
@@ -106,9 +113,14 @@ def main(
             "ewma",
             "alpha",
             "remove_noise",
+            "bias",
             "normalize",
             "power_th",
             "snr_th",
+            "peak_th",
+            "peak_status",
+            "sample_rate",
+            "event_dir",
         ]
         param_list = [
             params[0],
@@ -121,46 +133,39 @@ def main(
             params[7],
             params[8],
             params[9],
+            params[10],
+            params[11],
+            params[12],
+            params[13],
+            params[14],
         ]
+        for param, name in zip(param_list, names):
+            print(f"{name}: {param} ; ", end="")
+        print("\n")
         log_parameters(file_name_stub, names, param_list)
 
-    def bit_gen_algo(signal: Signal_File, *args: List) -> np.ndarray:
-        """
-        Generates bits based on the analysis of overlapping chunks from a signal.
-
-        :param signal: The signal buffer to process.
-        :type signal: Signal_Buffer
-        :return: A byte string of the generated bits up to the specified key length.
-        :rtype: ByteString
-        """
-        output, samples_read = fastzip_wrapper_function(
-            signal,
-            args[2],
-            args[0],
-            args[1],
-            args[8],
-            args[9],
-            NUM_PEAKS_DEFAULT,
-            BIAS_DEFAULT,
-            args[3],
-            MICROPHONE_SAMPLING_RATE,
-            KEY_LENGTH_DEFAULT,
-            PEAK_STATUS_DEFAULT,
-            args[4],
-            args[5],
-            args[6],
-            args[7],
+    def func(signals, *params) -> np.ndarray:
+        key_size = params[0]
+        remove_noise = params[7]
+        ewma_filter = params[5]
+        alpha = params[6]
+        bias = params[8]
+        n_bits = params[3]
+        eqd_delta = params[4]
+        print(
+            f"key_size: {key_size} ; remove_noise: {remove_noise} ; ewma_filter: {ewma_filter} ; alpha: {alpha} ; bias: {bias} ; n_bits: {n_bits} ; eqd_delta: {eqd_delta}"
         )
-        if len(output) != KEY_LENGTH_DEFAULT // 8:
-            output = None
-        return output, samples_read
+        return calc_all_event_bits_fastzip(
+            signals, key_size, remove_noise, ewma_filter, alpha, bias, n_bits, eqd_delta
+        )
 
     # Creating an evaluator object with the bit generation algorithm
     evaluator = Evaluator(
-        bit_gen_algo,
+        func,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
-        event_driven=False,
+        event_bit_gen=True,
+        change_and_log_seed=True,
     )
     evaluator.fuzzing_evaluation(
         signals,

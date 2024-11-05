@@ -94,7 +94,7 @@ def main(
                 signal_chunk, argv[0], argv[1], argv[2], argv[3]
             )
         else:
-            output = None, None
+            output = None
         return output, None
 
     # Creating an evaluator object with the bit generation algorithm
@@ -102,7 +102,7 @@ def main(
         bit_gen_algo,
         random_parameter_func=get_random_parameters,
         parameter_log_func=log,
-        event_driven=False,
+        event_gen=False,
     )
     evaluator.fuzzing_evaluation(
         signals,

@@ -216,9 +216,8 @@ class Shurmann_Siggs_Protocol(ProtocolInterface):
 
         self.count += 1
 
-
+        
 # TESTING CODE###
-
 
 def device(prot):
     print("device")

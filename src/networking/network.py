@@ -321,7 +321,7 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
     if message:
         command = message[:8]
         if command == NONC.encode():  # Assuming NONC is predefined
-            # Extract the size of the nonce from the last 4 bytes
+             # Extract the size of the nonce from the last 4 bytes
             nonce_size = int.from_bytes(message[8:], "big")
 
             try:
@@ -332,8 +332,7 @@ def get_nonce_msg_standby(connection: socket.socket, timeout: int) -> Optional[b
                 return None
 
     return nonce
-
-
+  
 
 
 def send_pake_msg(connection, msg):

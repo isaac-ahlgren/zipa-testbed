@@ -4,11 +4,15 @@ from typing import Any, Callable, List, Tuple
 
 from eval_tools import (
     calc_all_bits,
-    calc_all_events,
     cmp_bits,
     events_cmp_bits,
     gen_id,
-    log_outcomes,
+    load_controlled_signal_seeds,
+    load_event_files,
+    log_bit_gen_outcomes,
+    log_event_bits,
+    log_event_gen_outcomes,
+    log_seed,
 )
 from signal_file_interface import Signal_File_Interface
 
@@ -16,20 +20,26 @@ from signal_file_interface import Signal_File_Interface
 class Evaluator:
     def __init__(
         self,
-        bit_gen_algo_wrapper: Callable[[Any], List[bytes]],
+        func: Callable[[Any], List[bytes]],
         random_parameter_func=None,
         parameter_log_func=None,
-        event_driven=False,
+        event_gen=False,
+        event_bit_gen=False,
+        change_and_log_seed=False,
+        convert_bytes_to_bitstring=True,
     ):
         """
         Initialize the Evaluator with a specific bit generation algorithm.
 
         :param bit_gen_algo_wrapper: A function that takes a signal and returns a list of bits.
         """
-        self.bit_gen_algo_wrapper = bit_gen_algo_wrapper
+        self.func = func
         self.random_parameter_func = random_parameter_func
         self.parameter_log_func = parameter_log_func
-        self.event_driven = event_driven
+        self.event_gen = event_gen
+        self.event_bit_gen = event_bit_gen
+        self.change_and_log_seed = change_and_log_seed
+        self.convert_bytes_to_bitstring = convert_bytes_to_bitstring
         self.legit_bits1 = []
         self.legit_bits2 = []
         self.adv_bits = []
@@ -45,13 +55,13 @@ class Evaluator:
         """
         legit_signal1, legit_signal2, adv_signal = signals
         for i in range(trials):
-            bits1 = self.bit_gen_algo_wrapper(legit_signal1, *argv)
+            bits1 = self.func(legit_signal1, *argv)
             self.legit_bits1.append(bits1)
 
-            bits2 = self.bit_gen_algo_wrapper(legit_signal2, *argv)
+            bits2 = self.func(legit_signal2, *argv)
             self.legit_bits2.append(bits2)
 
-            adv_bits = self.bit_gen_algo_wrapper(adv_signal, *argv)
+            adv_bits = self.func(adv_signal, *argv)
             self.adv_bits.append(adv_bits)
 
             if isinstance(legit_signal1, Signal_File_Interface) or isinstance(
@@ -67,7 +77,7 @@ class Evaluator:
         :param key_length: The length of the key used in the comparison.
         :return: A tuple containing lists of bit error rates for legitimate and adversary bits.
         """
-        if self.event_driven:
+        if self.event_gen:
             cmp = events_cmp_bits
         else:
             cmp = cmp_bits
@@ -89,34 +99,86 @@ class Evaluator:
         self.legit_bits2 = []
         self.adv_bits = []
 
-    def evaluate_device_non_ed(self, signal: Signal_File_Interface, params: Tuple):
-        return calc_all_bits(signal, self.bit_gen_algo_wrapper, *params)
+    def evaluate_device_bit_gen(self, signal: Signal_File_Interface, params: Tuple):
+        return calc_all_bits(signal, self.func, *params)
 
-    def evaluate_device_ed(self, signal: Signal_File_Interface, params: Tuple):
-        return calc_all_events(signal, self.bit_gen_algo_wrapper, *params)
+    def eval_event_gen_func(
+        self, signal: Signal_File_Interface, key_length, file_stub, params
+    ):
+        event_timestamps = self.func(signal, *params)
+        file_stub = file_stub + "_" + signal.get_id()
 
-    def fuzzing_func(self, signal, key_length, file_stub, params):
-        if self.event_driven:
-            outcome, extras = self.evaluate_device_ed(signal, params)
-        else:
-            outcome, extras = self.evaluate_device_non_ed(signal, params)
+        log_event_gen_outcomes(file_stub, event_timestamps)
+
+        if self.change_and_log_seed:
+            log_seed(file_stub, signal.seed)
+
+    def eval_event_bit_gen_func(self, signals, key_length, file_stub, params):
+        event_dir = params[-1]
+
+        if self.change_and_log_seed:
+            seeds = load_controlled_signal_seeds(event_dir, signals)
+            for signal, seed in zip(signals, seeds):
+                signal.set_seed(seed)
+
+        event_files = load_event_files(event_dir, signals)
+
+        bits = self.func(event_files, key_length, *params)
+
+        for b, signal in zip(bits, signals):
+            new_file_stub = file_stub + "_" + signal.get_id()
+            log_event_bits(new_file_stub, b, key_length, convert_bytes_to_bitstring=self.convert_bytes_to_bitstring)
+
+    def eval_bit_gen_func(self, signal, key_length, file_stub, params):
+        outcome, extras = self.evaluate_device_bit_gen(signal, params)
 
         file_stub = file_stub + "_" + signal.get_id()
-        log_outcomes(file_stub, outcome, extras, key_length)
+        log_bit_gen_outcomes(file_stub, outcome, extras, key_length)
         signal.reset()
 
-    def fuzzing_single_threaded(self, signals, key_length, file_stub, params):
-        for signal in signals:
-            self.fuzzing_func(signal, key_length, file_stub, params)
+    def eval_func(self, *params):
+        if self.event_gen:
+            self.eval_event_gen_func(*params)
+        elif self.event_bit_gen:
+            self.eval_event_bit_gen_func(*params)
+        else:
+            self.eval_bit_gen_func(*params)
 
-    def fuzzing_multithreaded(self, signals, key_length, file_stub, params):
+    def eval_single_threaded(self, signals, key_length, file_stub, params):
+        for signal in signals:
+            self.eval_func(signal, key_length, file_stub, params)
+
+    def eval_multithreaded(self, signals, key_length, file_stub, params):
         threads = []
         for signal in signals:
             p = Process(
-                target=self.fuzzing_func, args=(signal, key_length, file_stub, params)
+                target=self.eval_func, args=(signal, key_length, file_stub, params)
             )
             p.start()
             threads.append(p)
+
+        for thread in threads:
+            thread.join()
+
+    def best_parameter_evaluation(
+        self, group_signals, group_params, key_length, dir, file_stub
+    ):
+        threads = []
+        for signal_group, params in zip(group_signals, group_params):
+            id1 = signal_group[0].get_id()
+            id2 = signal_group[1].get_id()
+            id3 = signal_group[2].get_id()
+            dir_path = f"{dir}/{file_stub}_{id1}_{id2}_{id3}"
+            if not os.path.isdir(dir_path):
+                os.mkdir(dir_path)
+
+            stub = f"{dir_path}/{file_stub}"
+            for signal in signal_group:
+                p = Process(
+                    target=self.eval_func, args=(signal, key_length, stub, params)
+                )
+                p.start()
+                threads.append(p)
 
         for thread in threads:
             thread.join()
@@ -141,6 +203,6 @@ class Evaluator:
             self.parameter_log_func(params, file_stub)
 
             if multithreaded:
-                self.fuzzing_multithreaded(signals, key_length, file_stub, params)
+                self.eval_multithreaded(signals, key_length, file_stub, params)
             else:
-                self.fuzzing_single_threaded(signals, key_length, file_stub, params)
+                self.eval_single_threaded(signals, key_length, file_stub, params)

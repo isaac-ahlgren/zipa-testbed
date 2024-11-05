@@ -1,4 +1,5 @@
 import argparse
+import glob
 import os
 import random
 from typing import List, Tuple
@@ -7,6 +8,7 @@ import numpy as np
 import pandas as pd
 from scipy.io import wavfile
 from signal_file import (
+    Event_File,
     Noisy_File,
     Signal_Buffer,
     Signal_File,
@@ -58,8 +60,48 @@ def calc_all_bits(signal: Signal_File, bit_gen_algo_wrapper, *argv):
     return bits, extras
 
 
-def calc_all_events(signal: Signal_File, event_gen_algo_wrapper):
-    pass
+def calc_all_event_bits(signals, event_bit_gen_algo_wrapper, number_of_events, *argv):
+    legit1 = signals[0]
+    legit2 = signals[1]
+    adv = signals[2]
+
+    legit1_total_bits = []
+    legit2_total_bits = []
+    adv_total_bits = []
+
+    legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
+    legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
+    adv_events, adv_event_sigs = adv.get_events(number_of_events)
+
+    while (
+        not legit1.get_finished_reading()
+        and not legit2.get_finished_reading()
+        and not adv.get_finished_reading()
+    ):
+        legit1_bits = event_bit_gen_algo_wrapper(
+            legit1_events, legit1_event_sigs, *argv
+        )
+        legit2_bits = event_bit_gen_algo_wrapper(
+            legit2_events, legit2_event_sigs, *argv
+        )
+        adv_bits = event_bit_gen_algo_wrapper(adv_events, adv_event_sigs, *argv)
+
+        legit1_total_bits.append(legit1_bits)
+        legit2_total_bits.append(legit2_bits)
+
+        adv_total_bits.append(adv_bits)
+        legit2.sync(legit1)
+        adv.sync(legit1)
+
+        if (
+            not legit1.get_finished_reading()
+            and not legit2.get_finished_reading()
+            and not adv.get_finished_reading()
+        ):
+            legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
+            legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
+            adv_events, adv_event_sigs = adv.get_events(number_of_events)
+    return legit1_total_bits, legit2_total_bits, adv_total_bits
 
 
 def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
@@ -69,32 +111,47 @@ def load_controlled_signal(file_name: str) -> Tuple[np.ndarray, int]:
     :param file_name: The path to the WAV file.
     :return: A tuple containing the signal data as a numpy array and the sample rate.
     """
-    sr, data = wavfile.read(file_name)
-    return data.astype(np.int64)
+    return wav_file_load(file_name)
 
 
 def wrap_signal_file(
-    sf, noise=False, target_snr=None, wrap_around=False, wrap_around_limit=None
+    sf,
+    noise=False,
+    target_snr=None,
+    wrap_around=False,
+    wrap_around_limit=None,
+    seed=None,
 ):
     if wrap_around:
         sf = Wrap_Around_File(sf, wrap_around_limit=wrap_around_limit)
     if noise:
-        sf = Noisy_File(sf, target_snr)
+        sf = Noisy_File(sf, target_snr, seed=seed)
     return sf
 
+def wav_file_load(name):
+    sr, data = wavfile.read(name)
+    return data.astype(np.int64)
+
+def optimized_load(name):
+    df = pd.read_csv(name, header=None)
+    return df.to_numpy().T.flatten()
 
 def load_signal_files(
     dir,
     files,
     ids,
-    load_func=np.loadtxt,
+    load_func=optimized_load,
     noise=False,
     target_snr=None,
     wrap_around=False,
     wrap_around_limit=None,
+    seeds=None,
 ):
+    if seeds is None:
+        seeds = [None for i in range(len(files))]
+
     sfs = []
-    for file, id in zip(files, ids):
+    for file, id, seed in zip(files, ids, seeds):
         sf = Signal_File(dir, file, load_func=load_func, id=id)
         sf = wrap_signal_file(
             sf,
@@ -102,9 +159,49 @@ def load_signal_files(
             target_snr=target_snr,
             wrap_around=wrap_around,
             wrap_around_limit=wrap_around_limit,
+            seed=seed,
         )
         sfs.append(sf)
     return sfs
+
+
+def load_events(file):
+    df = pd.read_csv(file)
+    if "start_times" in df:
+        output = [(df["start_times"][i], df["end_times"][i]) for i in range(len(df))]
+    else:
+        output = None
+    return output
+
+
+def load_event_file(
+    event_file_dir,
+    sf,
+):
+    id = sf.get_id()
+    file_list = glob.glob(f"*{id}_time_stamps.csv", root_dir=event_file_dir)
+
+    if len(file_list) == 0:
+        raise Exception("load_event_file: Could not find event file")
+
+    file_name = file_list[0]
+
+    event_list = load_events(f"{event_file_dir}/{file_name}")
+
+    ef = Event_File(event_list, sf)
+
+    return ef
+
+
+def load_event_files(
+    event_file_dir,
+    sfs,
+):
+    efs = []
+    for sf in sfs:
+        ef = load_event_file(event_file_dir, sf)
+        efs.append(ef)
+    return efs
 
 
 def load_signal_buffers(
@@ -114,9 +211,13 @@ def load_signal_buffers(
     target_snr=None,
     wrap_around=False,
     wrap_around_limit=None,
+    seeds=None,
 ):
+    if seeds is None:
+        seeds = [None for i in range(len(buffers))]
+
     sbs = []
-    for buf, id in zip(buffers, ids):
+    for buf, id, seed in zip(buffers, ids, seeds):
         sb = Signal_Buffer(buf, id=id)
         sb = wrap_signal_file(
             sb,
@@ -124,12 +225,33 @@ def load_signal_buffers(
             target_snr=target_snr,
             wrap_around=wrap_around,
             wrap_around_limit=wrap_around_limit,
+            seed=seed,
         )
         sbs.append(sb)
     return sbs
 
 
-def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limit=None):
+def load_real_signal_groups(data_dir, group_ids, sensor_type, times, load_func=optimized_load):
+    sf_groups = []
+    for group in group_ids:
+        sf_group = load_real_signal_files(data_dir, group, sensor_type, times, load_func=load_func)
+        sf_groups.append(sf_group)
+    return sf_groups
+
+
+def load_real_signal_files(data_dir, dev_ids, sensor_type, times, load_func=optimized_load):
+    file_stubs = []
+    for id in dev_ids:
+        stubs = f"{sensor_type}_id_{id}_date_{times}"
+        file_stubs.append(stubs)
+    return load_signal_files(
+        data_dir + "/", file_stubs, dev_ids, load_func=load_func, noise=False, wrap_around=False,
+    )
+
+
+def load_controlled_signal_files(
+    target_snr, wrap_around=False, wrap_around_limit=None, seeds=[None, None, None]
+):
     return load_signal_files(
         "../../data/",
         [
@@ -143,6 +265,7 @@ def load_controlled_signal_files(target_snr, wrap_around=False, wrap_around_limi
         target_snr=target_snr,
         wrap_around=wrap_around,
         wrap_around_limit=wrap_around_limit,
+        seeds=seeds,
     )
 
 
@@ -265,9 +388,22 @@ def log_extras(file_name_stub, extras_list):
     df.to_csv(extra_file_name)
 
 
-def log_outcomes(file_name_stub, byte_list, extra_list, key_length):
+def log_bit_gen_outcomes(file_name_stub, byte_list, extra_list, key_length):
     log_bytes(file_name_stub, byte_list, key_length)
     log_extras(file_name_stub, extra_list)
+
+
+def log_event_gen_outcomes(file_name_stub, event_timestamps):
+    if event_timestamps is None:
+        start_times = [None]
+        end_times = [None]
+    else:
+        start_times = [x[0] for x in event_timestamps]
+        end_times = [x[1] for x in event_timestamps]
+    csv_dict = {"start_times": start_times, "end_times": end_times}
+    timestamps_file_name = f"{file_name_stub}_time_stamps.csv"
+    timestamps_df = pd.DataFrame(csv_dict)
+    timestamps_df.to_csv(timestamps_file_name)
 
 
 def log_parameters(file_name_stub, name_list, parameter_list):
@@ -278,6 +414,29 @@ def log_parameters(file_name_stub, name_list, parameter_list):
     file_name = file_name_stub + "_params.csv"
     df = pd.DataFrame(csv_file)
     df.to_csv(file_name)
+
+
+def log_seed(file_name_stub, seed):
+    csv_file = dict()
+
+    csv_file["seed_used"] = [seed]
+    file_name = f"{file_name_stub}_seed.csv"
+
+    df = pd.DataFrame(csv_file)
+    df.to_csv(file_name)
+
+
+def log_event_bits(file_name_stub, event_bits, key_length, convert_bytes_to_bitstring=True):
+    file_name = file_name_stub + "_eventbits.txt"
+    with open(file_name, "w") as file:
+        for bits in event_bits:
+            bit_string = ""
+            for b in bits:
+                if convert_bytes_to_bitstring:
+                    bit_string += bytes_to_bitstring(b, key_length)
+                else:
+                    bit_string += b
+            file.write(bit_string + "\n")
 
 
 def get_fuzzing_command_line_args(
@@ -322,3 +481,94 @@ def make_dirs(data_dir, fuzzing_dir, fuzzing_stub_dir):
 
     if not os.path.isdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}"):
         os.mkdir(f"{data_dir}/{fuzzing_dir}/{fuzzing_stub_dir}")
+
+
+def fix_dict(d):
+    new_d = dict()
+    for k in d.keys():
+        if k == "Unnamed: 0":
+            continue
+        val = d[k]
+        ext_val = val[0]
+        new_d[k] = ext_val
+    return new_d
+
+
+def load_parameters(param_file):
+    df = pd.read_csv(param_file)
+    df_dict = df.to_dict()
+    params = fix_dict(df_dict)
+    return params
+
+
+def load_controlled_signal_seeds(dir, signals):
+    seeds = []
+    for signal in signals:
+        file_name = glob.glob(f"*{signal.get_id()}_seed.csv", root_dir=dir)
+        df = pd.read_csv(f"{dir}/{file_name[0]}")
+        df_dict = df.to_dict()
+        seeds.append(df_dict["seed_used"][0])
+    return seeds
+
+
+def get_max_files(files, event_dir):
+    max_length = 0
+    for file in files:
+        contents = glob.glob("*", root_dir=f"{event_dir}/{file}")
+        if len(contents) > max_length:
+            max_length = len(contents)
+    return max_length
+
+
+def filter_files(files, event_dir, max_file_contents):
+    output = []
+    for file in files:
+        contents = glob.glob("*", root_dir=f"{event_dir}/{file}")
+        if len(contents) == max_file_contents:
+            output.append(file)
+    return output
+
+
+def load_random_events(event_dir):
+    all_files = glob.glob("*", root_dir=event_dir)
+
+    if len(all_files) == 0:
+        raise Exception("load_random_events: No files found")
+
+    max_file_contents = get_max_files(all_files, event_dir)
+
+    filtered_files = filter_files(all_files, event_dir, max_file_contents)
+
+    chosen_events = random.choice(filtered_files)  # nosec
+
+    path_to_events = f"{event_dir}/{chosen_events}"
+
+    params = load_parameters(f"{path_to_events}/{chosen_events}_params.csv")
+
+    return path_to_events, params
+
+
+def load_signal_groups(
+    groups,
+    sensor_type,
+    timestamp,
+    signal_data_dir,
+    best_param_dir,
+    param_file_stub,
+    param_unpack_func,
+):
+    group_signals = []
+    group_parameters = []
+    for group in groups:
+        signals = load_real_signal_files(signal_data_dir, group, sensor_type, timestamp)
+
+        id1 = group[0]
+        id2 = group[1]
+        id3 = group[2]
+        file = f"{best_param_dir}/{param_file_stub}_{id1}_{id2}_{id3}_bestparam.csv"
+        best_param = load_parameters(file)
+        params = param_unpack_func(best_param)
+
+        group_signals.append(signals)
+        group_parameters.append(params)
+    return group_signals, group_parameters
