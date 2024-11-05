@@ -44,6 +44,8 @@ class NFSLogger:
         self.nfs_server_dir = nfs_server_dir
         self.identifier = identifier
         self.local_dir = local_dir
+        if not os.path.isdir(local_dir):
+            os.mkdir(local_dir)
         self.use_local_dir = use_local_dir
         if not os.path.isdir(self.local_dir):
             os.mkdir(self.local_dir)

@@ -166,8 +166,8 @@ class Perceptio_Protocol(ProtocolInterface):
             print(f"[CLIENT] Witnesses: {witnesses}\n")
 
             # TODO: Must log signal somehow, and how does status play with new flow?
-            signal = None
-            status = True
+            signal = None  # noqa:F841
+            status = True  # noqa:F841
 
             """if status is None:
                 if self.verbose:
@@ -327,7 +327,7 @@ class Perceptio_Protocol(ProtocolInterface):
             witnesses = self.get_context()
             print(f"[HOST] Witnesses: {witnesses}\n")
 
-            signal = None
+            signal = None  # noqa: F841
             status = True
 
             """if status is None:

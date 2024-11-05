@@ -11,8 +11,8 @@ from cryptography.hazmat.primitives.serialization import Encoding, PublicFormat
 from error_correction.corrector import Fuzzy_Commitment
 from error_correction.simple_reed_solomon import SimpleReedSolomonObj
 from networking.network import (
-    fpake_msg_standby,
-    send_fpake_msg,
+    pake_msg_standby,
+    send_pake_msg,
     send_status,
     status_standby,
 )
@@ -110,7 +110,7 @@ class fPAKE:
             encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
 
-        send_fpake_msg(conn, [vk])
+        send_pake_msg(conn, [vk])
 
         key_array = bytearray()
         for pw_i in pw:
@@ -125,8 +125,8 @@ class fPAKE:
             X_star = self.encode(symm_enc_key, pub_x, iv)
 
             # Send generated X receive Y
-            send_fpake_msg(conn, [X_star, iv])
-            msg = fpake_msg_standby(conn, self.timeout)
+            send_pake_msg(conn, [X_star, iv])
+            msg = pake_msg_standby(conn, self.timeout)
             Y_star = msg[0]
             eps = msg[1]
 
@@ -146,9 +146,9 @@ class fPAKE:
         sig = signingKey.sign(bytes(commitment))
 
         # Send E + Signature + verification key + selected prime number to reconstruct
-        send_fpake_msg(conn, [commitment, sig, hash_val_1])
+        send_pake_msg(conn, [commitment, sig, hash_val_1])
 
-        msg = fpake_msg_standby(conn, self.timeout)
+        msg = pake_msg_standby(conn, self.timeout)
         other_hash_val = msg[0]
 
         other_success = status_standby(conn, self.timeout)
@@ -170,7 +170,7 @@ class fPAKE:
             encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
         )
 
-        msg = fpake_msg_standby(conn, self.timeout)
+        msg = pake_msg_standby(conn, self.timeout)
         vk = msg[0]
 
         try:
@@ -189,7 +189,7 @@ class fPAKE:
             symm_enc_key = self.generate_symm_key(pw_i, eps)
 
             # get Init Vectors as well as labels and X_s for LiPake
-            msg = fpake_msg_standby(conn, self.timeout)
+            msg = pake_msg_standby(conn, self.timeout)
             X_star = msg[0]
             iv = msg[1]
 
@@ -200,12 +200,12 @@ class fPAKE:
             Z = self.decode(symm_dec_key, X_star, priv_y, iv)
 
             # Send Y_s with its label
-            send_fpake_msg(conn, [Y_star, eps])
+            send_pake_msg(conn, [Y_star, eps])
 
             k = self.gen_key_part(X_star, Y_star, Z)
             key_array += k
 
-        msg = fpake_msg_standby(conn, self.timeout)
+        msg = pake_msg_standby(conn, self.timeout)
         commitment = msg[0]
         sig = msg[1]
         other_hash_val = msg[2]
@@ -225,7 +225,7 @@ class fPAKE:
 
         success = success and self.compare(hash_val_1, other_hash_val)
 
-        send_fpake_msg(conn, [hash_val_0])
+        send_pake_msg(conn, [hash_val_0])
         send_status(conn, success)
 
         other_success = status_standby(conn, self.timeout)
