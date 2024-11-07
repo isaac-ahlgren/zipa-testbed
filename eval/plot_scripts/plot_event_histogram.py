@@ -48,12 +48,13 @@ def event_hist_3d_plot(devices, contents, param1, param2, param3, savefigs=True,
 
         param1_list = extract_from_contents(params, param1)
         param2_list = extract_from_contents(params, param2)
+        param3_list = extract_from_contents(params, param2)
  
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
 
         # Plot the 3D scatter plot, with color representing "heat" (w_coords)
-        scatter = ax.scatter(x_coords, y_coords, z_coords, c=w_coords, cmap='hot')       
+        scatter = ax.scatter(param1_list, param2_list, param3_list, c=event_num_list, cmap='hot')       
         ax.set_title(f'Heat Map of Events {device}')
         ax.set_xlabel(param1)
         ax.set_ylabel(param2)
