@@ -33,6 +33,7 @@ def event_hist_plot(devices, contents, param1, param2, param1_range, param2_rang
             fig_data_name = fig_dir + "/" + file_name + "_" + device + ".csv"
             df = pd.DataFrame({"x_axis": param1_list, "y_axis": param2_list, "z_axis": event_num_list})
             df.to_csv(fig_data_name)
+            plt.close()
         else:
             plt.show()
 
@@ -66,8 +67,10 @@ def event_hist_3d_plot(devices, contents, param1, param2, param3, savefigs=True,
             fig_data_name = fig_dir + "/" + file_name + "_" + device + ".csv"
             df = pd.DataFrame({"x_axis": param1_list, "y_axis": param2_list, "z_axis": param3_list, "intensity": event_num_list})
             df.to_csv(fig_data_name)
+            plt.close()
         else:
             plt.show()
+
 
 def plot_perceptio(savefigs=True):
     PERCEPTIO_DATA_DIRECTORY = "../perceptio/perceptio_data/perceptio_real_fuzz"
