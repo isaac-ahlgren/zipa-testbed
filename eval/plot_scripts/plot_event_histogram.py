@@ -139,7 +139,7 @@ def plot_iotcupid(savefigs=True):
 
 def plot_fastzip(savefigs=True):
     FASTZIP_DATA_DIRECTORY = "../fastzip/fastzip_data/fastzip_real_fuzz"
-    FASTZIP_REAL_FUZZING_STUB = "fastzip_real_event_fuzz"
+    FASTZIP_REAL_FUZZING_STUB = "fastzip_event_real_fuzz"
     FIG_DIR_NAME_STUB = "fastzip_real_event_fuzz_event_histogram"
 
     DEVICES = [
