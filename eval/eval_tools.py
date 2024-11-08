@@ -174,7 +174,7 @@ def load_events(file):
     )
 
     if len(output) == 0:
-        output = None
+        output = []
     elif output.ndim == 1:
         output = np.array([output])
     return output
