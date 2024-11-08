@@ -20,7 +20,7 @@ from eval_tools import (  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 # Static default parameters
-KEY_LENGTH_DEFAULT = 128
+KEY_LENGTH_DEFAULT = 2*128
 NUMBER_OF_CHOICES_DEFAULT = 500
 EVENT_NUM_DEFAULT = 16
 
