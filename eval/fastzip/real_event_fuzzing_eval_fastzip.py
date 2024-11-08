@@ -74,7 +74,9 @@ def main(
 
     fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}"
 
-    signals = load_real_signal_files(data_dir, dev_ids, sensor_type, timestamp, load_func=wav_file_load)
+    signals = load_real_signal_files(
+        data_dir, dev_ids, sensor_type, timestamp, load_func=wav_file_load
+    )
 
     def get_random_parameters():
         window_size = random.randint(
@@ -85,7 +87,7 @@ def main(
         normalize = random.choice([True, False])  # nosec
         power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
         snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
-        peak_status = False #random.choice([True, False])  # nosec
+        peak_status = False  # random.choice([True, False])  # nosec
         peak_th = random.randint(PEAK_TH_RANGE[0], PEAK_TH_RANGE[1])  # nosec
         return (
             window_size,

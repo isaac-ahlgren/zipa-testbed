@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
-from eval_tools import load_parameters, load_events  # noqa: E402
+from eval_tools import load_events, load_parameters  # noqa: E402
 
 PLOTTING_DIR = "./plot_data"
 
@@ -31,7 +31,8 @@ def parse_eval_directory(data_dir, file_stub, parse_string="bits"):
         dir_content["params"] = params
 
         data_files = glob.glob(
-            f"{dir_name}*_{parse_string}.txt", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
+            f"{dir_name}*_{parse_string}.txt",
+            root_dir=f"{data_dir}/{file_stub}/{dir_name}",
         )
         for df in data_files:
             data = load_bytes(f"{data_dir}/{file_stub}/{dir_name}/{df}")
@@ -51,7 +52,8 @@ def parse_eval_directory(data_dir, file_stub, parse_string="bits"):
             filtered_output.append(content)
 
     return filtered_output
-    
+
+
 def directly_parse_eval_directory_event_num(data_dir, file_stub):
     output = []
     files = glob.glob(f"{file_stub}*", root_dir=f"{data_dir}/{file_stub}")
@@ -64,7 +66,8 @@ def directly_parse_eval_directory_event_num(data_dir, file_stub):
         dir_content["params"] = params
 
         data_files = glob.glob(
-            f"{dir_name}*_time_stamps.csv", root_dir=f"{data_dir}/{file_stub}/{dir_name}"
+            f"{dir_name}*_time_stamps.csv",
+            root_dir=f"{data_dir}/{file_stub}/{dir_name}",
         )
         for df in data_files:
             data = load_events(f"{data_dir}/{file_stub}/{dir_name}/{df}")
@@ -84,7 +87,7 @@ def directly_parse_eval_directory_event_num(data_dir, file_stub):
     for content in output:
         if len(content.keys()) == max_key_length:
             filtered_output.append(content)
-    
+
     return filtered_output
 
 
@@ -129,6 +132,7 @@ def get_min_entropy_list(byte_list, key_length, symbol_size):
         min_entropy = get_min_entropy(contents, key_length, symbol_size)
         min_entropy_list.append(min_entropy)
     return min_entropy_list
+
 
 def extract_from_contents(contents, key_word):
     extracted_content = []

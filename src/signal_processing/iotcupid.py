@@ -399,8 +399,8 @@ class IoTCupidProcessing:
                     math.floor(in_microseconds / quantization_factor)
                 )
                 key += quantized_interval.to_bytes(
-                    4, "big"
-                )  # Going to treat every interval as a 4 byte integer
+                    8, "big"
+                )  # Going to treat every interval as a 8 byte integer
 
             if len(key) >= key_size:
                 key = bytes(key[:key_size])

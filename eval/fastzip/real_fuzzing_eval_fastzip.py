@@ -8,8 +8,8 @@ from fastzip_tools import DATA_DIRECTORY, calc_all_event_bits_fastzip
 sys.path.insert(1, os.getcwd() + "/..")  # Gives us path to eval_tools.py
 from eval_tools import (  # noqa: E402
     get_fuzzing_command_line_args,
-    load_real_signal_groups,
     load_random_events,
+    load_real_signal_groups,
     log_parameters,
     make_dirs,
     wav_file_load,
@@ -67,6 +67,7 @@ DEFAULT_TIMESTAMP = "20240813*"
 
 SENSOR_DATA_DIR = "/home/isaac/test"
 
+
 def main(
     key_length=KEY_LENGTH_DEFAULT,
     number_of_choices=NUMBER_OF_CHOICES_DEFAULT,
@@ -74,13 +75,15 @@ def main(
     sensor_type=DEFAULT_SENSOR_TYPE,
     dev_groups=DEVICE_GROUPS,
     timestamp=DEFAULT_TIMESTAMP,
-    ):
+):
 
     make_dirs(DATA_DIRECTORY, FUZZING_DIR, FUZZING_STUB)
 
     fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}"
 
-    groups = load_real_signal_groups(data_dir, dev_groups, sensor_type, timestamp, load_func=wav_file_load)
+    groups = load_real_signal_groups(
+        data_dir, dev_groups, sensor_type, timestamp, load_func=wav_file_load
+    )
 
     def get_random_parameters():
         event_dir, params = load_random_events(EVENT_DIR)

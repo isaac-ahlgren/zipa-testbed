@@ -150,6 +150,7 @@ class Wrap_Around_File(Signal_File_Interface):
         self.num_of_resets = other_sf.num_of_resets
         self.sf.sync(other_sf.sf)
 
+
 class Signal_File(Signal_File_Interface):
     def __init__(
         self,
@@ -175,7 +176,7 @@ class Signal_File(Signal_File_Interface):
             self.files.sort()
         self.file_index = 0
         self.start_sample = 0
-        self.global_index = 0
+        self.global_index = np.uint64(0)
         self.file_global_indexes = [0]
         self.load_func = load_func
         self.curr_file_name = self.signal_directory + self.files[0]
@@ -215,7 +216,8 @@ class Signal_File(Signal_File_Interface):
         :param samples: Number of samples to read.
         :return: Array containing the read samples.
         """
-        output = np.array([], dtype=self.dtype)
+        write_pos = 0
+        output = np.zeros(samples, dtype=self.dtype)
 
         if self.sample_buffer is None:  # Loading files into ram only when necessary
             self.sample_buffer = self.load_func(self.curr_file_name)
@@ -228,18 +230,24 @@ class Signal_File(Signal_File_Interface):
                 buffer = self.sample_buffer[
                     self.start_sample : self.start_sample + samples_can_read
                 ]
-                output = np.append(output, buffer)
+                output[write_pos : write_pos + samples_can_read] = buffer
                 self.global_index += samples_can_read
                 self.switch_files()
                 samples -= samples_can_read
+                write_pos += samples_can_read
             else:
                 buffer = self.sample_buffer[
                     self.start_sample : self.start_sample + samples
                 ]
-                output = np.append(output, buffer)
+                output[write_pos : write_pos + samples] = buffer
                 self.start_sample = self.start_sample + samples
                 self.global_index += samples
+                write_pos += samples
                 samples = 0
+
+        if samples != 0:
+            output = output[:write_pos]
+
         return output
 
     def add_file_global_index(self, global_index):

@@ -90,12 +90,13 @@ def test_generate_equidist_points():
             )
 
         return eqd_rand_points
-    
+
     sample_rate, data = setUp()
     eqd_delta = 1
     test_points = test_func(len(data), 10, eqd_delta)
     points = FastZIPProcessing.generate_equidist_points(len(data), 10, eqd_delta)
     assert np.array_equal(points, test_points)  # nosec
+
 
 def test_gen_fp():
     def test_func(chunk, eqd_delta, step, qs_thr):
@@ -121,14 +122,12 @@ def test_gen_fp():
                 else:
                     fp += "0"
         return fp
-    
+
     sample_rate, data = setUp()
 
     eqd_delta = 1
     ref = test_func(data, eqd_delta, 10, 0.5)
-    pts = FastZIPProcessing.generate_equidist_points(
-        len(data), 10, eqd_delta
-    )
+    pts = FastZIPProcessing.generate_equidist_points(len(data), 10, eqd_delta)
     fp = FastZIPProcessing.gen_fp(pts, data, 0.5)
     assert ref == fp
 

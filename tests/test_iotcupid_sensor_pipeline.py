@@ -96,17 +96,17 @@ def test_calculate_inter_event_timings():
         [(5, 7), (9, 16), (25, 27)],
         [(19, 21)],
     ]
-    fps = IoTCupidProcessing.calculate_inter_event_timings(grouped_events, 1, 1, 8)
+    fps = IoTCupidProcessing.calculate_inter_event_timings(grouped_events, 1, 1, 16)
 
     IN_MICROSECONDS = 1000000
 
     assert_key1 = bytearray()
-    assert_key1 += (499 * IN_MICROSECONDS).to_bytes(4, "big")
-    assert_key1 += (800 * IN_MICROSECONDS).to_bytes(4, "big")
+    assert_key1 += (499 * IN_MICROSECONDS).to_bytes(8, "big")
+    assert_key1 += (800 * IN_MICROSECONDS).to_bytes(8, "big")
 
     assert_key2 = bytearray()
-    assert_key2 += (4 * IN_MICROSECONDS).to_bytes(4, "big")
-    assert_key2 += (16 * IN_MICROSECONDS).to_bytes(4, "big")
+    assert_key2 += (4 * IN_MICROSECONDS).to_bytes(8, "big")
+    assert_key2 += (16 * IN_MICROSECONDS).to_bytes(8, "big")
 
     assert len(fps) == 2  # nosec
     assert set(fps[0]) == set(assert_key1)  # nosec

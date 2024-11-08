@@ -62,17 +62,19 @@ def merge_events(first_event_list, second_event_list, lump_th, chunk_size, itera
     # Determine whether to merge the last of first_event_array with the first of second_event_array
     end_event = first_event_array[-1]
     beg_event = second_event_array[0]
-    
+
     if beg_event[0] - end_event[1] < lump_th:
         # Merge the overlapping events
         merged_event = np.array([[end_event[0], beg_event[1]]])
-        
+
         # Concatenate first list (excluding the last event), merged event, and the rest of the second list
-        event_list = np.vstack((first_event_array[:-1], merged_event, second_event_array[1:]))
+        event_list = np.vstack(
+            (first_event_array[:-1], merged_event, second_event_array[1:])
+        )
     else:
         # Simply concatenate both lists without merging
         event_list = np.vstack((first_event_array, second_event_array))
-    
+
     return event_list.tolist()
 
 

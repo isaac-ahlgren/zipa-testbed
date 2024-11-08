@@ -62,7 +62,9 @@ def main(
 
     fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}"
 
-    groups = load_real_signal_groups(data_dir, dev_groups, sensor_type, timestamp, load_func=wav_file_load)
+    groups = load_real_signal_groups(
+        data_dir, dev_groups, sensor_type, timestamp, load_func=wav_file_load
+    )
 
     def get_random_parameters():
         cluster_size = random.randint(CLUSTER_SZ_RANGE[0], CLUSTER_SZ_RANGE[1])  # nosec

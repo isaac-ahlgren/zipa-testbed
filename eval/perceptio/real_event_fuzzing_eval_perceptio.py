@@ -66,7 +66,9 @@ def main(
 
     fuzzing_dir = f"{DATA_DIRECTORY}/{FUZZING_DIR}/{FUZZING_STUB}"
 
-    signals = load_real_signal_files(data_dir, dev_ids, sensor_type, timestamp, load_func=wav_file_load)
+    signals = load_real_signal_files(
+        data_dir, dev_ids, sensor_type, timestamp, load_func=wav_file_load
+    )
 
     def get_random_parameters():
         top_th = random.randint(TOP_TH_RANGE[0], TOP_TH_RANGE[1])  # nosec

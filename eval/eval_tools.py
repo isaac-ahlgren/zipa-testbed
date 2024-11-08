@@ -128,13 +128,16 @@ def wrap_signal_file(
         sf = Noisy_File(sf, target_snr, seed=seed)
     return sf
 
+
 def wav_file_load(name):
     sr, data = wavfile.read(name)
     return data.astype(np.int64)
 
+
 def optimized_load(name):
     df = pd.read_csv(name, header=None)
     return df.to_numpy().T.flatten()
+
 
 def load_signal_files(
     dir,
@@ -166,8 +169,10 @@ def load_signal_files(
 
 
 def load_events(file):
-    output = np.loadtxt(file, delimiter=',', skiprows=1, usecols=(1, 2)).astype(np.uint32)
-    
+    output = np.loadtxt(file, delimiter=",", skiprows=1, usecols=(1, 2)).astype(
+        np.uint32
+    )
+
     if len(output) == 0:
         output = None
     elif output.ndim == 1:
@@ -232,21 +237,32 @@ def load_signal_buffers(
     return sbs
 
 
-def load_real_signal_groups(data_dir, group_ids, sensor_type, times, load_func=optimized_load):
+def load_real_signal_groups(
+    data_dir, group_ids, sensor_type, times, load_func=optimized_load
+):
     sf_groups = []
     for group in group_ids:
-        sf_group = load_real_signal_files(data_dir, group, sensor_type, times, load_func=load_func)
+        sf_group = load_real_signal_files(
+            data_dir, group, sensor_type, times, load_func=load_func
+        )
         sf_groups.append(sf_group)
     return sf_groups
 
 
-def load_real_signal_files(data_dir, dev_ids, sensor_type, times, load_func=optimized_load):
+def load_real_signal_files(
+    data_dir, dev_ids, sensor_type, times, load_func=optimized_load
+):
     file_stubs = []
     for id in dev_ids:
         stubs = f"{sensor_type}_id_{id}_date_{times}"
         file_stubs.append(stubs)
     return load_signal_files(
-        data_dir + "/", file_stubs, dev_ids, load_func=load_func, noise=False, wrap_around=False,
+        data_dir + "/",
+        file_stubs,
+        dev_ids,
+        load_func=load_func,
+        noise=False,
+        wrap_around=False,
     )
 
 
@@ -427,7 +443,9 @@ def log_seed(file_name_stub, seed):
     df.to_csv(file_name)
 
 
-def log_event_bits(file_name_stub, event_bits, key_length, convert_bytes_to_bitstring=True):
+def log_event_bits(
+    file_name_stub, event_bits, key_length, convert_bytes_to_bitstring=True
+):
     file_name = file_name_stub + "_eventbits.txt"
     with open(file_name, "w") as file:
         for bits in event_bits:

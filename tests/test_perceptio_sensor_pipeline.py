@@ -19,16 +19,15 @@ def test_detect_events():
     signal[81] = 1
     signal[97:100] = 1
 
-    events = PerceptioProcessing.get_events(
-        signal, 0.99, 0.1, 1.1, 2
-    )
+    events = PerceptioProcessing.get_events(signal, 0.99, 0.1, 1.1, 2)
 
     assert len(events) == 4  # nosec
     assert events[0][0] == 0 and events[0][1] == 14  # nosec
     assert events[1][0] == 17 and events[1][1] == 19  # nosec
     assert events[2][0] == 77 and events[2][1] == 82  # nosec
     assert events[3][0] == 97 and events[3][1] == 100  # nosec
-    
+
+
 def test_ewma():
     def test_func(data, alpha):
         ewma_data = np.zeros(len(data))
@@ -43,4 +42,4 @@ def test_ewma():
     filtered1 = PerceptioProcessing.ewma(signal, 0.5)
     filtered2 = test_func(signal, 0.5)
 
-    assert np.array_equal(filtered1, filtered2) # nosec
+    assert np.array_equal(filtered1, filtered2)  # nosec

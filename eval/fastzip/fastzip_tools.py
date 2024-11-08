@@ -90,7 +90,7 @@ def fastzip_bit_gen_wrapper(
     )
 
     fp = FastZIPProcessing.gen_fp(pts, chunk, qs_thr)
-    
+
     return fp
 
 
@@ -112,10 +112,7 @@ def calc_all_event_bits_fastzip(signals, key_size, *args):
     legit2_total_bits = []
     adv_total_bits = []
 
-    while (
-        not legit1.get_finished_reading()
-        and not legit2.get_finished_reading()
-    ):
+    while not legit1.get_finished_reading() and not legit2.get_finished_reading():
         legit1_bits = calc_bits(legit1, key_size, *args)
         legit2_bits = calc_bits(legit2, key_size, *args)
 
@@ -126,10 +123,7 @@ def calc_all_event_bits_fastzip(signals, key_size, *args):
         legit1_total_bits.append(legit1_bits)
         legit2_total_bits.append(legit2_bits)
 
-        if (
-            not legit1.get_finished_reading()
-            and not legit2.get_finished_reading()
-        ):
+        if not legit1.get_finished_reading() and not legit2.get_finished_reading():
             legit2.sync(legit1)
 
             if not adv.get_finished_reading():
