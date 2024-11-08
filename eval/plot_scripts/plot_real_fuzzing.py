@@ -154,7 +154,7 @@ def plot_miettinen(savefigs=True):
 
 def plot_fastzip(savefigs=True):
     FASTZIP_DATA_DIRECTORY = "../fastzip/fastzip_data/fastzip_real_fuzz"
-    FASTZIP_REAL_FUZZING_STUB = "fastzip_real_fuzz_day1"
+    FASTZIP_REAL_FUZZING_STUB = "fastzip_real_fuzz"
     FIG_DIR_NAME_STUB = "fastzip_real_fuzz"
 
     DEVICE_PAIRS = [
@@ -219,7 +219,7 @@ def plot_fastzip(savefigs=True):
 
 
 def main():
-    # plot_schurmann()
+    #plot_schurmann()
     #plot_miettinen()
     plot_fastzip()
 
