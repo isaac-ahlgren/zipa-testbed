@@ -167,6 +167,10 @@ def load_signal_files(
 
 def load_events(file):
     output = np.loadtxt(file, delimiter=',', skiprows=1, usecols=(1, 2)).astype(np.uint32)
+    if len(output) == 1:
+        output = np.array([output])
+    elif len(output) == 0:
+        output = None
     return output
 
 
