@@ -3,7 +3,7 @@ from scipy.interpolate import griddata
 import numpy as np
 import pandas as pd
 
-from utils import directly_parse_eval_directory_event_num, make_plot_dir, extract_from_contents, get_num_events_list
+from utils import directly_parse_eval_directory_event_num, make_plot_dir, extract_from_contents
 
 def event_hist_plot(devices, contents, param1, param2, param1_range, param2_range, savefigs=True, fig_dir=None, file_name=None, grid_size=100):
     for device in devices:
