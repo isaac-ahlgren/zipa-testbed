@@ -220,7 +220,8 @@ def plot_fastzip(savefigs=True):
 
 def main():
     # plot_schurmann()
-    plot_miettinen()
+    #plot_miettinen()
+    plot_fastzip()
 
 
 if __name__ == "__main__":
