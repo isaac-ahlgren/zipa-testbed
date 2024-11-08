@@ -33,7 +33,7 @@ NORMALIZE_DEFAULT = True
 
 POWER_TH_RANGE = (30, 200)
 
-SNR_TH_RANGE = (0.5, 10)
+SNR_TH_RANGE = (0.25, 4)
 
 PEAK_TH_RANGE = (0, 10)
 
@@ -85,7 +85,7 @@ def main(
         normalize = random.choice([True, False])  # nosec
         power_th = random.uniform(POWER_TH_RANGE[0], POWER_TH_RANGE[1])  # nosec
         snr_th = random.uniform(SNR_TH_RANGE[0], SNR_TH_RANGE[1])  # nosec
-        peak_status = random.choice([True, False])  # nosec
+        peak_status = False #random.choice([True, False])  # nosec
         peak_th = random.randint(PEAK_TH_RANGE[0], PEAK_TH_RANGE[1])  # nosec
         return (
             window_size,
