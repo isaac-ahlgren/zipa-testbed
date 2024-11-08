@@ -166,11 +166,7 @@ def load_signal_files(
 
 
 def load_events(file):
-    df = pd.read_csv(file)
-    if "start_times" in df:
-        output = [(df["start_times"][i], df["end_times"][i]) for i in range(len(df))]
-    else:
-        output = None
+    output = np.loadtxt(data, delimiter=',', skiprows=1, usecols=(1, 2))
     return output
 
 
