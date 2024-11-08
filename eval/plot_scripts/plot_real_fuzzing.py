@@ -152,6 +152,71 @@ def plot_miettinen(savefigs=True):
         savefig=savefigs,
     )
 
+def plot_fastzip(savefigs=True):
+    FASTZIP_DATA_DIRECTORY = "../fastzip/fastzip_data/fastzip_real_fuzz"
+    FASTZIP_REAL_FUZZING_STUB = "fastzip_real_fuzz_day1"
+    FIG_DIR_NAME_STUB = "fastzip_real_fuzz"
+
+    DEVICE_PAIRS = [
+        ("10.0.0.238", "10.0.0.228", "10.0.0.239"),
+        ("10.0.0.231", "10.0.0.232", "10.0.0.239"),
+        ("10.0.0.233", "10.0.0.236", "10.0.0.239"),
+        ("10.0.0.227", "10.0.0.229", "10.0.0.237"),
+        ("10.0.0.235", "10.0.0.237", "10.0.0.239"),
+        ("10.0.0.234", "10.0.0.239", "10.0.0.237"),
+    ]
+
+    contents = parse_eval_directory(
+        f"{FASTZIP_DATA_DIRECTORY}",
+        f"{FASTZIP_REAL_FUZZING_STUB}",
+    )
+
+    if savefigs:
+        fig_dir = make_plot_dir(FIG_DIR_NAME_STUB)
+    else:
+        fig_dir = None
+
+    bit_err_device_pairs(
+        DEVICE_PAIRS,
+        contents,
+        "window_size",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+    )
+    bit_err_device_pairs(
+        DEVICE_PAIRS,
+        contents,
+        "overlap_size",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+    )
+    bit_err_device_pairs(
+        DEVICE_PAIRS,
+        contents,
+        "n_bits",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+    )
+    bit_err_device_pairs(
+        DEVICE_PAIRS,
+        contents,
+        "power_th",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+    )
+    bit_err_device_pairs(
+        DEVICE_PAIRS,
+        contents,
+        "snr_th",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+    )
+
 
 def main():
     # plot_schurmann()

@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.interpolate import griddata
 from utils import (
     directly_parse_eval_directory_event_num,
     extract_from_contents,
