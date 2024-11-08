@@ -51,8 +51,8 @@ def parse_eval_directory(data_dir, file_stub, parse_string="bits"):
             filtered_output.append(content)
 
     return filtered_output
-
-def parse_eval_directory_time_stamps(data_dir, file_stub):
+    
+def directly_parse_eval_directory_event_num(data_dir, file_stub):
     output = []
     files = glob.glob(f"{file_stub}*", root_dir=f"{data_dir}/{file_stub}")
     max_key_length = 0
@@ -68,12 +68,14 @@ def parse_eval_directory_time_stamps(data_dir, file_stub):
         )
         for df in data_files:
             data = load_events(f"{data_dir}/{file_stub}/{dir_name}/{df}")
+            data_len = len(data)
+            del data
 
             idi = df.find("_id") + 1
             i1 = df.find("_", idi, len(df)) + 1
             i2 = df.find(".csv")
             signal_id = df[i1:i2]
-            dir_content[signal_id] = data
+            dir_content[signal_id] = data_len
         output.append(dir_content)
         if len(dir_content.keys()) > max_key_length:
             max_key_length = len(dir_content.keys())
@@ -127,13 +129,6 @@ def get_min_entropy_list(byte_list, key_length, symbol_size):
         min_entropy = get_min_entropy(contents, key_length, symbol_size)
         min_entropy_list.append(min_entropy)
     return min_entropy_list
-
-def get_num_events_list(event_list):
-    event_num_list = []
-    for contents in event_list:
-        event_num = len(contents)
-        event_num_list.append(event_num)
-    return event_num_list
 
 def extract_from_contents(contents, key_word):
     extracted_content = []

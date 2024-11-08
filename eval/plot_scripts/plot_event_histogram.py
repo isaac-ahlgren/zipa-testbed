@@ -3,15 +3,13 @@ from scipy.interpolate import griddata
 import numpy as np
 import pandas as pd
 
-from utils import parse_eval_directory_time_stamps, make_plot_dir, extract_from_contents, get_num_events_list
+from utils import directly_parse_eval_directory_event_num, make_plot_dir, extract_from_contents, get_num_events_list
 
 def event_hist_plot(devices, contents, param1, param2, param1_range, param2_range, savefigs=True, fig_dir=None, file_name=None, grid_size=100):
     for device in devices:
         device_id = device + "_time_stamps"
 
         device_event_list = extract_from_contents(contents, device_id)
-
-        event_num_list = get_num_events_list(device_event_list)
 
         params = extract_from_contents(contents, "params")
 
@@ -92,7 +90,7 @@ def plot_perceptio(savefigs=True):
         "10.0.0.239",
     ]
 
-    contents = parse_eval_directory_time_stamps(
+    contents = directly_parse_eval_directory_event_num(
         f"{PERCEPTIO_DATA_DIRECTORY}",
         f"{PERCEPTIO_REAL_FUZZING_STUB}",
     )
@@ -126,7 +124,7 @@ def plot_iotcupid(savefigs=True):
         "10.0.0.239",
     ]
 
-    contents = parse_eval_directory_time_stamps(
+    contents = directly_parse_eval_directory_event_num(
         f"{IOTCUPID_DATA_DIRECTORY}",
         f"{IOTCUPID_REAL_FUZZING_STUB}",
     )
@@ -160,7 +158,7 @@ def plot_fastzip(savefigs=True):
         "10.0.0.239",
     ]
 
-    contents = parse_eval_directory_time_stamps(
+    contents = directly_parse_eval_directory_event_num(
         f"{FASTZIP_DATA_DIRECTORY}",
         f"{FASTZIP_REAL_FUZZING_STUB}",
     )
