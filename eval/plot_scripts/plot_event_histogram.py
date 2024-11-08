@@ -9,7 +9,7 @@ def event_hist_plot(devices, contents, param1, param2, param1_range, param2_rang
     for device in devices:
         device_id = device + "_time_stamps"
 
-        device_event_list = extract_from_contents(contents, device_id)
+        event_num_list = extract_from_contents(contents, device_id)
 
         params = extract_from_contents(contents, "params")
 
@@ -39,9 +39,7 @@ def event_hist_3d_plot(devices, contents, param1, param2, param3, savefigs=True,
     for device in devices:
         device_id = device + "_time_stamps"
 
-        device_event_list = extract_from_contents(contents, device_id)
-
-        event_num_list = get_num_events_list(device_event_list)
+        event_num_list = extract_from_contents(contents, device_id)
 
         params = extract_from_contents(contents, "params")
 
