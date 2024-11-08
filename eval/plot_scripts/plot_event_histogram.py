@@ -31,7 +31,7 @@ def event_hist_plot(
         param2_list = extract_from_contents(params, param2)
 
         heatmap, xedges, yedges = np.histogram2d(
-            param1_list, param2_list, bins=grid_size, weights=event_num_list
+            param1_list, param2_list, bins=grid_size, range=[param1_range, param2_range], weights=event_num_list
         )
 
         fig, ax = plt.subplots()
@@ -146,8 +146,8 @@ def plot_perceptio(savefigs=True):
         contents,
         "top_th",
         "bottom_th",
-        (100, 50000000),
-        (100, 50000000),
+        [100, 50000000],
+        [100, 50000000],
         savefigs=savefigs,
         fig_dir=fig_dir,
         file_name=PERCEPTIO_REAL_FUZZING_STUB,
@@ -189,8 +189,8 @@ def plot_iotcupid(savefigs=True):
         contents,
         "top_th",
         "bottom_th",
-        (0.00001, 0.1),
-        (0.00001, 0.1),
+        [0.00001, 0.1],
+        [0.00001, 0.1],
         savefigs=savefigs,
         fig_dir=fig_dir,
         file_name=IOTCUPID_REAL_FUZZING_STUB,
