@@ -169,6 +169,7 @@ def plot_fastzip(savefigs=True):
     contents = parse_eval_directory(
         f"{FASTZIP_DATA_DIRECTORY}",
         f"{FASTZIP_REAL_FUZZING_STUB}",
+        parse_string="eventbits",
     )
 
     if savefigs:
