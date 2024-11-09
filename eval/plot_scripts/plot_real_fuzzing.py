@@ -9,12 +9,12 @@ from utils import (
 
 
 def bit_err_device_pairs(
-    device_pairs, contents, param_label, file_name_stub, fig_dir, savefig=True
+    device_pairs, contents, param_label, file_name_stub, fig_dir, savefig=True, parse_string="bits",
 ):
     for pairs in device_pairs:
-        legit1 = pairs[0] + "_bits"
-        legit2 = pairs[1] + "_bits"
-        adv = pairs[2] + "_bits"
+        legit1 = pairs[0] + f"_{parse_string}"
+        legit2 = pairs[1] + f"_{parse_string}"
+        adv = pairs[2] + f"_{parse_string}"
 
         legit_pair_file_stub = f"{file_name_stub}_{pairs[0]}_{pairs[1]}_{param_label}"
         adv_pair_file_stub = f"{file_name_stub}_{pairs[0]}_{pairs[2]}_{param_label}"
@@ -184,6 +184,7 @@ def plot_fastzip(savefigs=True):
         FASTZIP_REAL_FUZZING_STUB,
         fig_dir,
         savefig=savefigs,
+        parse_string="eventbits",
     )
     bit_err_device_pairs(
         DEVICE_PAIRS,
@@ -192,6 +193,7 @@ def plot_fastzip(savefigs=True):
         FASTZIP_REAL_FUZZING_STUB,
         fig_dir,
         savefig=savefigs,
+        parse_string="eventbits",
     )
     bit_err_device_pairs(
         DEVICE_PAIRS,
@@ -200,6 +202,7 @@ def plot_fastzip(savefigs=True):
         FASTZIP_REAL_FUZZING_STUB,
         fig_dir,
         savefig=savefigs,
+        parse_string="eventbits",
     )
     bit_err_device_pairs(
         DEVICE_PAIRS,
@@ -208,6 +211,7 @@ def plot_fastzip(savefigs=True):
         FASTZIP_REAL_FUZZING_STUB,
         fig_dir,
         savefig=savefigs,
+        parse_string="eventbits",
     )
     bit_err_device_pairs(
         DEVICE_PAIRS,
@@ -216,6 +220,7 @@ def plot_fastzip(savefigs=True):
         FASTZIP_REAL_FUZZING_STUB,
         fig_dir,
         savefig=savefigs,
+        parse_string="eventbits",
     )
 
 
