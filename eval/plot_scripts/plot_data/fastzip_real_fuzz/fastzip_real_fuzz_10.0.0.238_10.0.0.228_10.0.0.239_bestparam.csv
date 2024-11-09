@@ -1,0 +1,2 @@
+,window_size,overlap_size,n_bits,eqd_delta,ewma,alpha,remove_noise,bias,normalize,power_th,snr_th,peak_th,peak_status,sample_rate,event_dir,adv_ber,legit_ber
+0,597,156,93,1,True,0.5120638443164778,True,0,True,98.21337283475232,2.207155471774961,5,False,44100,./fastzip_data/fastzip_real_fuzz/fastzip_event_real_fuzz/fastzip_event_real_fuzz_id14498033194552290103,50,40.76704545454545
