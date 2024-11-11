@@ -318,15 +318,13 @@ class Signal_File(Signal_File_Interface):
         """
         Reset the reader to the start of the first file.
         """
-        if self.curr_file_name != self.signal_directory + self.files[0]:
-            if self.sample_buffer is not None:
-                del self.sample_buffer
-            self.sample_buffer = self.load_func(self.curr_file_name)
         self.finished_reading = False
         self.curr_file_name = self.signal_directory + self.files[0]
         self.start_sample = 0
         self.global_index = 0
         self.file_index = 0
+        del self.sample_buffer
+        self.sample_buffer = self.load_func(self.curr_file_name)
 
     def sync(self, other_sf):
         """
