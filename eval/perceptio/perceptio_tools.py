@@ -98,14 +98,15 @@ def process_events(
 def extract_all_events(signal, top_th, bottom_th, lump_th, a, chunk_size=10000):
     events = None
     iteration = 0
+    chunk = signal.read(chunk_size)
     while not signal.get_finished_reading():
-        chunk = signal.read(chunk_size)
         new_events = get_events(chunk, top_th, bottom_th, lump_th, a)
         if events is not None:
             events = merge_events(events, new_events, lump_th, chunk_size, iteration)
         else:
             events = new_events
         iteration += 1
+        chunk = signal.read(chunk_size)
     return events
 
 
