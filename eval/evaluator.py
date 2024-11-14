@@ -112,6 +112,8 @@ class Evaluator:
 
         if self.change_and_log_seed:
             log_seed(file_stub, signal.seed)
+        
+        signal.reset()
 
     def eval_event_bit_gen_func(self, signals, key_length, file_stub, params):
         event_dir = params[-1]
@@ -133,6 +135,9 @@ class Evaluator:
                 key_length,
                 convert_bytes_to_bitstring=self.convert_bytes_to_bitstring,
             )
+        
+        for signal in signals:
+            signal.reset()
 
     def eval_bit_gen_func(self, signal, key_length, file_stub, params):
         outcome, extras = self.evaluate_device_bit_gen(signal, params)
