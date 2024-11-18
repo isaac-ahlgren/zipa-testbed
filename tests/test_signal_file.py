@@ -258,7 +258,7 @@ def test_event_file():
         events[1], ref_signal1[41 * 48000 : 41 * 48000 + 100]
     )  # nosec
 
-    events_timestamp, event = ef.get_events(1)
+    events_timestamp, event = ef.get_events(2)
 
     assert len(event) == 1  # nosec
     assert np.array_equal(

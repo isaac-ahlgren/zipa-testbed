@@ -101,7 +101,7 @@ def main(
         eqd_delta = 1
         ewma = random.choice([True, False])  # nosec
         alpha = random.uniform(0, 1)  # nosec
-        remove_noise = random.choice([True, False])  # nosec
+        remove_noise = False #random.choice([True, False])  # nosec
         bias = BIAS_DEFAULT
         return (
             window_size,
