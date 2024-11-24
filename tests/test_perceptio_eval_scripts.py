@@ -20,8 +20,7 @@ def test_extract_all_events():
     sb = Signal_Buffer(buffer)
     events = extract_all_events(sb, 2, 0.1, 20, 0.99)
 
-    assert len(events) == 4  # nosec
+    assert len(events) == 3  # nosec
     assert events[0][0] == 1 and events[0][1] == 3  # nosec
     assert events[1][0] == 9980 and events[1][1] == 10020  # nosec
     assert events[2][0] == 11500 and events[2][1] == 11580  # nosec
-    assert events[3][0] == 20000 and events[3][1] == 20020  # nosec

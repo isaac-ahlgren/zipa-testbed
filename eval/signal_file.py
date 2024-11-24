@@ -396,7 +396,7 @@ class Event_File:
     def get_events(self, num_events):
         event_signals = []
         events = []
-        while not self.finished_reading and len(event_signals) < num_events:
+        while not self.finished_reading and len(event_signals) < num_events and num_events < len(self.events):
             event = self.get_current_event()
 
             start_index = event[0]

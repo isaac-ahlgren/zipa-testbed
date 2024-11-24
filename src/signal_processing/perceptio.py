@@ -409,7 +409,7 @@ class PerceptioProcessing:
         :return: Cluster labels and the determined number of clusters.
         """
         if len(event_features) < cluster_sizes_to_check:
-            return np.zeros(len(event_features), dtype=int), 1
+            cluster_sizes_to_check = len(event_features)
 
         km = KMeans(1, n_init=50, random_state=0).fit(event_features)
 
