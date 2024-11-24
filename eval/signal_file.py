@@ -186,6 +186,8 @@ class Signal_File(Signal_File_Interface):
         self.max_length = None
         self.id = id
 
+        self.gen_file_lookup_table()
+
     def load_in_buf(self, file_index):
         self.file_index = file_index
         self.curr_file_name = self.signal_directory + self.files[file_index]
@@ -203,7 +205,6 @@ class Signal_File(Signal_File_Interface):
             len(self.files) == file_index
         ):  # If no more to read, set the finished reading flag
             self.finished_reading = True
-            self.max_length = self.start_sample + 1
         else:
             self.start_sample = 0
             self.load_in_buf(file_index)
@@ -217,11 +218,12 @@ class Signal_File(Signal_File_Interface):
         :return: Array containing the read samples.
         """
         write_pos = 0
-        output = np.zeros(samples, dtype=self.dtype)
 
         if self.sample_buffer is None:  # Loading files into ram only when necessary
             self.sample_buffer = self.load_func(self.curr_file_name)
             self.dtype = self.sample_buffer.dtype
+
+        output = np.zeros(samples, dtype=self.dtype)
 
         while samples != 0 and not self.finished_reading:
             samples_can_read = len(self.sample_buffer) - self.start_sample
@@ -247,7 +249,7 @@ class Signal_File(Signal_File_Interface):
 
         if samples != 0:
             output = output[:write_pos]
-
+        
         return output
 
     def add_file_global_index(self, global_index):
@@ -269,41 +271,23 @@ class Signal_File(Signal_File_Interface):
         self.global_indexes = index
         self.finished_reading = False
 
-    def generate_file_and_index(self, index):
-        curr_index = self.file_global_indexes[-1]
-        curr_file_index = len(self.file_global_indexes) - 1
-
-        while True:
-
-            if len(self.file_global_indexes) - 1 == len(self.files):
-                self.max_length = curr_index + 1
-                self.finished_reading = True
-                break
-
-            buf_file_name = self.signal_directory + self.files[curr_file_index]
+    def gen_file_lookup_table(self):
+        curr_index = self.file_global_indexes[0]
+        for file in self.files:
+            buf_file_name = self.signal_directory + file
             next_buf = self.load_func(buf_file_name)
             curr_index += len(next_buf)
+            del next_buf
             self.add_file_global_index(curr_index)
-
-            if curr_index > index:
-                self.curr_file_name = buf_file_name
-                del self.sample_buffer
-                self.file_index = curr_file_index
-                self.sample_buffer = next_buf
-                self.dtype = self.sample_buffer.dtype
-                self.global_index = index
-                self.start_sample = index - self.file_global_indexes[curr_file_index]
-                self.finished_reading = False
-                break
-            else:
-                curr_file_index += 1
-                del next_buf
+        self.max_length = self.file_global_indexes[-1]
 
     def set_global_index(self, index):
-        if index >= self.file_global_indexes[-1]:
-            self.generate_file_and_index(index)
-        else:
+        if index < self.max_length:
             self.look_up_file_and_index(index)
+        else:
+            self.finished_reading = True
+            self.start_sample = self.max_length
+            self.global_index = self.max_length
 
     def get_finished_reading(self):
         return self.finished_reading
