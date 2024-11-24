@@ -96,10 +96,11 @@ def fastzip_bit_gen_wrapper(
 
 def calc_bits(event_file, key_size, *args):
     key = ""
+    events, event_sigs = event_file.get_events(1)
     while not event_file.get_finished_reading() and len(key) < key_size:
-        events, event_sigs = event_file.get_events(1)
         chunk = event_sigs[0]
         key += fastzip_bit_gen_wrapper(chunk, *args)
+        events, event_sigs = event_file.get_events(1)
     return key[:key_size]
 
 
