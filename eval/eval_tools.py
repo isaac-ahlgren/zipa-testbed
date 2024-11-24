@@ -69,48 +69,40 @@ def calc_all_event_bits(signals, event_bit_gen_algo_wrapper, number_of_events, *
     legit2_total_bits = []
     adv_total_bits = []
 
-    print(len(legit1.events))
-    print(len(legit2.events))
-    print(len(adv.events))
-
     legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
     legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
     adv_events, adv_event_sigs = adv.get_events(number_of_events)
 
-    print("Here")
     while (
             ((not legit1.get_finished_reading() and len(legit1_events) == number_of_events) 
-            and (not legit2.get_finished_reading() and len(legit2_events) == number_of_events) 
-            and (not adv.get_finished_reading() and len(adv_events) == number_of_events) )
+            and (not legit2.get_finished_reading() and len(legit2_events) == number_of_events))
     ):
-        print(len(legit1.events))
-        print(legit1_events)
-        print(legit1_event_sigs)
-        print(legit1.get_finished_reading())
-        print()
         legit1_bits = event_bit_gen_algo_wrapper(
             legit1_events, legit1_event_sigs, *argv
         )
         legit2_bits = event_bit_gen_algo_wrapper(
             legit2_events, legit2_event_sigs, *argv
         )
-        adv_bits = event_bit_gen_algo_wrapper(adv_events, adv_event_sigs, *argv)
+        if (not adv.get_finished_reading() and len(adv_events) == number_of_events):
+            adv_bits = event_bit_gen_algo_wrapper(adv_events, adv_event_sigs, *argv)
+            adv_total_bits.append(adv_bits)
 
         legit1_total_bits.append(legit1_bits)
         legit2_total_bits.append(legit2_bits)
 
-        adv_total_bits.append(adv_bits)
         legit2.sync(legit1)
-        adv.sync(legit1)
+
+        if (not adv.get_finished_reading() and len(adv_events) == number_of_events):
+            adv.sync(legit1)
 
         if (
             not legit1.get_finished_reading()
             and not legit2.get_finished_reading()
-            and not adv.get_finished_reading()
         ):
             legit1_events, legit1_event_sigs = legit1.get_events(number_of_events)
             legit2_events, legit2_event_sigs = legit2.get_events(number_of_events)
-            adv_events, adv_event_sigs = adv.get_events(number_of_events)
+            if (not adv.get_finished_reading() and len(adv_events) == number_of_events):
+                adv_events, adv_event_sigs = adv.get_events(number_of_events)
     return legit1_total_bits, legit2_total_bits, adv_total_bits
 
 
