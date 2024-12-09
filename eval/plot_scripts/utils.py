@@ -137,7 +137,8 @@ def get_min_entropy_list(byte_list, key_length, symbol_size):
 def extract_from_contents(contents, key_word):
     extracted_content = []
     for content in contents:
-        extracted_content.append(content[key_word])
+        if key_word in content:
+            extracted_content.append(content[key_word])
     return extracted_content
 
 

@@ -223,12 +223,74 @@ def plot_fastzip(savefigs=True):
         parse_string="eventbits",
     )
 
+def plot_perceptio(savefigs=True):
+    PERCEPTIO_DATA_DIRECTORY = "../perceptio/perceptio_data/perceptio_real_fuzz"
+    PERCEPTIO_REAL_FUZZING_STUB = "perceptio_real_fuzz"
+    FIG_DIR_NAME_STUB = "perceptio_real_fuzz"
+
+    DEVICE_PAIRS = [
+        ("10.0.0.238", "10.0.0.228", "10.0.0.239"),
+        ("10.0.0.231", "10.0.0.232", "10.0.0.239"),
+        ("10.0.0.233", "10.0.0.236", "10.0.0.239"),
+        ("10.0.0.227", "10.0.0.229", "10.0.0.237"),
+        ("10.0.0.235", "10.0.0.237", "10.0.0.239"),
+        ("10.0.0.234", "10.0.0.239", "10.0.0.237"),
+    ]
+
+    contents = parse_eval_directory(
+        f"{PERCEPTIO_DATA_DIRECTORY}",
+        f"{PERCEPTIO_REAL_FUZZING_STUB}",
+        parse_string="eventbits",
+    )
+
+    if savefigs:
+        fig_dir = make_plot_dir(FIG_DIR_NAME_STUB)
+    else:
+        fig_dir = None
+
+    bit_err_device_pairs(
+        DEVICE_PAIRS,
+        contents,
+        "top_th",
+        PERCEPTIO_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    bit_err_device_pairs(
+        DEVICE_PAIRS,
+        contents,
+        "bottom_th",
+        PERCEPTIO_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    bit_err_device_pairs(
+        DEVICE_PAIRS,
+        contents,
+        "lump_th",
+        PERCEPTIO_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    bit_err_device_pairs(
+        DEVICE_PAIRS,
+        contents,
+        "a",
+        PERCEPTIO_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+
 
 def main():
     #plot_schurmann()
     #plot_miettinen()
     plot_fastzip()
-
+    plot_perceptio()
 
 if __name__ == "__main__":
     main()

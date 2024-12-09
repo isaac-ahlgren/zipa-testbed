@@ -8,16 +8,16 @@ from utils import (
 
 
 def min_entropy_devices(
-    devices, contents, param_label, file_name_stub, fig_dir, savefig=True
+    devices, contents, param_label, file_name_stub, fig_dir, savefig=True, parse_string="bits", key_length=128,
 ):
     for device in devices:
-        device_id = device + "_bits"
+        device_id = device + "_" + parse_string
 
         device_file_stub = f"{file_name_stub}_{device}_{param_label}_minentropy"
 
         device_byte_list = extract_from_contents(contents, device_id)
 
-        min_entropy_list = get_min_entropy_list(device_byte_list, 128, 8)
+        min_entropy_list = get_min_entropy_list(device_byte_list, key_length, 8)
 
         params = extract_from_contents(contents, "params")
         param_list = extract_from_contents(params, param_label)
@@ -149,10 +149,158 @@ def plot_miettinen(savefigs=True):
         savefig=savefigs,
     )
 
+def plot_fastzip(savefigs=True):
+    FASTZIP_DATA_DIRECTORY = (
+        "../fastzip/fastzip_data/fastzip_real_fuzz"
+    )
+    FASTZIP_REAL_FUZZING_STUB = "fastzip_real_fuzz"
+    FIG_DIR_NAME_STUB = "fastzip_real_fuzz_min_entropy"
+
+    DEVICES = [
+        "10.0.0.238",
+        "10.0.0.228",
+        "10.0.0.231",
+        "10.0.0.232",
+        "10.0.0.233",
+        "10.0.0.236",
+        "10.0.0.227",
+        "10.0.0.229",
+        "10.0.0.235",
+        "10.0.0.237",
+        "10.0.0.234",
+        "10.0.0.239",
+    ]
+
+    contents = parse_eval_directory(
+        f"{FASTZIP_DATA_DIRECTORY}",
+        f"{FASTZIP_REAL_FUZZING_STUB}",
+    )
+
+    if savefigs:
+        fig_dir = make_plot_dir(FIG_DIR_NAME_STUB)
+    else:
+        fig_dir = None
+
+    min_entropy_devices(
+        DEVICES,
+        contents,
+        "window_size",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    min_entropy_devices(
+        DEVICES,
+        contents,
+        "overlap_size",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    min_entropy_devices(
+        DEVICES,
+        contents,
+        "n_bits",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    min_entropy_devices(
+        DEVICES,
+        contents,
+        "power_thr",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    min_entropy_devices(
+        DEVICES,
+        contents,
+        "snr_thr",
+        FASTZIP_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+
+def plot_perceptio(savefigs=True):
+    PERCEPTIO_DATA_DIRECTORY = (
+        "../perceptio/perceptio_data/perceptio_real_fuzz"
+    )
+    PERCEPTIO_REAL_FUZZING_STUB = "perceptio_real_fuzz"
+    FIG_DIR_NAME_STUB = "perceptio_real_fuzz_min_entropy"
+
+    DEVICES = [
+        "10.0.0.238",
+        "10.0.0.228",
+        "10.0.0.231",
+        "10.0.0.232",
+        "10.0.0.233",
+        "10.0.0.236",
+        "10.0.0.227",
+        "10.0.0.229",
+        "10.0.0.235",
+        "10.0.0.237",
+        "10.0.0.234",
+        "10.0.0.239",
+    ]
+
+    contents = parse_eval_directory(
+        f"{PERCEPTIO_DATA_DIRECTORY}",
+        f"{PERCEPTIO_REAL_FUZZING_STUB}",
+    )
+
+    if savefigs:
+        fig_dir = make_plot_dir(FIG_DIR_NAME_STUB)
+    else:
+        fig_dir = None
+
+    min_entropy_devices(
+        DEVICES,
+        contents,
+        "top_th",
+        PERCEPTIO_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    min_entropy_devices(
+        DEVICES,
+        contents,
+        "bottom_th",
+        PERCEPTIO_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    min_entropy_devices(
+        DEVICES,
+        contents,
+        "lump_th",
+        PERCEPTIO_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
+    min_entropy_devices(
+        DEVICES,
+        contents,
+        "a",
+        PERCEPTIO_REAL_FUZZING_STUB,
+        fig_dir,
+        savefig=savefigs,
+        parse_string="eventbits",
+    )
 
 def main():
-    plot_schurmann()
-    plot_miettinen()
+    #plot_schurmann()
+    #plot_miettinen()
+    plot_fastzip()
+    plot_perceptio()
 
 
 if __name__ == "__main__":

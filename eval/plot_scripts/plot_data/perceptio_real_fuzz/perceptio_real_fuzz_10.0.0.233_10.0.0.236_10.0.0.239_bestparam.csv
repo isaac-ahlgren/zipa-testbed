@@ -1,0 +1,2 @@
+,top_th,bottom_th,lump_th,a,cluster_size,cluster_th,sampling_rate,number_of_events,event_dir,adv_ber,legit_ber
+0,265036342,231365259,12928,0.4639766021529212,4,0.1680170187787233,44100,5,./perceptio_data/perceptio_real_fuzz/perceptio_real_event_fuzz/perceptio_real_event_fuzz_id5295337635937125131,50,16.999267912106703

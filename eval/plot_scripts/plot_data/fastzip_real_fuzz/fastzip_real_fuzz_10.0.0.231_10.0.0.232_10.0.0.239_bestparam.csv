@@ -1,2 +1,2 @@
 ,window_size,overlap_size,n_bits,eqd_delta,ewma,alpha,remove_noise,bias,normalize,power_th,snr_th,peak_th,peak_status,sample_rate,event_dir,adv_ber,legit_ber
-0,7309,2188,47,1,False,0.4757488153543734,False,0,True,122.31477626099674,2.483154421936595,5,False,44100,./fastzip_data/fastzip_real_fuzz/fastzip_event_real_fuzz/fastzip_event_real_fuzz_id7655582492818595377,50,50
+0,5089,1482,16,1,False,0.0303690960612411,False,0,True,143.05275948696809,0.9374222907427714,4,False,44100,./fastzip_data/fastzip_real_fuzz/fastzip_event_real_fuzz/fastzip_event_real_fuzz_id781605828457683296,48.78547054597701,25.122704802259886
