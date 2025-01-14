@@ -81,18 +81,22 @@ def merge_events(first_event_list, second_event_list, lump_th, chunk_size, itera
 def process_events(
     events, event_signals, key_size, cluster_sizes_to_check, cluster_th, Fs
 ):
+    from datetime import timedelta
 
-    event_features = [PerceptioProcessing.generate_features(x) for x in event_signals]
+    key = bytearray()
+    for j in range(len(events) - 1):
+        interval = (events[j + 1][0] - events[j][0]) / Fs
+        in_microseconds = int(
+            timedelta(seconds=interval) / timedelta(microseconds=1)
+        )
+        key += in_microseconds.to_bytes(
+            8, "big"
+        )  # Going to treat every interval as a 4 byte integer
 
-    labels, k, _ = PerceptioProcessing.kmeans_w_elbow_method(
-        event_features, cluster_sizes_to_check, cluster_th
-    )
+        if len(key) >= key_size:
+            key = bytes(key[-key_size:])
 
-    grouped_events = PerceptioProcessing.group_events(events, labels, k)
-
-    fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size // 8, Fs)
-
-    return fps
+    return [key]
 
 
 def extract_all_events(signal, top_th, bottom_th, lump_th, a, chunk_size=10000):
@@ -198,6 +202,7 @@ def generate_bits(
     grouped_events = PerceptioProcessing.group_events(events, labels, k)
 
     fps = PerceptioProcessing.gen_fingerprints(grouped_events, k, key_size_in_bytes, Fs)
+    
     return fps, grouped_events
 
 
@@ -284,3 +289,10 @@ def get_command_line_args(
         target_snr,
         trials,
     )
+
+def unpack_event_parameters(params):
+    names = ["top_th",
+             "bottom_th",
+             "lump_th",
+             "a"]
+    return [params[name] for name in names]

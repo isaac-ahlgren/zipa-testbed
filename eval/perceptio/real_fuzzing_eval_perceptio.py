@@ -20,9 +20,9 @@ from eval_tools import (  # noqa: E402
 from evaluator import Evaluator  # noqa: E402
 
 # Static default parameters
-KEY_LENGTH_DEFAULT = 2*128
+KEY_LENGTH_DEFAULT = 256
 NUMBER_OF_CHOICES_DEFAULT = 500
-EVENT_NUM_DEFAULT = 16
+EVENT_NUM_DEFAULT = 5
 
 
 # Random Parameter Ranges
@@ -75,6 +75,7 @@ def main(
         lump_th = params["lump_th"]
         a = params["a"]
 
+        print(f"event_dir: {event_dir}")
         return (
             top_th,
             bottom_th,

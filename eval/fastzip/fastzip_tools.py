@@ -320,3 +320,15 @@ def parse_command_line_args(
         snr_level,
         trials,
     )
+
+def unpack_event_parameters(params):
+    names = ["window_size",
+             "overlap_size",
+             "power_th",
+             "snr_th",
+             "peak_th",
+             "sample_rate",
+             "peak_status",
+             "normalize",
+             "alpha"]
+    return [params[name] for name in names]
