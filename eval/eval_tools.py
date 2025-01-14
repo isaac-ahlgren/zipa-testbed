@@ -577,18 +577,25 @@ def load_signal_groups(
     best_param_dir,
     param_file_stub,
     param_unpack_func,
+    load_func=optimized_load,
+    event_dir_file_stub=None,
+    data_dir=None
 ):
     group_signals = []
     group_parameters = []
     for group in groups:
-        signals = load_real_signal_files(signal_data_dir, group, sensor_type, timestamp)
+        signals = load_real_signal_files(signal_data_dir, group, sensor_type, timestamp, load_func=load_func)
 
         id1 = group[0]
         id2 = group[1]
         id3 = group[2]
         file = f"{best_param_dir}/{param_file_stub}_{id1}_{id2}_{id3}_bestparam.csv"
         best_param = load_parameters(file)
+
         params = param_unpack_func(best_param)
+
+        if event_dir_file_stub is not None:
+            params.append(f"{data_dir}/{event_dir_file_stub}_{id1}_{id2}_{id3}")
 
         group_signals.append(signals)
         group_parameters.append(params)
